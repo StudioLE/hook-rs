@@ -1,35 +1,31 @@
-use regex::Regex;
-use std::sync::LazyLock;
-
+use crate::command;
 use crate::prelude::*;
 
-static STASH_POP: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?:^|&&|\|\||[;|])\s*git\s+stash\s+pop(?:\s|$)").expect("valid regex")
-});
-
-static STASH_DROP: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?:^|&&|\|\||[;|])\s*git\s+stash\s+drop(?:\s|$)").expect("valid regex")
-});
-
-static STASH_CLEAR: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?:^|&&|\|\||[;|])\s*git\s+stash\s+clear(?:\s|$)").expect("valid regex")
-});
-
+#[must_use]
 pub fn check(command: &str) -> Option<CheckResult> {
-    if STASH_POP.is_match(command) {
-        return Some(CheckResult::deny(
-            "git stash pop is blocked. Use 'git stash apply' instead to keep the stash entry for safety.",
-        ));
-    }
-    if STASH_DROP.is_match(command) {
-        return Some(CheckResult::deny(
-            "git stash drop is blocked. Use 'git stash list' to view stashes, 'git stash show' to inspect them.",
-        ));
-    }
-    if STASH_CLEAR.is_match(command) {
-        return Some(CheckResult::deny(
-            "git stash clear is blocked. This would delete all stashes permanently.",
-        ));
+    for args in command::git_args_in_segments(command) {
+        let mut parts = args.split_whitespace();
+        if parts.next() != Some("stash") {
+            continue;
+        }
+        match parts.next() {
+            Some("pop") => {
+                return Some(CheckResult::deny(
+                    "git stash pop is blocked. Use 'git stash apply' instead to keep the stash entry for safety.",
+                ));
+            }
+            Some("drop") => {
+                return Some(CheckResult::deny(
+                    "git stash drop is blocked. Use 'git stash list' to view stashes, 'git stash show' to inspect them.",
+                ));
+            }
+            Some("clear") => {
+                return Some(CheckResult::deny(
+                    "git stash clear is blocked. This would delete all stashes permanently.",
+                ));
+            }
+            _ => {}
+        }
     }
     None
 }
@@ -152,5 +148,40 @@ mod tests {
     #[test]
     fn cat_stash_clear_passthrough() {
         assert_eq!(check("cat stash-clear-notes.txt"), None);
+    }
+
+    #[test]
+    fn c_path_stash_pop() {
+        assert_yaml_snapshot!(check(
+            "git -C /var/mnt/e/Repos/Rogue/docker/caddy stash pop"
+        ));
+    }
+
+    #[test]
+    fn c_path_stash_drop() {
+        assert_yaml_snapshot!(check("git -C /var/mnt/e/Repos/Rust/caesura stash drop"));
+    }
+
+    #[test]
+    fn c_path_stash_clear() {
+        assert_yaml_snapshot!(check("git -C /tmp/repo stash clear"));
+    }
+
+    #[test]
+    fn c_path_quoted_stash_pop() {
+        assert_yaml_snapshot!(check("git -C \"/var/mnt/e/Repos/Rust/caesura\" stash pop"));
+    }
+
+    #[test]
+    fn c_path_stash_apply_passthrough() {
+        assert_eq!(
+            check("git -C /var/mnt/e/Repos/Rust/caesura stash apply"),
+            None
+        );
+    }
+
+    #[test]
+    fn c_path_stash_passthrough() {
+        assert_eq!(check("git -C /var/mnt/e/Repos/Rust/caesura stash"), None);
     }
 }

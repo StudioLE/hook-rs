@@ -1,6 +1,7 @@
 use regex::Regex;
 use std::sync::LazyLock;
 
+use crate::command;
 use crate::prelude::*;
 
 static RM_CMD: LazyLock<Regex> = LazyLock::new(|| {
@@ -13,10 +14,6 @@ static TMP_RM: LazyLock<Regex> =
 static RECURSIVE_RM: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?:^|&&|\|\||[;|]|\bdo\b|\bthen\b|\belse\b)\s*rm\s+(-[a-zA-Z]*[rR]|--recursive)")
         .expect("valid regex")
-});
-
-static GIT_CLEAN_D: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?:^|&&|\|\||[;|])\s*git\s+clean\s+-[a-zA-Z]*d").expect("valid regex")
 });
 
 pub fn check(command: &str) -> Option<CheckResult> {
@@ -37,13 +34,28 @@ pub fn check(command: &str) -> Option<CheckResult> {
              'git clean -f <file>' for untracked files (or -fx if gitignored).",
         ));
     }
-    if GIT_CLEAN_D.is_match(command) {
+    if has_git_clean_d(command) {
         return Some(CheckResult::deny(
             "git clean with -d is blocked. Use 'git clean -f <file>' for specific files \
              (or -fx if gitignored) or 'git rm -r <dir>' for tracked directories.",
         ));
     }
     None
+}
+
+fn has_git_clean_d(command: &str) -> bool {
+    for args in command::git_args_in_segments(command) {
+        let mut parts = args.split_whitespace();
+        if parts.next() != Some("clean") {
+            continue;
+        }
+        for part in parts {
+            if part.starts_with('-') && !part.starts_with("--") && part.contains('d') {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 #[cfg(test)]
@@ -302,5 +314,28 @@ mod tests {
     #[test]
     fn echo_git_clean_passthrough() {
         assert_eq!(check("echo git clean -fxd"), None);
+    }
+
+    #[test]
+    fn c_path_git_clean_fd() {
+        assert_yaml_snapshot!(check("git -C /var/mnt/e/Repos/Rust/caesura clean -fd"));
+    }
+
+    #[test]
+    fn c_path_git_clean_fxd() {
+        assert_yaml_snapshot!(check("git -C /var/mnt/e/Repos/Rust/caesura clean -fxd"));
+    }
+
+    #[test]
+    fn c_path_quoted_git_clean_fd() {
+        assert_yaml_snapshot!(check("git -C \"/var/mnt/e/Repos/Rust/caesura\" clean -fd"));
+    }
+
+    #[test]
+    fn c_path_git_clean_f_passthrough() {
+        assert_eq!(
+            check("git -C /var/mnt/e/Repos/Rust/caesura clean -f file.txt"),
+            None
+        );
     }
 }

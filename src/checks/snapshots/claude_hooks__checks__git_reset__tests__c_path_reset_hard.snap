@@ -1,0 +1,6 @@
+---
+source: src/checks/git_reset.rs
+expression: "check(\"git -C /var/mnt/e/Repos/Rust/caesura reset --hard\")"
+---
+decision: deny
+reason: git reset --hard is blocked. This discards all uncommitted changes permanently.

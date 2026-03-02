@@ -39,6 +39,9 @@ pub fn check(command: &str) -> Option<CheckResult> {
         None
     } else {
         let first_arg = args.split_whitespace().next().unwrap_or("");
+        if matches!(first_arg, "stash" | "reset" | "checkout" | "clean") {
+            return None;
+        }
         Some(CheckResult::ask(format!("git {first_arg} -C {path}")))
     }
 }
@@ -726,5 +729,37 @@ mod tests {
     #[test]
     fn branch_delete_with_path() {
         assert_yaml_snapshot!(check("git -C /var/mnt/e/Repos/Rust/caesura branch -d old"));
+    }
+
+    #[test]
+    fn stash_with_c_path_passthrough() {
+        assert_eq!(
+            check("git -C /var/mnt/e/Repos/Rust/caesura stash pop"),
+            None
+        );
+    }
+
+    #[test]
+    fn reset_with_c_path_passthrough() {
+        assert_eq!(
+            check("git -C /var/mnt/e/Repos/Rust/caesura reset --hard"),
+            None
+        );
+    }
+
+    #[test]
+    fn checkout_with_c_path_passthrough() {
+        assert_eq!(
+            check("git -C /var/mnt/e/Repos/Rust/caesura checkout -- file.txt"),
+            None
+        );
+    }
+
+    #[test]
+    fn clean_with_c_path_passthrough() {
+        assert_eq!(
+            check("git -C /var/mnt/e/Repos/Rust/caesura clean -fd"),
+            None
+        );
     }
 }

@@ -1,26 +1,23 @@
-use regex::Regex;
-use std::sync::LazyLock;
-
+use crate::command;
 use crate::prelude::*;
 
-static CHECKOUT_HEAD_DISCARD: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?:^|&&|\|\||[;|])\s*git\s+checkout\s+HEAD\s+--").expect("valid regex")
-});
-
-static CHECKOUT_DISCARD: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?:^|&&|\|\||[;|])\s*git\s+checkout\s+--\s").expect("valid regex")
-});
-
+#[must_use]
 pub fn check(command: &str) -> Option<CheckResult> {
-    if CHECKOUT_HEAD_DISCARD.is_match(command) {
-        return Some(CheckResult::deny(
-            "git checkout HEAD -- is blocked. Do not discard changes to revert your mistakes. Fix the code properly.",
-        ));
-    }
-    if CHECKOUT_DISCARD.is_match(command) {
-        return Some(CheckResult::deny(
-            "git checkout -- is blocked. Do not discard changes to revert your mistakes. Fix the code properly.",
-        ));
+    for args in command::git_args_in_segments(command) {
+        let parts: Vec<&str> = args.split_whitespace().collect();
+        if parts.first() != Some(&"checkout") {
+            continue;
+        }
+        if parts.get(1) == Some(&"HEAD") && parts.get(2) == Some(&"--") {
+            return Some(CheckResult::deny(
+                "git checkout HEAD -- is blocked. Do not discard changes to revert your mistakes. Fix the code properly.",
+            ));
+        }
+        if parts.get(1) == Some(&"--") && parts.len() > 2 {
+            return Some(CheckResult::deny(
+                "git checkout -- is blocked. Do not discard changes to revert your mistakes. Fix the code properly.",
+            ));
+        }
     }
     None
 }
@@ -125,5 +122,34 @@ mod tests {
     #[test]
     fn grep_checkout_discard_passthrough() {
         assert_eq!(check("grep 'git checkout --' README.md"), None);
+    }
+
+    #[test]
+    fn c_path_checkout_head_file() {
+        assert_yaml_snapshot!(check(
+            "git -C /var/mnt/e/Repos/Rust/caesura checkout HEAD -- file.txt"
+        ));
+    }
+
+    #[test]
+    fn c_path_checkout_discard() {
+        assert_yaml_snapshot!(check(
+            "git -C /var/mnt/e/Repos/Rust/caesura checkout -- file.txt"
+        ));
+    }
+
+    #[test]
+    fn c_path_quoted_checkout_discard() {
+        assert_yaml_snapshot!(check(
+            "git -C \"/var/mnt/e/Repos/Rust/caesura\" checkout -- ."
+        ));
+    }
+
+    #[test]
+    fn c_path_checkout_branch_passthrough() {
+        assert_eq!(
+            check("git -C /var/mnt/e/Repos/Rust/caesura checkout main"),
+            None
+        );
     }
 }

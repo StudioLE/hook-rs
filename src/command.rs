@@ -30,6 +30,15 @@ pub fn has_command_at_position(command: &str, cmd: &str) -> bool {
     false
 }
 
+/// Iterate over command segments, yielding parsed git args for each segment
+/// that contains a git command. Handles `-C <path>` transparently.
+pub fn git_args_in_segments(command: &str) -> impl Iterator<Item = &str> {
+    split_segments(command).into_iter().filter_map(|segment| {
+        let (_, args) = parse_git(segment);
+        if args.is_empty() { None } else { Some(args) }
+    })
+}
+
 /// Parse a git command segment, extracting the `-C <path>` if present.
 /// Returns `(path, remaining_args)` where path is empty string if no `-C`.
 pub fn parse_git(segment: &str) -> (&str, &str) {

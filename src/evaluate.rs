@@ -168,4 +168,35 @@ mod tests {
         assert_eq!(result.decision, Decision::Deny);
         assert!(result.reason.contains("Recursive rm"));
     }
+
+    #[test]
+    fn c_path_stash_pop_denied() {
+        let result =
+            eval("git -C /var/mnt/e/Repos/Rogue/docker/caddy stash pop").expect("should match");
+        assert_eq!(result.decision, Decision::Deny);
+        assert!(result.reason.contains("stash pop"));
+    }
+
+    #[test]
+    fn c_path_reset_hard_denied() {
+        let result =
+            eval("git -C /var/mnt/e/Repos/Rust/caesura reset --hard").expect("should match");
+        assert_eq!(result.decision, Decision::Deny);
+        assert!(result.reason.contains("reset --hard"));
+    }
+
+    #[test]
+    fn c_path_checkout_discard_denied() {
+        let result = eval("git -C /var/mnt/e/Repos/Rust/caesura checkout -- file.txt")
+            .expect("should match");
+        assert_eq!(result.decision, Decision::Deny);
+        assert!(result.reason.contains("checkout --"));
+    }
+
+    #[test]
+    fn c_path_git_clean_d_denied() {
+        let result = eval("git -C /var/mnt/e/Repos/Rust/caesura clean -fd").expect("should match");
+        assert_eq!(result.decision, Decision::Deny);
+        assert!(result.reason.contains("clean"));
+    }
 }

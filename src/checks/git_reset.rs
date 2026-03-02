@@ -1,18 +1,20 @@
-use regex::Regex;
-use std::sync::LazyLock;
-
+use crate::command;
 use crate::prelude::*;
 
-static RESET_HARD: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?:^|&&|\|\||[;|])\s*git\s+reset\s+.*--hard(?:\s|$)").expect("valid regex")
-});
-
+#[must_use]
 pub fn check(command: &str) -> Option<CheckResult> {
-    RESET_HARD.is_match(command).then(|| {
-        CheckResult::deny(
-            "git reset --hard is blocked. This discards all uncommitted changes permanently.",
-        )
-    })
+    for args in command::git_args_in_segments(command) {
+        let mut parts = args.split_whitespace();
+        if parts.next() != Some("reset") {
+            continue;
+        }
+        if parts.any(|p| p == "--hard") {
+            return Some(CheckResult::deny(
+                "git reset --hard is blocked. This discards all uncommitted changes permanently.",
+            ));
+        }
+    }
+    None
 }
 
 #[cfg(test)]
@@ -88,5 +90,32 @@ mod tests {
     #[test]
     fn grep_reset_hard_passthrough() {
         assert_eq!(check("grep 'git reset --hard' README.md"), None);
+    }
+
+    #[test]
+    fn c_path_reset_hard() {
+        assert_yaml_snapshot!(check("git -C /var/mnt/e/Repos/Rust/caesura reset --hard"));
+    }
+
+    #[test]
+    fn c_path_reset_hard_head() {
+        assert_yaml_snapshot!(check(
+            "git -C /var/mnt/e/Repos/Rust/caesura reset --hard HEAD~1"
+        ));
+    }
+
+    #[test]
+    fn c_path_quoted_reset_hard() {
+        assert_yaml_snapshot!(check(
+            "git -C \"/var/mnt/e/Repos/Rust/caesura\" reset --hard"
+        ));
+    }
+
+    #[test]
+    fn c_path_reset_soft_passthrough() {
+        assert_eq!(
+            check("git -C /var/mnt/e/Repos/Rust/caesura reset --soft HEAD~1"),
+            None
+        );
     }
 }
