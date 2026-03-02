@@ -1,0 +1,6 @@
+---
+source: src/checks/gh_cli.rs
+expression: "check_with_context(\"gh api repos/StudioLE/some-repo/pulls/1/comments/2/replies -d '{\\\"body\\\":\\\"test\\\"}'\",\n\"StudioLE-Bot\", \"\")"
+---
+decision: allow
+reason: PR comment reply

@@ -1,0 +1,6 @@
+---
+source: src/checks/gh_cli.rs
+expression: "check_bot(\"gh pr comment 123 --body 'test'\")"
+---
+decision: allow
+reason: PR comment

@@ -1,0 +1,5 @@
+---
+source: src/checks/git_approval.rs
+expression: "check(\"git tag --verify v1.0\")"
+---
+~

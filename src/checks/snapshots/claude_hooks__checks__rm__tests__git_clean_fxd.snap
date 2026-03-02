@@ -1,0 +1,6 @@
+---
+source: src/checks/rm.rs
+expression: "check(\"git clean -fxd\")"
+---
+decision: deny
+reason: "git clean with -d is blocked. Use 'git clean -f <file>' for specific files (or -fx if gitignored) or 'git rm -r <dir>' for tracked directories."

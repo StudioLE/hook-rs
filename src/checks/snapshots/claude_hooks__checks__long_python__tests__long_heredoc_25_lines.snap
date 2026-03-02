@@ -1,0 +1,6 @@
+---
+source: src/checks/long_python.rs
+expression: check(&make_heredoc(25))
+---
+decision: deny
+reason: "Inline Python too long (436 chars, 27 lines). Write a script to /tmp/ and run it instead."

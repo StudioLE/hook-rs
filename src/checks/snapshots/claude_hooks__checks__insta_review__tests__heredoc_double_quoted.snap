@@ -1,0 +1,6 @@
+---
+source: src/checks/insta_review.rs
+expression: "check(\"cargo insta review <<\\\"EOF\\\"\\na\\nEOF\")"
+---
+decision: deny
+reason: Do not fake interactive input to cargo insta review.

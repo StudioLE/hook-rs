@@ -1,0 +1,6 @@
+---
+source: src/checks/git_approval.rs
+expression: "check(\"git -C /tmp/sketchy commit -m 'evil'\")"
+---
+decision: ask
+reason: git commit -C /tmp/sketchy

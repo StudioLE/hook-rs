@@ -1,0 +1,6 @@
+---
+source: src/checks/git_approval.rs
+expression: "check(\"git -C /var/mnt/e/Repos/Forked/some-repo status\")"
+---
+decision: ask
+reason: "git status in forked repo: /var/mnt/e/Repos/Forked/some-repo"

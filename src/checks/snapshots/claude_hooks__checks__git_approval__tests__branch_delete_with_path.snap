@@ -1,0 +1,6 @@
+---
+source: src/checks/git_approval.rs
+expression: "check(\"git -C /var/mnt/e/Repos/Rust/caesura branch -d old\")"
+---
+decision: ask
+reason: git branch -C /var/mnt/e/Repos/Rust/caesura

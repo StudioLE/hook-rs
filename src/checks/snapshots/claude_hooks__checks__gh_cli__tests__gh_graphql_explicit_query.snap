@@ -1,0 +1,6 @@
+---
+source: src/checks/gh_cli.rs
+expression: "check_t(\"gh api graphql -f query='query { viewer { login } }'\")"
+---
+decision: allow
+reason: Read-only GraphQL query

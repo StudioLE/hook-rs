@@ -1,0 +1,6 @@
+---
+source: src/checks/cd_git.rs
+expression: "check(\"cd /var/mnt/e/Repos/Rust/caesura && git status\")"
+---
+decision: deny
+reason: "Do not chain cd and git. Use 'git -C <path> <command>' instead."

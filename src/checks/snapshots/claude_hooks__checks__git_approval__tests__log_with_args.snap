@@ -1,0 +1,6 @@
+---
+source: src/checks/git_approval.rs
+expression: "check(\"git log --oneline -5\")"
+---
+decision: allow
+reason: "Safe git subcommand: log"

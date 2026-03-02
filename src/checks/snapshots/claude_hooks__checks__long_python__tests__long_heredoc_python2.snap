@@ -1,0 +1,6 @@
+---
+source: src/checks/long_python.rs
+expression: check(&cmd)
+---
+decision: deny
+reason: "Inline Python too long (435 chars, 27 lines). Write a script to /tmp/ and run it instead."

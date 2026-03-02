@@ -1,0 +1,6 @@
+---
+source: src/checks/gh_cli.rs
+expression: "check_t(\"gh api -X POST /repos/owner/repo/issues\")"
+---
+decision: ask
+reason: GitHub API POST

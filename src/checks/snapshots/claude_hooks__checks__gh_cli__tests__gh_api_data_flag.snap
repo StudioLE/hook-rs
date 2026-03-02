@@ -1,0 +1,6 @@
+---
+source: src/checks/gh_cli.rs
+expression: "check_t(\"gh api /repos/owner/repo --data @body.json\")"
+---
+decision: ask
+reason: "GitHub API requests with data flags as test-user in "

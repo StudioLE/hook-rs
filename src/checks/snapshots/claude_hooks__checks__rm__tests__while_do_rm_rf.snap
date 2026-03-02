@@ -1,0 +1,6 @@
+---
+source: src/checks/rm.rs
+expression: "check(\"while true; do rm -rf /path; done\")"
+---
+decision: deny
+reason: "Recursive rm is blocked. Use 'git rm -r <dir>' for tracked directories, 'git clean -fd <dir>' for untracked directories (or -fxd if gitignored), or 'rmdir' for empty directories."
