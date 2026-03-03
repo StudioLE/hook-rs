@@ -1,20 +1,19 @@
-use regex::Regex;
-use std::sync::LazyLock;
-
 use crate::prelude::*;
 
 const MAX_CHARS: usize = 1000;
 const MAX_LINES: usize = 20;
 
-static PYTHON_INLINE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\bpython3?\s+(-\S+\s+)*(<<|-c\b)").expect("valid regex"));
-
-pub fn check(command: &str) -> Option<CheckResult> {
-    if command.is_empty() || !PYTHON_INLINE.is_match(command) {
+#[must_use]
+pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
+    let has_inline_python = parsed.all_commands().any(|cmd| {
+        (cmd.name == "python" || cmd.name == "python3")
+            && (cmd.args.iter().any(|a| a == "-c") || cmd.has_heredoc)
+    });
+    if !has_inline_python {
         return None;
     }
-    let char_count = command.len();
-    let line_count = command.lines().count();
+    let char_count = parsed.raw.len();
+    let line_count = parsed.raw.lines().count();
     if char_count > MAX_CHARS || line_count > MAX_LINES {
         return Some(CheckResult::deny(format!(
             "Inline Python too long ({char_count} chars, {line_count} lines). Write a script to /tmp/ and run it instead."
@@ -28,11 +27,16 @@ mod tests {
     use super::*;
     use insta::assert_yaml_snapshot;
 
+    fn check(command: &str) -> Option<CheckResult> {
+        let parsed = crate::command::parse(command)?;
+        super::check(&parsed)
+    }
+
     fn make_heredoc(lines: usize) -> String {
+        use std::fmt::Write;
         let mut cmd = "python3 << 'EOF'".to_owned();
         for i in 1..=lines {
-            cmd.push('\n');
-            cmd.push_str(&format!("print('line {i}')"));
+            write!(cmd, "\nprint('line {i}')").unwrap();
         }
         cmd.push_str("\nEOF");
         cmd
@@ -104,9 +108,6 @@ mod tests {
 
     #[test]
     fn boundary_exactly_1000_chars_passthrough() {
-        // make_long_c(978) -> "python3 -c 'print(\"" (22) + 978 + "\")'" (3) = 1000+3? Let's check
-        // "python3 -c 'print(\"" = 20 chars, padding, "\")'" = 3 chars  -> 20 + 978 + 3 = 1001? No.
-        // Actually: python3 -c 'print("  = 19 chars, then padding, then ")' = 3 chars
         // 19 + 978 + 3 = 1000
         assert_eq!(check(&make_long_c(978)), None);
     }

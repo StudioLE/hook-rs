@@ -72,6 +72,56 @@ pub struct HookSpecificOutput {
     pub permission_decision_reason: String,
 }
 
+#[derive(Debug)]
+pub struct ParsedCommand {
+    pub raw: String,
+    pub and_or_lists: Vec<AndOrContext>,
+}
+
+#[derive(Debug)]
+pub struct AndOrContext {
+    pub items: Vec<PipelineItem>,
+}
+
+#[derive(Debug)]
+pub struct PipelineItem {
+    pub connector: Option<Connector>,
+    pub commands: Vec<CommandContext>,
+}
+
+#[derive(Debug)]
+pub struct CommandContext {
+    pub name: String,
+    pub args: Vec<String>,
+    pub has_heredoc: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Connector {
+    And,
+    Or,
+}
+
+impl ParsedCommand {
+    pub fn all_commands(&self) -> impl Iterator<Item = &CommandContext> {
+        self.and_or_lists
+            .iter()
+            .flat_map(|aol| &aol.items)
+            .flat_map(|pi| &pi.commands)
+    }
+
+    #[must_use]
+    pub fn is_standalone(&self) -> bool {
+        self.and_or_lists
+            .first()
+            .is_some_and(|aol| {
+                aol.items.len() == 1
+                    && aol.items.first().is_some_and(|pi| pi.commands.len() == 1)
+            })
+            && self.and_or_lists.len() == 1
+    }
+}
+
 impl From<CheckResult> for HookOutput {
     fn from(result: CheckResult) -> Self {
         Self {

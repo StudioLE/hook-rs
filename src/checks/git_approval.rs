@@ -2,26 +2,17 @@ use crate::command;
 use crate::prelude::*;
 
 #[must_use]
-pub fn check(command: &str) -> Option<CheckResult> {
-    if command.contains("&&")
-        || command.contains("||")
-        || command.contains(';')
-        || command.contains('|')
-    {
+pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
+    if !parsed.is_standalone() {
         return None;
     }
-    let trimmed = command.trim();
-    if !trimmed.starts_with("git") || trimmed.get(3..4).is_some_and(|c| c != " " && !c.is_empty()) {
+    let cmd = parsed.all_commands().next()?;
+    let ga = command::parse_git_args(cmd)?;
+    if ga.args.is_empty() {
         return None;
     }
-    if trimmed == "git" {
-        return None;
-    }
-    let (path, args) = command::parse_git(trimmed);
-    if args.is_empty() {
-        return None;
-    }
-    let subcommand = safe_subcommand(args);
+    let subcommand = safe_subcommand(ga.args);
+    let path = ga.path.as_deref().unwrap_or("");
     let path_class = classify_path(path);
     if let Some(sub) = subcommand {
         match path_class {
@@ -38,23 +29,23 @@ pub fn check(command: &str) -> Option<CheckResult> {
     } else if path_class == PathClass::None {
         None
     } else {
-        let first_arg = args.split_whitespace().next().unwrap_or("");
-        if matches!(first_arg, "stash" | "reset" | "checkout" | "clean") {
+        let first_arg = ga.args.first()?;
+        if matches!(first_arg.as_str(), "stash" | "reset" | "checkout" | "clean") {
             return None;
         }
         Some(CheckResult::ask(format!("git {first_arg} -C {path}")))
     }
 }
 
-fn safe_subcommand(args: &str) -> Option<&'static str> {
-    let mut parts = args.split_whitespace();
-    let first = parts.next()?;
+fn safe_subcommand(args: &[String]) -> Option<&'static str> {
+    let first = args.first()?.as_str();
+    let rest = args.get(1..).unwrap_or_default();
     match first {
         "check-ignore" | "describe" | "diff" | "fetch" | "log" | "ls-tree" | "merge-base"
         | "mv" | "rev-parse" | "rm" | "show" | "status" => Some(first_to_static(first)),
-        "remote" => check_remote_subcommand(parts),
-        "branch" => check_branch_flags(parts),
-        "tag" => check_tag_flags(parts),
+        "remote" => check_remote_subcommand(rest),
+        "branch" => check_branch_flags(rest),
+        "tag" => check_tag_flags(rest),
         _ => None,
     }
 }
@@ -77,8 +68,8 @@ fn first_to_static(s: &str) -> &'static str {
     }
 }
 
-fn check_remote_subcommand<'a>(mut parts: impl Iterator<Item = &'a str>) -> Option<&'static str> {
-    match parts.next() {
+fn check_remote_subcommand(rest: &[String]) -> Option<&'static str> {
+    match rest.first().map(String::as_str) {
         None | Some("-v" | "--verbose") => Some("remote"),
         Some("show") => Some("remote show"),
         Some("get-url") => Some("remote get-url"),
@@ -89,12 +80,11 @@ fn check_remote_subcommand<'a>(mut parts: impl Iterator<Item = &'a str>) -> Opti
     }
 }
 
-fn check_branch_flags<'a>(parts: impl Iterator<Item = &'a str>) -> Option<&'static str> {
-    let args: Vec<&str> = parts.collect();
-    if args.is_empty() {
+fn check_branch_flags(rest: &[String]) -> Option<&'static str> {
+    if rest.is_empty() {
         return Some("branch");
     }
-    for arg in &args {
+    for arg in rest {
         if arg.starts_with('-') {
             if is_branch_read_flag(arg) {
                 continue;
@@ -143,12 +133,11 @@ fn is_branch_write_flag(flag: &str) -> bool {
     ) || flag.starts_with("--set-upstream-to=")
 }
 
-fn check_tag_flags<'a>(parts: impl Iterator<Item = &'a str>) -> Option<&'static str> {
-    let args: Vec<&str> = parts.collect();
-    if args.is_empty() {
+fn check_tag_flags(rest: &[String]) -> Option<&'static str> {
+    if rest.is_empty() {
         return Some("tag");
     }
-    for arg in &args {
+    for arg in rest {
         if arg.starts_with('-') {
             if is_tag_read_flag(arg) {
                 continue;
@@ -201,6 +190,11 @@ fn classify_path(path: &str) -> PathClass {
 mod tests {
     use super::*;
     use insta::assert_yaml_snapshot;
+
+    fn check(command: &str) -> Option<CheckResult> {
+        let parsed = crate::command::parse(command)?;
+        super::check(&parsed)
+    }
 
     #[test]
     fn safe_subcommands_no_path() {

@@ -2,13 +2,14 @@ use crate::command;
 use crate::prelude::*;
 
 #[must_use]
-pub fn check(command: &str) -> Option<CheckResult> {
-    for args in command::git_args_in_segments(command) {
-        let mut parts = args.split_whitespace();
-        if parts.next() != Some("reset") {
+pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
+    for cmd in parsed.all_commands() {
+        let Some(ga) = command::parse_git_args(cmd) else {
             continue;
-        }
-        if parts.any(|p| p == "--hard") {
+        };
+        if ga.args.first().is_some_and(|a| a == "reset")
+            && ga.args.iter().any(|a| a == "--hard")
+        {
             return Some(CheckResult::deny(
                 "git reset --hard is blocked. This discards all uncommitted changes permanently.",
             ));
@@ -21,6 +22,11 @@ pub fn check(command: &str) -> Option<CheckResult> {
 mod tests {
     use super::*;
     use insta::assert_yaml_snapshot;
+
+    fn check(command: &str) -> Option<CheckResult> {
+        let parsed = crate::command::parse(command)?;
+        super::check(&parsed)
+    }
 
     #[test]
     fn reset_hard() {

@@ -1,14 +1,39 @@
-use regex::Regex;
-use std::sync::LazyLock;
-
+use crate::command;
 use crate::prelude::*;
+use crate::types::PipelineItem;
 
-static SEPARATOR: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"(?:&&|;|\|\|)\s*echo\s+["'][-=]{3}"#).expect("valid regex"));
+#[must_use]
+pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
+    // After && or ||
+    for aol in &parsed.and_or_lists {
+        for pi in &aol.items {
+            if pi.connector.is_some() && has_echo_separator(pi) {
+                return Some(CheckResult::deny(
+                    "Chained echo separators are blocked. Run each command separately.",
+                ));
+            }
+        }
+    }
+    // After ; (non-first and_or_list)
+    for aol in parsed.and_or_lists.iter().skip(1) {
+        for pi in &aol.items {
+            if has_echo_separator(pi) {
+                return Some(CheckResult::deny(
+                    "Chained echo separators are blocked. Run each command separately.",
+                ));
+            }
+        }
+    }
+    None
+}
 
-pub fn check(command: &str) -> Option<CheckResult> {
-    SEPARATOR.is_match(command).then(|| {
-        CheckResult::deny("Chained echo separators are blocked. Run each command separately.")
+fn has_echo_separator(pi: &PipelineItem) -> bool {
+    pi.commands.first().is_some_and(|cmd| {
+        cmd.name == "echo"
+            && cmd.args.first().is_some_and(|arg| {
+                let unquoted = command::unquote(arg);
+                unquoted.starts_with("---") || unquoted.starts_with("===")
+            })
     })
 }
 
@@ -16,6 +41,11 @@ pub fn check(command: &str) -> Option<CheckResult> {
 mod tests {
     use super::*;
     use insta::assert_yaml_snapshot;
+
+    fn check(command: &str) -> Option<CheckResult> {
+        let parsed = crate::command::parse(command)?;
+        super::check(&parsed)
+    }
 
     #[test]
     fn double_dash_separator() {

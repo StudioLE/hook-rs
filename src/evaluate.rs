@@ -1,7 +1,8 @@
 use crate::checks;
+use crate::command;
 use crate::prelude::*;
 
-type CheckFn = fn(&str) -> Option<CheckResult>;
+type CheckFn = fn(&ParsedCommand) -> Option<CheckResult>;
 
 const CHECKS: &[CheckFn] = &[
     checks::gh_cli::check,
@@ -19,7 +20,8 @@ const CHECKS: &[CheckFn] = &[
 ];
 
 pub fn evaluate(command: &str) -> Option<CheckResult> {
-    CHECKS.iter().find_map(|check| check(command))
+    let parsed = command::parse(command)?;
+    CHECKS.iter().find_map(|check| check(&parsed))
 }
 
 #[cfg(test)]

@@ -1,15 +1,16 @@
-use regex::Regex;
-use std::sync::LazyLock;
-
 use crate::prelude::*;
 
-static INSTA_HEREDOC: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"cargo\s+insta\s+review.*<<").expect("valid regex"));
-
-pub fn check(command: &str) -> Option<CheckResult> {
-    INSTA_HEREDOC
-        .is_match(command)
-        .then(|| CheckResult::deny("Do not fake interactive input to cargo insta review."))
+#[must_use]
+pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
+    parsed.all_commands().find_map(|cmd| {
+        (cmd.name == "cargo"
+            && cmd.args.first().is_some_and(|a| a == "insta")
+            && cmd.args.get(1).is_some_and(|a| a == "review")
+            && cmd.has_heredoc)
+            .then(|| {
+                CheckResult::deny("Do not fake interactive input to cargo insta review.")
+            })
+    })
 }
 
 #[cfg(test)]
@@ -17,9 +18,14 @@ mod tests {
     use super::*;
     use insta::assert_yaml_snapshot;
 
+    fn check(command: &str) -> Option<CheckResult> {
+        let parsed = crate::command::parse(command)?;
+        super::check(&parsed)
+    }
+
     #[test]
     fn heredoc_single_quoted() {
-        assert_yaml_snapshot!(check("cargo insta review 2>&1 <<'EOF'\n   a\n   EOF"));
+        assert_yaml_snapshot!(check("cargo insta review 2>&1 <<'EOF'\na\nEOF"));
     }
 
     #[test]

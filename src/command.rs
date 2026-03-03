@@ -1,80 +1,175 @@
-use regex::Regex;
-use std::sync::LazyLock;
+use brush_parser::ast::{
+    self, AndOr, Command, CommandPrefixOrSuffixItem, CompoundCommand, CompoundList, IoRedirect,
+};
+use brush_parser::{ParserOptions, SourceInfo};
 
-static SEGMENT_SPLIT: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"&&|\|\||[;|]|\bdo\b|\bthen\b|\belse\b").expect("valid regex"));
+use crate::types::{AndOrContext, CommandContext, Connector, ParsedCommand, PipelineItem};
 
-static COMMAND_POSITION: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?:^|&&|\|\||[;|]|\bdo\b|\bthen\b|\belse\b)\s*").expect("valid regex")
-});
-
-/// Split a command string on `&&`, `||`, `;`, `|`, and shell keywords `do`, `then`, `else`.
-pub fn split_segments(command: &str) -> Vec<&str> {
-    SEGMENT_SPLIT.split(command).collect()
-}
-
-/// Check if `cmd` appears at a command position (start of line or after a separator),
-/// not as an argument to echo/grep/cat etc.
-pub fn has_command_at_position(command: &str, cmd: &str) -> bool {
-    for m in COMMAND_POSITION.find_iter(command) {
-        let rest = &command[m.end()..];
-        if rest.starts_with(cmd)
-            && rest[cmd.len()..]
-                .chars()
-                .next()
-                .is_none_or(char::is_whitespace)
-        {
-            return true;
-        }
+#[must_use]
+pub fn parse(command: &str) -> Option<ParsedCommand> {
+    let tokens = brush_parser::tokenize_str(command).ok()?;
+    let program =
+        brush_parser::parse_tokens(&tokens, &ParserOptions::default(), &SourceInfo::default())
+            .ok()?;
+    let mut and_or_lists = Vec::new();
+    for cc in &program.complete_commands {
+        walk_compound_list(cc, &mut and_or_lists);
     }
-    false
-}
-
-/// Iterate over command segments, yielding parsed git args for each segment
-/// that contains a git command. Handles `-C <path>` transparently.
-pub fn git_args_in_segments(command: &str) -> impl Iterator<Item = &str> {
-    split_segments(command).into_iter().filter_map(|segment| {
-        let (_, args) = parse_git(segment);
-        if args.is_empty() { None } else { Some(args) }
+    Some(ParsedCommand {
+        raw: command.to_owned(),
+        and_or_lists,
     })
 }
 
-/// Parse a git command segment, extracting the `-C <path>` if present.
-/// Returns `(path, remaining_args)` where path is empty string if no `-C`.
-pub fn parse_git(segment: &str) -> (&str, &str) {
-    let trimmed = segment.trim();
-    let args = trimmed
-        .strip_prefix("git")
-        .filter(|rest| rest.is_empty() || rest.starts_with(' '))
-        .map_or("", str::trim_start);
-    if args.is_empty() {
-        return ("", "");
+#[must_use]
+pub fn unquote(s: &str) -> String {
+    brush_parser::unquote_str(s)
+}
+
+#[derive(Debug)]
+pub struct GitArgs<'a> {
+    pub path: Option<String>,
+    pub args: &'a [String],
+}
+
+/// Extract git subcommand args, stripping `-C <path>`.
+#[must_use]
+pub fn parse_git_args(cmd: &CommandContext) -> Option<GitArgs<'_>> {
+    if cmd.name != "git" {
+        return None;
     }
-    let Some(after_c) = args.strip_prefix("-C ") else {
-        return ("", args);
-    };
-    let after_c = after_c.trim_start();
-    if let Some(content) = after_c.strip_prefix('"') {
-        if let Some(end) = content.find('"') {
-            let path = &content[..end];
-            let rest = content[end + 1..].trim_start();
-            return (path.trim_end_matches('/'), rest);
+    let args = &cmd.args;
+    if args.first().is_some_and(|a| a == "-C") {
+        let path = args
+            .get(1)
+            .map(|a| unquote(a).trim_end_matches('/').to_owned());
+        Some(GitArgs {
+            path,
+            args: args.get(2..).unwrap_or_default(),
+        })
+    } else {
+        Some(GitArgs {
+            path: None,
+            args,
+        })
+    }
+}
+
+fn walk_compound_list(list: &CompoundList, out: &mut Vec<AndOrContext>) {
+    for item in &list.0 {
+        walk_and_or_list(&item.0, out);
+    }
+}
+
+fn walk_and_or_list(aol: &ast::AndOrList, out: &mut Vec<AndOrContext>) {
+    let mut items = Vec::new();
+    let first_commands = walk_pipeline(&aol.first, out);
+    if !first_commands.is_empty() {
+        items.push(PipelineItem {
+            connector: None,
+            commands: first_commands,
+        });
+    }
+    for ao in &aol.additional {
+        let (connector, pipeline) = match ao {
+            AndOr::And(p) => (Connector::And, p),
+            AndOr::Or(p) => (Connector::Or, p),
+        };
+        let commands = walk_pipeline(pipeline, out);
+        if !commands.is_empty() {
+            items.push(PipelineItem {
+                connector: Some(connector),
+                commands,
+            });
         }
-    } else if let Some(content) = after_c.strip_prefix('\'')
-        && let Some(end) = content.find('\'')
-    {
-        let path = &content[..end];
-        let rest = content[end + 1..].trim_start();
-        return (path.trim_end_matches('/'), rest);
     }
-    match after_c.find(' ') {
-        Some(pos) => {
-            let path = &after_c[..pos];
-            let rest = after_c[pos..].trim_start();
-            (path.trim_end_matches('/'), rest)
+    if !items.is_empty() {
+        out.push(AndOrContext { items });
+    }
+}
+
+fn walk_pipeline(p: &ast::Pipeline, out: &mut Vec<AndOrContext>) -> Vec<CommandContext> {
+    let mut commands = Vec::new();
+    for cmd in &p.seq {
+        match cmd {
+            Command::Simple(sc) => {
+                if let Some(ctx) = extract_simple_command(sc) {
+                    commands.push(ctx);
+                }
+            }
+            Command::Compound(cc, _) => {
+                walk_compound_command(cc, out);
+            }
+            Command::Function(_) | Command::ExtendedTest(_) => {}
         }
-        None => (after_c.trim_end_matches('/'), ""),
     }
+    commands
+}
+
+fn walk_compound_command(cc: &CompoundCommand, out: &mut Vec<AndOrContext>) {
+    match cc {
+        CompoundCommand::BraceGroup(bg) => walk_compound_list(&bg.list, out),
+        CompoundCommand::Subshell(sub) => walk_compound_list(&sub.list, out),
+        CompoundCommand::ForClause(f) => walk_compound_list(&f.body.list, out),
+        CompoundCommand::ArithmeticForClause(f) => walk_compound_list(&f.body.list, out),
+        CompoundCommand::WhileClause(w) | CompoundCommand::UntilClause(w) => {
+            walk_compound_list(&w.0, out);
+            walk_compound_list(&w.1.list, out);
+        }
+        CompoundCommand::IfClause(ic) => {
+            walk_compound_list(&ic.condition, out);
+            walk_compound_list(&ic.then, out);
+            if let Some(elses) = &ic.elses {
+                for else_clause in elses {
+                    if let Some(cond) = &else_clause.condition {
+                        walk_compound_list(cond, out);
+                    }
+                    walk_compound_list(&else_clause.body, out);
+                }
+            }
+        }
+        CompoundCommand::CaseClause(cc) => {
+            for case_item in &cc.cases {
+                if let Some(cmd_list) = &case_item.cmd {
+                    walk_compound_list(cmd_list, out);
+                }
+            }
+        }
+        CompoundCommand::Arithmetic(_) => {}
+    }
+}
+
+fn extract_simple_command(sc: &ast::SimpleCommand) -> Option<CommandContext> {
+    let name_word = sc.word_or_name.as_ref()?;
+    let name = unquote(&name_word.value);
+    let mut args = Vec::new();
+    let mut has_heredoc = false;
+    if let Some(suffix) = &sc.suffix {
+        for item in &suffix.0 {
+            match item {
+                CommandPrefixOrSuffixItem::Word(w) => args.push(w.value.clone()),
+                CommandPrefixOrSuffixItem::IoRedirect(IoRedirect::HereDocument(..)) => {
+                    has_heredoc = true;
+                }
+                _ => {}
+            }
+        }
+    }
+    if let Some(prefix) = &sc.prefix {
+        for item in &prefix.0 {
+            if matches!(
+                item,
+                CommandPrefixOrSuffixItem::IoRedirect(IoRedirect::HereDocument(..))
+            ) {
+                has_heredoc = true;
+            }
+        }
+    }
+    Some(CommandContext {
+        name,
+        args,
+        has_heredoc,
+    })
 }
 
 #[cfg(test)]
@@ -82,70 +177,143 @@ mod tests {
     use super::*;
 
     #[test]
-    fn split_basic() {
-        let segs = split_segments("ls && git status");
-        assert_eq!(segs, vec!["ls ", " git status"]);
+    fn parse_simple() {
+        let p = parse("git status").unwrap();
+        assert_eq!(p.and_or_lists.len(), 1);
+        assert_eq!(p.and_or_lists[0].items.len(), 1);
+        let cmd = &p.and_or_lists[0].items[0].commands[0];
+        assert_eq!(cmd.name, "git");
+        assert_eq!(cmd.args[0], "status");
     }
 
     #[test]
-    fn split_complex() {
-        let segs = split_segments("git add file.txt && git commit -m 'test'");
-        assert_eq!(segs, vec!["git add file.txt ", " git commit -m 'test'"]);
+    fn parse_and_chain() {
+        let p = parse("ls && git status").unwrap();
+        assert_eq!(p.and_or_lists.len(), 1);
+        assert_eq!(p.and_or_lists[0].items.len(), 2);
+        assert_eq!(p.and_or_lists[0].items[0].connector, None);
+        assert_eq!(p.and_or_lists[0].items[1].connector, Some(Connector::And));
+        assert_eq!(p.and_or_lists[0].items[1].commands[0].name, "git");
     }
 
     #[test]
-    fn split_shell_keywords() {
-        let segs = split_segments("for f in *.tmp; do rm $f; done");
-        assert_eq!(segs.len(), 4);
+    fn parse_or_chain() {
+        let p = parse("false || git stash clear").unwrap();
+        assert_eq!(p.and_or_lists[0].items[1].connector, Some(Connector::Or));
+        assert_eq!(p.and_or_lists[0].items[1].commands[0].name, "git");
     }
 
     #[test]
-    fn command_position_basic() {
-        assert!(has_command_at_position("rm file.txt", "rm"));
-        assert!(has_command_at_position("ls && rm file.txt", "rm"));
-        assert!(!has_command_at_position("echo rm is blocked", "rm"));
-        assert!(!has_command_at_position("git rm file.txt", "rm"));
+    fn parse_pipe() {
+        let p = parse("git log | head -5").unwrap();
+        assert_eq!(p.and_or_lists.len(), 1);
+        assert_eq!(p.and_or_lists[0].items.len(), 1);
+        assert_eq!(p.and_or_lists[0].items[0].commands.len(), 2);
+        assert_eq!(p.and_or_lists[0].items[0].commands[0].name, "git");
+        assert_eq!(p.and_or_lists[0].items[0].commands[1].name, "head");
+    }
+
+    #[test]
+    fn parse_semicolon() {
+        let p = parse("git status ; git log").unwrap();
+        assert_eq!(p.and_or_lists.len(), 2);
+    }
+
+    #[test]
+    fn parse_heredoc() {
+        let p = parse("cargo insta review <<EOF\na\nEOF").unwrap();
+        assert!(p.and_or_lists[0].items[0].commands[0].has_heredoc);
+    }
+
+    #[test]
+    fn parse_no_heredoc() {
+        let p = parse("cargo insta review").unwrap();
+        assert!(!p.and_or_lists[0].items[0].commands[0].has_heredoc);
+    }
+
+    #[test]
+    fn parse_git_c_path() {
+        let p = parse("git -C /var/mnt/e/Repos/Rust/caesura status").unwrap();
+        let cmd = &p.and_or_lists[0].items[0].commands[0];
+        let ga = parse_git_args(cmd).unwrap();
+        assert_eq!(ga.path.as_deref(), Some("/var/mnt/e/Repos/Rust/caesura"));
+        assert_eq!(ga.args[0], "status");
+    }
+
+    #[test]
+    fn parse_git_c_quoted_path() {
+        let p = parse("git -C \"/var/mnt/e/Repos/Rust/caesura\" status").unwrap();
+        let cmd = &p.and_or_lists[0].items[0].commands[0];
+        let ga = parse_git_args(cmd).unwrap();
+        assert_eq!(ga.path.as_deref(), Some("/var/mnt/e/Repos/Rust/caesura"));
+        assert_eq!(ga.args[0], "status");
+    }
+
+    #[test]
+    fn parse_git_c_single_quoted() {
+        let p = parse("git -C '/var/mnt/e/Repos/Rust/caesura' status").unwrap();
+        let cmd = &p.and_or_lists[0].items[0].commands[0];
+        let ga = parse_git_args(cmd).unwrap();
+        assert_eq!(ga.path.as_deref(), Some("/var/mnt/e/Repos/Rust/caesura"));
+        assert_eq!(ga.args[0], "status");
+    }
+
+    #[test]
+    fn parse_git_c_trailing_slash() {
+        let p = parse("git -C /var/mnt/e/Repos/Rust/caesura/ status").unwrap();
+        let cmd = &p.and_or_lists[0].items[0].commands[0];
+        let ga = parse_git_args(cmd).unwrap();
+        assert_eq!(ga.path.as_deref(), Some("/var/mnt/e/Repos/Rust/caesura"));
     }
 
     #[test]
     fn parse_git_no_path() {
-        let (path, args) = parse_git("git status");
-        assert_eq!(path, "");
-        assert_eq!(args, "status");
-    }
-
-    #[test]
-    fn parse_git_with_path() {
-        let (path, args) = parse_git("git -C /var/mnt/e/Repos/Rust/caesura status");
-        assert_eq!(path, "/var/mnt/e/Repos/Rust/caesura");
-        assert_eq!(args, "status");
-    }
-
-    #[test]
-    fn parse_git_quoted_path() {
-        let (path, args) = parse_git("git -C \"/var/mnt/e/Repos/Rust/caesura\" status");
-        assert_eq!(path, "/var/mnt/e/Repos/Rust/caesura");
-        assert_eq!(args, "status");
-    }
-
-    #[test]
-    fn parse_git_single_quoted_path() {
-        let (path, args) = parse_git("git -C '/var/mnt/e/Repos/Rust/caesura' status");
-        assert_eq!(path, "/var/mnt/e/Repos/Rust/caesura");
-        assert_eq!(args, "status");
-    }
-
-    #[test]
-    fn parse_git_trailing_slash() {
-        let (path, args) = parse_git("git -C /var/mnt/e/Repos/Rust/caesura/ status");
-        assert_eq!(path, "/var/mnt/e/Repos/Rust/caesura");
-        assert_eq!(args, "status");
+        let p = parse("git status").unwrap();
+        let cmd = &p.and_or_lists[0].items[0].commands[0];
+        let ga = parse_git_args(cmd).unwrap();
+        assert!(ga.path.is_none());
+        assert_eq!(ga.args[0], "status");
     }
 
     #[test]
     fn parse_non_git() {
-        let (path, args) = parse_git("ls -la");
-        assert_eq!(path, "");
-        assert_eq!(args, "");
+        let p = parse("ls -la").unwrap();
+        let cmd = &p.and_or_lists[0].items[0].commands[0];
+        assert!(parse_git_args(cmd).is_none());
+    }
+
+    #[test]
+    fn parse_for_loop() {
+        let p = parse("for f in *.tmp; do echo $f; done").unwrap();
+        assert!(p.all_commands().any(|cmd| cmd.name == "echo"));
+    }
+
+    #[test]
+    fn parse_if_then() {
+        let p = parse("if true; then echo hello; fi").unwrap();
+        assert!(p.all_commands().any(|cmd| cmd.name == "echo"));
+    }
+
+    #[test]
+    fn unquote_single() {
+        assert_eq!(unquote("'hello'"), "hello");
+    }
+
+    #[test]
+    fn unquote_double() {
+        assert_eq!(unquote("\"hello\""), "hello");
+    }
+
+    #[test]
+    fn unquote_bare() {
+        assert_eq!(unquote("hello"), "hello");
+    }
+
+    #[test]
+    fn no_space_before_and() {
+        let p = parse("git commit -m 'msg'&& git push").unwrap();
+        assert_eq!(p.and_or_lists.len(), 1);
+        assert_eq!(p.and_or_lists[0].items.len(), 2);
+        assert_eq!(p.and_or_lists[0].items[1].commands[0].name, "git");
     }
 }

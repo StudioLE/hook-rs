@@ -1,21 +1,34 @@
-use regex::Regex;
-use std::sync::LazyLock;
-
 use crate::prelude::*;
+use crate::types::Connector;
 
-static CD_GIT: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^\s*cd\s+\S+.*&&\s*git\s+").expect("valid regex"));
-
-pub fn check(command: &str) -> Option<CheckResult> {
-    CD_GIT.is_match(command).then(|| {
-        CheckResult::deny("Do not chain cd and git. Use 'git -C <path> <command>' instead.")
-    })
+#[must_use]
+pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
+    for aol in &parsed.and_or_lists {
+        let (Some(first), Some(second)) = (aol.items.first(), aol.items.get(1)) else {
+            continue;
+        };
+        if first.connector.is_none()
+            && second.connector == Some(Connector::And)
+            && first.commands.first().is_some_and(|c| c.name == "cd")
+            && second.commands.first().is_some_and(|c| c.name == "git")
+        {
+            return Some(CheckResult::deny(
+                "Do not chain cd and git. Use 'git -C <path> <command>' instead.",
+            ));
+        }
+    }
+    None
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use insta::assert_yaml_snapshot;
+
+    fn check(command: &str) -> Option<CheckResult> {
+        let parsed = crate::command::parse(command)?;
+        super::check(&parsed)
+    }
 
     #[test]
     fn cd_and_git_status() {

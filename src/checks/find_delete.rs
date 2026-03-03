@@ -1,30 +1,25 @@
-use regex::Regex;
-use std::sync::LazyLock;
-
 use crate::prelude::*;
 
-static FIND_CMD: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?:^|&&|\|\||[;|])\s*find\s").expect("valid regex"));
-
-static DELETE_FLAG: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\s-delete(?:\s|$)").expect("valid regex"));
-
-static EXEC_RM: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\s-exec(?:dir)?\s+rm(?:\s|$)").expect("valid regex"));
-
-pub fn check(command: &str) -> Option<CheckResult> {
-    if !FIND_CMD.is_match(command) {
-        return None;
-    }
-    if DELETE_FLAG.is_match(command) {
-        return Some(CheckResult::deny(
-            "find -delete is blocked. Use 'find ... -print' to preview matches first, then delete with targeted commands.",
-        ));
-    }
-    if EXEC_RM.is_match(command) {
-        return Some(CheckResult::deny(
-            "find -exec rm is blocked. Use 'find ... -print' to preview matches first, then delete with targeted commands.",
-        ));
+#[must_use]
+pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
+    for cmd in parsed.all_commands() {
+        if cmd.name != "find" {
+            continue;
+        }
+        if cmd.args.iter().any(|a| a == "-delete") {
+            return Some(CheckResult::deny(
+                "find -delete is blocked. Use 'find ... -print' to preview matches first, then delete with targeted commands.",
+            ));
+        }
+        for (i, arg) in cmd.args.iter().enumerate() {
+            if (arg == "-exec" || arg == "-execdir")
+                && cmd.args.get(i + 1).is_some_and(|a| a == "rm")
+            {
+                return Some(CheckResult::deny(
+                    "find -exec rm is blocked. Use 'find ... -print' to preview matches first, then delete with targeted commands.",
+                ));
+            }
+        }
     }
     None
 }
@@ -33,6 +28,11 @@ pub fn check(command: &str) -> Option<CheckResult> {
 mod tests {
     use super::*;
     use insta::assert_yaml_snapshot;
+
+    fn check(command: &str) -> Option<CheckResult> {
+        let parsed = crate::command::parse(command)?;
+        super::check(&parsed)
+    }
 
     #[test]
     fn find_delete() {

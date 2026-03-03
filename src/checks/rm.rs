@@ -1,40 +1,29 @@
-use regex::Regex;
-use std::sync::LazyLock;
-
 use crate::command;
 use crate::prelude::*;
+use crate::types::CommandContext;
 
-static RM_CMD: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?:^|&&|\|\||[;|]|\bdo\b|\bthen\b|\belse\b)\s*rm\s").expect("valid regex")
-});
-
-static TMP_RM: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^\s*rm\s+(-[a-zA-Z]+\s+)*(/tmp/\S+\s*)+$").expect("valid regex"));
-
-static RECURSIVE_RM: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?:^|&&|\|\||[;|]|\bdo\b|\bthen\b|\belse\b)\s*rm\s+(-[a-zA-Z]*[rR]|--recursive)")
-        .expect("valid regex")
-});
-
-pub fn check(command: &str) -> Option<CheckResult> {
+#[must_use]
+pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
     // Allow standalone rm of /tmp/ paths (no path traversal)
-    if TMP_RM.is_match(command) && !command.contains("..") {
+    if is_standalone_tmp_rm(parsed) {
         return None;
     }
-    if RECURSIVE_RM.is_match(command) {
-        return Some(CheckResult::deny(
-            "Recursive rm is blocked. Use 'git rm -r <dir>' for tracked directories, \
-             'git clean -fd <dir>' for untracked directories (or -fxd if gitignored), \
-             or 'rmdir' for empty directories.",
-        ));
+    for cmd in parsed.all_commands() {
+        if cmd.name == "rm" {
+            if has_recursive_flag(cmd) {
+                return Some(CheckResult::deny(
+                    "Recursive rm is blocked. Use 'git rm -r <dir>' for tracked directories, \
+                     'git clean -fd <dir>' for untracked directories (or -fxd if gitignored), \
+                     or 'rmdir' for empty directories.",
+                ));
+            }
+            return Some(CheckResult::deny(
+                "rm is blocked. Use 'git rm <file>' for tracked files or \
+                 'git clean -f <file>' for untracked files (or -fx if gitignored).",
+            ));
+        }
     }
-    if RM_CMD.is_match(command) {
-        return Some(CheckResult::deny(
-            "rm is blocked. Use 'git rm <file>' for tracked files or \
-             'git clean -f <file>' for untracked files (or -fx if gitignored).",
-        ));
-    }
-    if has_git_clean_d(command) {
+    if has_git_clean_d(parsed) {
         return Some(CheckResult::deny(
             "git clean with -d is blocked. Use 'git clean -f <file>' for specific files \
              (or -fx if gitignored) or 'git rm -r <dir>' for tracked directories.",
@@ -43,15 +32,48 @@ pub fn check(command: &str) -> Option<CheckResult> {
     None
 }
 
-fn has_git_clean_d(command: &str) -> bool {
-    for args in command::git_args_in_segments(command) {
-        let mut parts = args.split_whitespace();
-        if parts.next() != Some("clean") {
-            continue;
+fn is_standalone_tmp_rm(parsed: &ParsedCommand) -> bool {
+    if !parsed.is_standalone() {
+        return false;
+    }
+    let cmd = match parsed.all_commands().next() {
+        Some(c) if c.name == "rm" => c,
+        _ => return false,
+    };
+    if cmd.args.iter().any(|a| a.contains("..")) {
+        return false;
+    }
+    let non_flag_args: Vec<&str> = cmd
+        .args
+        .iter()
+        .map(String::as_str)
+        .filter(|a| !a.starts_with('-'))
+        .collect();
+    !non_flag_args.is_empty() && non_flag_args.iter().all(|a| a.starts_with("/tmp/"))
+}
+
+fn has_recursive_flag(cmd: &CommandContext) -> bool {
+    cmd.args.iter().any(|a| {
+        if a == "--recursive" {
+            return true;
         }
-        for part in parts {
-            if part.starts_with('-') && !part.starts_with("--") && part.contains('d') {
-                return true;
+        if a.starts_with('-') && !a.starts_with("--") {
+            return a.contains('r') || a.contains('R');
+        }
+        false
+    })
+}
+
+fn has_git_clean_d(parsed: &ParsedCommand) -> bool {
+    for cmd in parsed.all_commands() {
+        let Some(ga) = command::parse_git_args(cmd) else {
+            continue;
+        };
+        if ga.args.first().is_some_and(|a| a == "clean") {
+            for arg in ga.args.iter().skip(1) {
+                if arg.starts_with('-') && !arg.starts_with("--") && arg.contains('d') {
+                    return true;
+                }
             }
         }
     }
@@ -62,6 +84,11 @@ fn has_git_clean_d(command: &str) -> bool {
 mod tests {
     use super::*;
     use insta::assert_yaml_snapshot;
+
+    fn check(command: &str) -> Option<CheckResult> {
+        let parsed = crate::command::parse(command)?;
+        super::check(&parsed)
+    }
 
     #[test]
     fn rm_r() {

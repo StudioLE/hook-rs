@@ -2,21 +2,24 @@ use crate::command;
 use crate::prelude::*;
 
 #[must_use]
-pub fn check(command: &str) -> Option<CheckResult> {
-    for args in command::git_args_in_segments(command) {
-        let parts: Vec<&str> = args.split_whitespace().collect();
-        if parts.first() != Some(&"checkout") {
+pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
+    for cmd in parsed.all_commands() {
+        let Some(ga) = command::parse_git_args(cmd) else {
             continue;
-        }
-        if parts.get(1) == Some(&"HEAD") && parts.get(2) == Some(&"--") {
-            return Some(CheckResult::deny(
-                "git checkout HEAD -- is blocked. Do not discard changes to revert your mistakes. Fix the code properly.",
-            ));
-        }
-        if parts.get(1) == Some(&"--") && parts.len() > 2 {
-            return Some(CheckResult::deny(
-                "git checkout -- is blocked. Do not discard changes to revert your mistakes. Fix the code properly.",
-            ));
+        };
+        if ga.args.first().is_some_and(|a| a == "checkout") {
+            if ga.args.get(1).is_some_and(|a| a == "HEAD")
+                && ga.args.get(2).is_some_and(|a| a == "--")
+            {
+                return Some(CheckResult::deny(
+                    "git checkout HEAD -- is blocked. Do not discard changes to revert your mistakes. Fix the code properly.",
+                ));
+            }
+            if ga.args.get(1).is_some_and(|a| a == "--") && ga.args.len() > 2 {
+                return Some(CheckResult::deny(
+                    "git checkout -- is blocked. Do not discard changes to revert your mistakes. Fix the code properly.",
+                ));
+            }
         }
     }
     None
@@ -26,6 +29,11 @@ pub fn check(command: &str) -> Option<CheckResult> {
 mod tests {
     use super::*;
     use insta::assert_yaml_snapshot;
+
+    fn check(command: &str) -> Option<CheckResult> {
+        let parsed = crate::command::parse(command)?;
+        super::check(&parsed)
+    }
 
     #[test]
     fn checkout_head_file() {

@@ -1,29 +1,31 @@
-use regex::Regex;
-use std::sync::LazyLock;
-
 use crate::prelude::*;
 
-static PUSH_ANYWHERE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?:^|&&|\|\||[;|]|\bdo\b|\bthen\b|\belse\b)\s*git\s+push(?:\s|$)")
-        .expect("valid regex")
-});
-
-static STANDALONE_PUSH: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^\s*git\s+push(?:\s.*)?$").expect("valid regex"));
-
-pub fn check(command: &str) -> Option<CheckResult> {
-    if PUSH_ANYWHERE.is_match(command) && !STANDALONE_PUSH.is_match(command) {
-        return Some(CheckResult::deny(
-            "Chained git push is blocked. Run 'git push' as a separate, standalone command.",
-        ));
+#[must_use]
+pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
+    let has_git_push = parsed.all_commands().any(|cmd| {
+        cmd.name == "git" && cmd.args.first().is_some_and(|a| a == "push")
+    });
+    if !has_git_push {
+        return None;
     }
-    None
+    if parsed.is_standalone() {
+        None
+    } else {
+        Some(CheckResult::deny(
+            "Chained git push is blocked. Run 'git push' as a separate, standalone command.",
+        ))
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use insta::assert_yaml_snapshot;
+
+    fn check(command: &str) -> Option<CheckResult> {
+        let parsed = crate::command::parse(command)?;
+        super::check(&parsed)
+    }
 
     #[test]
     fn add_commit_push() {

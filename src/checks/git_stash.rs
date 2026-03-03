@@ -2,29 +2,30 @@ use crate::command;
 use crate::prelude::*;
 
 #[must_use]
-pub fn check(command: &str) -> Option<CheckResult> {
-    for args in command::git_args_in_segments(command) {
-        let mut parts = args.split_whitespace();
-        if parts.next() != Some("stash") {
+pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
+    for cmd in parsed.all_commands() {
+        let Some(ga) = command::parse_git_args(cmd) else {
             continue;
-        }
-        match parts.next() {
-            Some("pop") => {
-                return Some(CheckResult::deny(
-                    "git stash pop is blocked. Use 'git stash apply' instead to keep the stash entry for safety.",
-                ));
+        };
+        if ga.args.first().is_some_and(|a| a == "stash") {
+            match ga.args.get(1).map(String::as_str) {
+                Some("pop") => {
+                    return Some(CheckResult::deny(
+                        "git stash pop is blocked. Use 'git stash apply' instead to keep the stash entry for safety.",
+                    ));
+                }
+                Some("drop") => {
+                    return Some(CheckResult::deny(
+                        "git stash drop is blocked. Use 'git stash list' to view stashes, 'git stash show' to inspect them.",
+                    ));
+                }
+                Some("clear") => {
+                    return Some(CheckResult::deny(
+                        "git stash clear is blocked. This would delete all stashes permanently.",
+                    ));
+                }
+                _ => {}
             }
-            Some("drop") => {
-                return Some(CheckResult::deny(
-                    "git stash drop is blocked. Use 'git stash list' to view stashes, 'git stash show' to inspect them.",
-                ));
-            }
-            Some("clear") => {
-                return Some(CheckResult::deny(
-                    "git stash clear is blocked. This would delete all stashes permanently.",
-                ));
-            }
-            _ => {}
         }
     }
     None
@@ -34,6 +35,11 @@ pub fn check(command: &str) -> Option<CheckResult> {
 mod tests {
     use super::*;
     use insta::assert_yaml_snapshot;
+
+    fn check(command: &str) -> Option<CheckResult> {
+        let parsed = crate::command::parse(command)?;
+        super::check(&parsed)
+    }
 
     #[test]
     fn stash_pop() {
