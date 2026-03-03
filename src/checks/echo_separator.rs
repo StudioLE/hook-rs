@@ -1,7 +1,8 @@
-use crate::command;
-use crate::prelude::*;
-use crate::types::PipelineItem;
+//! Check for chained echo separator patterns.
 
+use crate::prelude::*;
+
+/// Deny chained echo separator patterns like `echo "---"`.
 #[must_use]
 pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
     // After && or ||
@@ -31,7 +32,7 @@ fn has_echo_separator(pi: &PipelineItem) -> bool {
     pi.commands.first().is_some_and(|cmd| {
         cmd.name == "echo"
             && cmd.args.first().is_some_and(|arg| {
-                let unquoted = command::unquote(arg);
+                let unquoted = unquote(arg);
                 unquoted.starts_with("---") || unquoted.starts_with("===")
             })
     })
@@ -43,7 +44,7 @@ mod tests {
     use insta::assert_yaml_snapshot;
 
     fn check(command: &str) -> Option<CheckResult> {
-        let parsed = crate::command::parse(command)?;
+        let parsed = parse(command)?;
         super::check(&parsed)
     }
 

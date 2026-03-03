@@ -1,7 +1,10 @@
 use std::io::{self, Read};
 
+use error_stack::ResultExt;
+
+use claude_hooks::check::CheckResult;
 use claude_hooks::evaluate::evaluate;
-use claude_hooks::types::{CheckResult, HookInput, HookOutput};
+use claude_hooks::hook::{HookInput, HookOutput};
 
 fn main() {
     match run() {
@@ -21,16 +24,16 @@ fn run() -> Result<Option<CheckResult>, error_stack::Report<HookError>> {
     let mut input = String::new();
     io::stdin()
         .read_to_string(&mut input)
-        .map_err(|e| error_stack::Report::new(HookError::Io(e)))?;
+        .change_context(HookError::ReadStdin)?;
     let hook_input: HookInput =
-        serde_json::from_str(&input).map_err(|e| error_stack::Report::new(HookError::Json(e)))?;
+        serde_json::from_str(&input).change_context(HookError::DeserializeInput)?;
     Ok(evaluate(&hook_input.tool_input.command))
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, thiserror::Error)]
 enum HookError {
-    #[error("IO error")]
-    Io(#[from] io::Error),
-    #[error("JSON parse error")]
-    Json(#[from] serde_json::Error),
+    #[error("read stdin")]
+    ReadStdin,
+    #[error("deserialize hook input")]
+    DeserializeInput,
 }

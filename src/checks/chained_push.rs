@@ -1,10 +1,13 @@
+//! Check for chained `git push` commands.
+
 use crate::prelude::*;
 
+/// Deny `git push` when chained with other commands.
 #[must_use]
 pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
-    let has_git_push = parsed.all_commands().any(|cmd| {
-        cmd.name == "git" && cmd.args.first().is_some_and(|a| a == "push")
-    });
+    let has_git_push = parsed
+        .all_commands()
+        .any(|cmd| cmd.name == "git" && cmd.args.first().is_some_and(|a| a == "push"));
     if !has_git_push {
         return None;
     }
@@ -23,7 +26,7 @@ mod tests {
     use insta::assert_yaml_snapshot;
 
     fn check(command: &str) -> Option<CheckResult> {
-        let parsed = crate::command::parse(command)?;
+        let parsed = parse(command)?;
         super::check(&parsed)
     }
 

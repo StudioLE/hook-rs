@@ -1,8 +1,11 @@
+//! Check for overly long inline Python commands.
+
 use crate::prelude::*;
 
 const MAX_CHARS: usize = 1000;
 const MAX_LINES: usize = 20;
 
+/// Deny overly long inline Python commands.
 #[must_use]
 pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
     let has_inline_python = parsed.all_commands().any(|cmd| {
@@ -28,7 +31,7 @@ mod tests {
     use insta::assert_yaml_snapshot;
 
     fn check(command: &str) -> Option<CheckResult> {
-        let parsed = crate::command::parse(command)?;
+        let parsed = parse(command)?;
         super::check(&parsed)
     }
 
@@ -36,7 +39,7 @@ mod tests {
         use std::fmt::Write;
         let mut cmd = "python3 << 'EOF'".to_owned();
         for i in 1..=lines {
-            write!(cmd, "\nprint('line {i}')").unwrap();
+            write!(cmd, "\nprint('line {i}')").expect("write to String should not fail");
         }
         cmd.push_str("\nEOF");
         cmd
@@ -119,10 +122,10 @@ mod tests {
 
     #[test]
     fn python_u_flag_long_heredoc() {
+        use std::fmt::Write;
         let mut cmd = "python3 -u << 'EOF'".to_owned();
         for i in 1..=25 {
-            cmd.push('\n');
-            cmd.push_str(&format!("print('line {i}')"));
+            write!(cmd, "\nprint('line {i}')").expect("write to String should not fail");
         }
         cmd.push_str("\nEOF");
         assert_yaml_snapshot!(check(&cmd));

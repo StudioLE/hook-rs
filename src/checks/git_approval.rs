@@ -1,13 +1,15 @@
-use crate::command;
+//! Allow read-only git subcommands and classify repository paths by trust level.
+
 use crate::prelude::*;
 
+/// Allow read-only git subcommands and classify paths by trust level.
 #[must_use]
 pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
     if !parsed.is_standalone() {
         return None;
     }
     let cmd = parsed.all_commands().next()?;
-    let ga = command::parse_git_args(cmd)?;
+    let ga = parse_git_args(cmd)?;
     if ga.args.is_empty() {
         return None;
     }
@@ -37,34 +39,16 @@ pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
     }
 }
 
-fn safe_subcommand(args: &[String]) -> Option<&'static str> {
+fn safe_subcommand(args: &[String]) -> Option<&str> {
     let first = args.first()?.as_str();
     let rest = args.get(1..).unwrap_or_default();
     match first {
         "check-ignore" | "describe" | "diff" | "fetch" | "log" | "ls-tree" | "merge-base"
-        | "mv" | "rev-parse" | "rm" | "show" | "status" => Some(first_to_static(first)),
+        | "mv" | "rev-parse" | "rm" | "show" | "status" => Some(first),
         "remote" => check_remote_subcommand(rest),
         "branch" => check_branch_flags(rest),
         "tag" => check_tag_flags(rest),
         _ => None,
-    }
-}
-
-fn first_to_static(s: &str) -> &'static str {
-    match s {
-        "check-ignore" => "check-ignore",
-        "describe" => "describe",
-        "diff" => "diff",
-        "fetch" => "fetch",
-        "log" => "log",
-        "ls-tree" => "ls-tree",
-        "merge-base" => "merge-base",
-        "mv" => "mv",
-        "rev-parse" => "rev-parse",
-        "rm" => "rm",
-        "show" => "show",
-        "status" => "status",
-        _ => "",
     }
 }
 
@@ -166,33 +150,13 @@ fn is_tag_write_flag(flag: &str) -> bool {
     matches!(flag, "-d" | "-a" | "-s" | "-f" | "-m" | "--delete")
 }
 
-#[derive(Debug, PartialEq, Eq)]
-enum PathClass {
-    None,
-    Trusted,
-    Forked,
-    Unknown,
-}
-
-fn classify_path(path: &str) -> PathClass {
-    if path.is_empty() {
-        PathClass::None
-    } else if path.starts_with("/var/mnt/e/Repos/Forked/") || path == "/var/mnt/e/Repos/Forked" {
-        PathClass::Forked
-    } else if path.starts_with("/var/mnt/e/Repos/") || path == "/var/mnt/e/Repos" {
-        PathClass::Trusted
-    } else {
-        PathClass::Unknown
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use insta::assert_yaml_snapshot;
 
     fn check(command: &str) -> Option<CheckResult> {
-        let parsed = crate::command::parse(command)?;
+        let parsed = parse(command)?;
         super::check(&parsed)
     }
 

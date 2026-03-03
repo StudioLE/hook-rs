@@ -1,5 +1,8 @@
+//! Check for `find -delete` and `find -exec rm` commands.
+
 use crate::prelude::*;
 
+/// Deny `find -delete` and `find -exec rm` commands.
 #[must_use]
 pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
     for cmd in parsed.all_commands() {
@@ -30,7 +33,7 @@ mod tests {
     use insta::assert_yaml_snapshot;
 
     fn check(command: &str) -> Option<CheckResult> {
-        let parsed = crate::command::parse(command)?;
+        let parsed = parse(command)?;
         super::check(&parsed)
     }
 

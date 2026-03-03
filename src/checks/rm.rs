@@ -1,7 +1,8 @@
-use crate::command;
-use crate::prelude::*;
-use crate::types::CommandContext;
+//! Check for `rm` and `git clean -d` commands.
 
+use crate::prelude::*;
+
+/// Deny `rm` and `git clean -d` commands.
 #[must_use]
 pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
     // Allow standalone rm of /tmp/ paths (no path traversal)
@@ -66,7 +67,7 @@ fn has_recursive_flag(cmd: &CommandContext) -> bool {
 
 fn has_git_clean_d(parsed: &ParsedCommand) -> bool {
     for cmd in parsed.all_commands() {
-        let Some(ga) = command::parse_git_args(cmd) else {
+        let Some(ga) = parse_git_args(cmd) else {
             continue;
         };
         if ga.args.first().is_some_and(|a| a == "clean") {
@@ -86,7 +87,7 @@ mod tests {
     use insta::assert_yaml_snapshot;
 
     fn check(command: &str) -> Option<CheckResult> {
-        let parsed = crate::command::parse(command)?;
+        let parsed = parse(command)?;
         super::check(&parsed)
     }
 

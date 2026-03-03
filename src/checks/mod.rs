@@ -1,3 +1,5 @@
+//! Individual safety checks for shell command evaluation.
+
 pub mod cd_git;
 pub mod chained_push;
 pub mod echo_separator;

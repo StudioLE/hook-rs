@@ -1,10 +1,12 @@
-use crate::command;
+//! Check for destructive `git stash` subcommands.
+
 use crate::prelude::*;
 
+/// Deny destructive git stash subcommands: `pop`, `drop`, `clear`.
 #[must_use]
 pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
     for cmd in parsed.all_commands() {
-        let Some(ga) = command::parse_git_args(cmd) else {
+        let Some(ga) = parse_git_args(cmd) else {
             continue;
         };
         if ga.args.first().is_some_and(|a| a == "stash") {
@@ -37,7 +39,7 @@ mod tests {
     use insta::assert_yaml_snapshot;
 
     fn check(command: &str) -> Option<CheckResult> {
-        let parsed = crate::command::parse(command)?;
+        let parsed = parse(command)?;
         super::check(&parsed)
     }
 

@@ -1,15 +1,15 @@
-use crate::command;
+//! Check for `git reset --hard` commands.
+
 use crate::prelude::*;
 
+/// Deny `git reset --hard` commands.
 #[must_use]
 pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
     for cmd in parsed.all_commands() {
-        let Some(ga) = command::parse_git_args(cmd) else {
+        let Some(ga) = parse_git_args(cmd) else {
             continue;
         };
-        if ga.args.first().is_some_and(|a| a == "reset")
-            && ga.args.iter().any(|a| a == "--hard")
-        {
+        if ga.args.first().is_some_and(|a| a == "reset") && ga.args.iter().any(|a| a == "--hard") {
             return Some(CheckResult::deny(
                 "git reset --hard is blocked. This discards all uncommitted changes permanently.",
             ));
@@ -24,7 +24,7 @@ mod tests {
     use insta::assert_yaml_snapshot;
 
     fn check(command: &str) -> Option<CheckResult> {
-        let parsed = crate::command::parse(command)?;
+        let parsed = parse(command)?;
         super::check(&parsed)
     }
 

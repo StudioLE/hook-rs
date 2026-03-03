@@ -1,3 +1,5 @@
+//! Check orchestration — runs all registered checks in priority order.
+
 use crate::checks;
 use crate::command;
 use crate::prelude::*;
@@ -19,6 +21,9 @@ const CHECKS: &[CheckFn] = &[
     checks::long_python::check,
 ];
 
+/// Evaluate a shell command string against all registered checks.
+///
+/// - Returns the first matching check result, or `None` if no check matches
 pub fn evaluate(command: &str) -> Option<CheckResult> {
     let parsed = command::parse(command)?;
     CHECKS.iter().find_map(|check| check(&parsed))
@@ -27,7 +32,6 @@ pub fn evaluate(command: &str) -> Option<CheckResult> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::Decision;
 
     fn eval(command: &str) -> Option<CheckResult> {
         evaluate(command)

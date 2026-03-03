@@ -1,6 +1,8 @@
-use crate::prelude::*;
-use crate::types::Connector;
+//! Check for `cd <path> && git <cmd>` patterns.
 
+use crate::prelude::*;
+
+/// Deny chaining `cd` with `git` commands.
 #[must_use]
 pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
     for aol in &parsed.and_or_lists {
@@ -26,7 +28,7 @@ mod tests {
     use insta::assert_yaml_snapshot;
 
     fn check(command: &str) -> Option<CheckResult> {
-        let parsed = crate::command::parse(command)?;
+        let parsed = parse(command)?;
         super::check(&parsed)
     }
 

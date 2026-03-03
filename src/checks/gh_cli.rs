@@ -1,6 +1,7 @@
+//! Evaluate GitHub CLI commands for safety.
+
 use std::process::Command;
 
-use crate::command;
 use crate::prelude::*;
 
 fn get_gh_user() -> Option<String> {
@@ -30,6 +31,7 @@ fn get_current_repo() -> Option<String> {
         .filter(|s| !s.is_empty())
 }
 
+/// Evaluate a `gh` command for safety using live GitHub context.
 #[must_use]
 pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
     let gh_user = get_gh_user().unwrap_or_default();
@@ -37,6 +39,7 @@ pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
     check_with_context(parsed, &gh_user, &current_repo)
 }
 
+/// Evaluate a `gh` command with pre-fetched user and repo context.
 #[must_use]
 pub fn check_with_context(
     parsed: &ParsedCommand,
@@ -99,10 +102,7 @@ pub fn check_with_context(
     });
     if has_data_flags {
         let repo = extract_api_repo(&args).unwrap_or_default();
-        if has_pr_reply_path(&args)
-            && repo.starts_with("StudioLE/")
-            && gh_user == "StudioLE-Bot"
-        {
+        if has_pr_reply_path(&args) && repo.starts_with("StudioLE/") && gh_user == "StudioLE-Bot" {
             return Some(CheckResult::allow("PR comment reply"));
         }
         return Some(CheckResult::ask(format!(
@@ -112,7 +112,9 @@ pub fn check_with_context(
 
     // Write method: -X POST/PUT/PATCH/DELETE
     for (i, arg) in args.iter().enumerate() {
-        if *arg == "-X" && let Some(method) = args.get(i + 1) {
+        if *arg == "-X"
+            && let Some(method) = args.get(i + 1)
+        {
             let upper = method.to_uppercase();
             if matches!(upper.as_str(), "POST" | "PUT" | "PATCH" | "DELETE") {
                 return Some(CheckResult::ask(format!("GitHub API {upper}")));
@@ -127,7 +129,7 @@ pub fn check_with_context(
 fn extract_repo_flag(args: &[&str]) -> Option<String> {
     for (i, arg) in args.iter().enumerate() {
         if matches!(*arg, "-R" | "--repo") {
-            return args.get(i + 1).map(|s| command::unquote(s));
+            return args.get(i + 1).map(|s| unquote(s));
         }
     }
     None
@@ -135,12 +137,11 @@ fn extract_repo_flag(args: &[&str]) -> Option<String> {
 
 fn extract_api_repo(args: &[&str]) -> Option<String> {
     for arg in args {
-        let unquoted = command::unquote(arg);
+        let unquoted = unquote(arg);
         let s = unquoted.strip_prefix('/').unwrap_or(&unquoted);
         if let Some(rest) = s.strip_prefix("repos/") {
             let parts: Vec<&str> = rest.splitn(3, '/').collect();
-            if let (Some(owner), Some(repo), Some(_)) =
-                (parts.first(), parts.get(1), parts.get(2))
+            if let (Some(owner), Some(repo), Some(_)) = (parts.first(), parts.get(1), parts.get(2))
             {
                 return Some(format!("{owner}/{repo}"));
             }
@@ -151,7 +152,7 @@ fn extract_api_repo(args: &[&str]) -> Option<String> {
 
 fn has_pr_reply_path(args: &[&str]) -> bool {
     args.iter().any(|arg| {
-        let unquoted = command::unquote(arg);
+        let unquoted = unquote(arg);
         unquoted.contains("/pulls/")
             && unquoted.contains("/comments/")
             && unquoted.contains("/replies")
@@ -164,12 +165,12 @@ mod tests {
     use insta::assert_yaml_snapshot;
 
     fn check_t(command: &str) -> Option<CheckResult> {
-        let parsed = crate::command::parse(command)?;
+        let parsed = parse(command)?;
         check_with_context(&parsed, "test-user", "owner/repo")
     }
 
     fn check_bot(command: &str) -> Option<CheckResult> {
-        let parsed = crate::command::parse(command)?;
+        let parsed = parse(command)?;
         check_with_context(&parsed, "StudioLE-Bot", "StudioLE/some-repo")
     }
 
@@ -351,8 +352,7 @@ mod tests {
     #[test]
     fn gh_pr_comment_bot_with_repo_flag() {
         assert_yaml_snapshot!(check_with_context(
-            &crate::command::parse("gh pr comment 123 --body 'test' -R StudioLE/some-repo")
-                .unwrap(),
+            &parse("gh pr comment 123 --body 'test' -R StudioLE/some-repo").expect("should parse"),
             "StudioLE-Bot",
             "other/repo"
         ));
@@ -361,10 +361,10 @@ mod tests {
     #[test]
     fn gh_api_pr_reply_bot_studiole() {
         assert_yaml_snapshot!(check_with_context(
-            &crate::command::parse(
+            &parse(
                 "gh api repos/StudioLE/some-repo/pulls/1/comments/2/replies -d '{\"body\":\"test\"}'"
             )
-            .unwrap(),
+            .expect("should parse"),
             "StudioLE-Bot",
             ""
         ));

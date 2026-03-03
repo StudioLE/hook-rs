@@ -1,5 +1,8 @@
+//! Check for faked interactive input to `cargo insta review`.
+
 use crate::prelude::*;
 
+/// Deny faked interactive input to `cargo insta review`.
 #[must_use]
 pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
     parsed.all_commands().find_map(|cmd| {
@@ -7,9 +10,7 @@ pub fn check(parsed: &ParsedCommand) -> Option<CheckResult> {
             && cmd.args.first().is_some_and(|a| a == "insta")
             && cmd.args.get(1).is_some_and(|a| a == "review")
             && cmd.has_heredoc)
-            .then(|| {
-                CheckResult::deny("Do not fake interactive input to cargo insta review.")
-            })
+            .then(|| CheckResult::deny("Do not fake interactive input to cargo insta review."))
     })
 }
 
@@ -19,7 +20,7 @@ mod tests {
     use insta::assert_yaml_snapshot;
 
     fn check(command: &str) -> Option<CheckResult> {
-        let parsed = crate::command::parse(command)?;
+        let parsed = parse(command)?;
         super::check(&parsed)
     }
 
