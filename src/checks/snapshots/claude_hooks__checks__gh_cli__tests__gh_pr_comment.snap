@@ -1,6 +1,0 @@
----
-source: src/checks/gh_cli.rs
-expression: "check_t(\"gh pr comment 123 --body 'test'\")"
----
-decision: ask
-reason: PR comment as test-user in owner/repo

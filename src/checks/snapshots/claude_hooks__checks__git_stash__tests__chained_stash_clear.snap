@@ -1,6 +1,0 @@
----
-source: src/checks/git_stash.rs
-expression: "check(\"false || git stash clear\")"
----
-decision: deny
-reason: git stash clear is blocked. This would delete all stashes permanently.

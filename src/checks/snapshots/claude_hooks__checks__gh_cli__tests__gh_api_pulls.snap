@@ -1,6 +1,0 @@
----
-source: src/checks/gh_cli.rs
-expression: "check_t(\"gh api repos/owner/repo/pulls\")"
----
-decision: allow
-reason: Read-only gh api command

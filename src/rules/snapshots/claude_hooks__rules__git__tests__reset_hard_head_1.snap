@@ -1,0 +1,6 @@
+---
+source: src/rules/git.rs
+expression: "eval(\"git reset --hard HEAD~1\")"
+---
+decision: deny
+reason: git reset --hard discards uncommitted changes

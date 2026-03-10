@@ -1,6 +1,0 @@
----
-source: src/checks/find_delete.rs
-expression: "check(\"find . -name '*.tmp' -delete\")"
----
-decision: deny
-reason: "find -delete is blocked. Use 'find ... -print' to preview matches first, then delete with targeted commands."

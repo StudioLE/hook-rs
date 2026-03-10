@@ -1,6 +1,0 @@
----
-source: src/checks/git_approval.rs
-expression: "check(\"git -C /var/mnt/e/Repos/Rust/caesura commit -m 'test'\")"
----
-decision: ask
-reason: git commit -C /var/mnt/e/Repos/Rust/caesura

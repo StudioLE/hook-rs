@@ -1,0 +1,6 @@
+---
+source: src/rules/chained_push.rs
+expression: "eval(\"git add file.txt && git commit -m 'msg' && git push\")"
+---
+decision: deny
+reason: "Chained git push is blocked. Run 'git push' as a separate, standalone command."

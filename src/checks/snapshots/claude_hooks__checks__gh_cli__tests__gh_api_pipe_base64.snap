@@ -1,6 +1,0 @@
----
-source: src/checks/gh_cli.rs
-expression: "check_t(\"gh api repos/USER/REPO/readme --jq .content 2>&1 | base64 -d\")"
----
-decision: allow
-reason: Read-only gh api command

@@ -1,0 +1,6 @@
+---
+source: src/rules/insta.rs
+expression: "eval(\"cargo insta review <<-EOF\\na\\nEOF\")"
+---
+decision: deny
+reason: Do not fake interactive input to cargo insta review.

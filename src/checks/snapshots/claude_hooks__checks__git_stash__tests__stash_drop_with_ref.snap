@@ -1,6 +1,0 @@
----
-source: src/checks/git_stash.rs
-expression: "check(\"git stash drop stash@{0}\")"
----
-decision: deny
-reason: "git stash drop is blocked. Use 'git stash list' to view stashes, 'git stash show' to inspect them."

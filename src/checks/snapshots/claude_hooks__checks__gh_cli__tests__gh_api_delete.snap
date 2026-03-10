@@ -1,6 +1,0 @@
----
-source: src/checks/gh_cli.rs
-expression: "check_t(\"gh api -X DELETE /repos/owner/repo/issues/1\")"
----
-decision: ask
-reason: GitHub API DELETE

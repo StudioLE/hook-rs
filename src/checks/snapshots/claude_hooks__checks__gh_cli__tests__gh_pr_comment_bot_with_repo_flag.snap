@@ -1,6 +1,0 @@
----
-source: src/checks/gh_cli.rs
-expression: "check_with_context(\"gh pr comment 123 --body 'test' -R StudioLE/some-repo\",\n\"StudioLE-Bot\", \"other/repo\")"
----
-decision: allow
-reason: PR comment

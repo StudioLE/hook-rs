@@ -1,6 +1,6 @@
 //! Git-specific utilities for command analysis.
 
-use crate::command::{self, CommandContext};
+use crate::command::{self, SimpleContext};
 
 /// Parsed git command arguments with optional `-C <path>` extracted.
 #[derive(Debug)]
@@ -15,7 +15,7 @@ pub struct GitArgs<'a> {
 ///
 /// - Returns `None` for non-git commands
 #[must_use]
-pub fn parse_git_args(cmd: &CommandContext) -> Option<GitArgs<'_>> {
+pub fn parse_git_args(cmd: &SimpleContext) -> Option<GitArgs<'_>> {
     if cmd.name != "git" {
         return None;
     }
@@ -67,12 +67,13 @@ pub fn classify_path(path: &str) -> PathClass {
 )]
 mod tests {
     use super::*;
-    use crate::command::parse;
+    use crate::command::CompleteContext;
 
     #[test]
     fn git_c_path() {
-        let p = parse("git -C /var/mnt/e/Repos/Rust/caesura status").expect("should parse");
-        let cmd = &p.and_or_lists[0].items[0].commands[0];
+        let p = CompleteContext::parse("git -C /var/mnt/e/Repos/Rust/caesura status")
+            .expect("should parse");
+        let cmd = &p.children[0].children[0];
         let ga = parse_git_args(cmd).expect("should parse");
         assert_eq!(ga.path.as_deref(), Some("/var/mnt/e/Repos/Rust/caesura"));
         assert_eq!(ga.args[0], "status");
@@ -80,8 +81,9 @@ mod tests {
 
     #[test]
     fn git_c_quoted_path() {
-        let p = parse("git -C \"/var/mnt/e/Repos/Rust/caesura\" status").expect("should parse");
-        let cmd = &p.and_or_lists[0].items[0].commands[0];
+        let p = CompleteContext::parse("git -C \"/var/mnt/e/Repos/Rust/caesura\" status")
+            .expect("should parse");
+        let cmd = &p.children[0].children[0];
         let ga = parse_git_args(cmd).expect("should parse");
         assert_eq!(ga.path.as_deref(), Some("/var/mnt/e/Repos/Rust/caesura"));
         assert_eq!(ga.args[0], "status");
@@ -89,8 +91,9 @@ mod tests {
 
     #[test]
     fn git_c_single_quoted() {
-        let p = parse("git -C '/var/mnt/e/Repos/Rust/caesura' status").expect("should parse");
-        let cmd = &p.and_or_lists[0].items[0].commands[0];
+        let p = CompleteContext::parse("git -C '/var/mnt/e/Repos/Rust/caesura' status")
+            .expect("should parse");
+        let cmd = &p.children[0].children[0];
         let ga = parse_git_args(cmd).expect("should parse");
         assert_eq!(ga.path.as_deref(), Some("/var/mnt/e/Repos/Rust/caesura"));
         assert_eq!(ga.args[0], "status");
@@ -98,16 +101,17 @@ mod tests {
 
     #[test]
     fn git_c_trailing_slash() {
-        let p = parse("git -C /var/mnt/e/Repos/Rust/caesura/ status").expect("should parse");
-        let cmd = &p.and_or_lists[0].items[0].commands[0];
+        let p = CompleteContext::parse("git -C /var/mnt/e/Repos/Rust/caesura/ status")
+            .expect("should parse");
+        let cmd = &p.children[0].children[0];
         let ga = parse_git_args(cmd).expect("should parse");
         assert_eq!(ga.path.as_deref(), Some("/var/mnt/e/Repos/Rust/caesura"));
     }
 
     #[test]
     fn git_no_path() {
-        let p = parse("git status").expect("should parse");
-        let cmd = &p.and_or_lists[0].items[0].commands[0];
+        let p = CompleteContext::parse("git status").expect("should parse");
+        let cmd = &p.children[0].children[0];
         let ga = parse_git_args(cmd).expect("should parse");
         assert!(ga.path.is_none());
         assert_eq!(ga.args[0], "status");
@@ -115,8 +119,8 @@ mod tests {
 
     #[test]
     fn non_git() {
-        let p = parse("ls -la").expect("should parse");
-        let cmd = &p.and_or_lists[0].items[0].commands[0];
+        let p = CompleteContext::parse("ls -la").expect("should parse");
+        let cmd = &p.children[0].children[0];
         assert!(parse_git_args(cmd).is_none());
     }
 }

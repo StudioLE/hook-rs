@@ -1,0 +1,5 @@
+---
+source: src/rules/git_approval.rs
+expression: "eval(\"git tag -n5\")"
+---
+~

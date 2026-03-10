@@ -1,0 +1,5 @@
+---
+source: src/rules/rm.rs
+expression: "eval(\"if false; then echo hi; else rm file.txt; fi\")"
+---
+~

@@ -1,6 +1,0 @@
----
-source: src/checks/git_approval.rs
-expression: "check(\"git -C /var/mnt/e/Repos/Rust/caesura add -A\")"
----
-decision: ask
-reason: git add -C /var/mnt/e/Repos/Rust/caesura

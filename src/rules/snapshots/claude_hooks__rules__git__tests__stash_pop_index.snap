@@ -1,0 +1,6 @@
+---
+source: src/rules/git.rs
+expression: "eval(\"git stash pop --index\")"
+---
+decision: deny
+reason: git stash pop can cause merge conflicts and lose stash

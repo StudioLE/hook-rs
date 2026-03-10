@@ -1,6 +1,0 @@
----
-source: src/checks/echo_separator.rs
-expression: "check(r#\"ls -la && echo \"---\" && ls -lS\"#)"
----
-decision: deny
-reason: Chained echo separators are blocked. Run each command separately.

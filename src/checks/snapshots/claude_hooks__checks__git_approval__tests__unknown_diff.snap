@@ -1,6 +1,0 @@
----
-source: src/checks/git_approval.rs
-expression: "check(\"git -C /home/other/repo diff\")"
----
-decision: ask
-reason: "git diff in unknown path: /home/other/repo"

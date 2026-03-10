@@ -1,6 +1,0 @@
----
-source: src/checks/gh_cli.rs
-expression: "check_t(\"gh api user\")"
----
-decision: allow
-reason: Read-only gh api command

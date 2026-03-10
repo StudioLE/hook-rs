@@ -1,0 +1,6 @@
+---
+source: src/rules/gh.rs
+expression: "eval(\"gh release list\")"
+---
+decision: allow
+reason: Read-only gh release list

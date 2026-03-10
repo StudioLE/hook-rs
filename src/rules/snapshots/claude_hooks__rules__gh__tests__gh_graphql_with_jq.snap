@@ -1,0 +1,6 @@
+---
+source: src/rules/gh.rs
+expression: "eval(\"gh api graphql -f query='{ repository(owner: \\\"owner\\\", name: \\\"repo\\\") { discussion(number: 97) { author { login } } } }' --jq '.data.repository.discussion'\")"
+---
+decision: allow
+reason: Read-only GraphQL query

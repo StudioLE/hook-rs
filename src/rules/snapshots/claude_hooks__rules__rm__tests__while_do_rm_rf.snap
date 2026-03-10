@@ -1,0 +1,5 @@
+---
+source: src/rules/rm.rs
+expression: "eval(\"while true; do rm -rf /path; done\")"
+---
+~

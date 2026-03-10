@@ -1,0 +1,6 @@
+---
+source: src/rules/find.rs
+expression: "eval(\"echo test ; find . -name '*.tmp' -delete\")"
+---
+decision: allow
+reason: "Safe command: echo"

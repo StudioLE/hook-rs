@@ -1,5 +1,0 @@
----
-source: src/checks/git_approval.rs
-expression: "check(\"git tag -v v1.0\")"
----
-~

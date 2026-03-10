@@ -1,6 +1,0 @@
----
-source: src/checks/git_stash.rs
-expression: "check(\"git stash pop\")"
----
-decision: deny
-reason: "git stash pop is blocked. Use 'git stash apply' instead to keep the stash entry for safety."

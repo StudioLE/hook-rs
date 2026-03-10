@@ -1,0 +1,6 @@
+---
+source: src/rules/gh.rs
+expression: "eval(\"gh api repos/owner/repo/readme --jq '.content | @base64d'\")"
+---
+decision: allow
+reason: Read-only gh api command

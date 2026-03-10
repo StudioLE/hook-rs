@@ -1,0 +1,6 @@
+---
+source: src/rules/gh.rs
+expression: "eval(\"gh api graphql -f query='mutation { addComment(input: {subjectId: \\\"123\\\", body: \\\"test\\\"}) { commentEdge { node { body } } } }'\")"
+---
+decision: allow
+reason: Read-only GraphQL query

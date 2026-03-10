@@ -1,6 +1,0 @@
----
-source: src/checks/gh_cli.rs
-expression: "check_t(\"gh run view 12345 --log\")"
----
-decision: allow
-reason: Read-only gh run command

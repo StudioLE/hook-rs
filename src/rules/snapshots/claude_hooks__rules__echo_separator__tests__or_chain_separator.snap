@@ -1,0 +1,6 @@
+---
+source: src/rules/echo_separator.rs
+expression: "eval(r#\"cmd1 2>&1 || echo \"---\"\"#)"
+---
+decision: deny
+reason: Chained echo separators are blocked. Run each command separately.

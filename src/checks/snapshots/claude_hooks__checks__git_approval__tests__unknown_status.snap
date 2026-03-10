@@ -1,6 +1,0 @@
----
-source: src/checks/git_approval.rs
-expression: "check(\"git -C /tmp/sketchy-repo status\")"
----
-decision: ask
-reason: "git status in unknown path: /tmp/sketchy-repo"

@@ -1,6 +1,0 @@
----
-source: src/checks/gh_cli.rs
-expression: "check_t(\"gh api graphql -f query='mutation { addComment(input: {subjectId: \\\"123\\\", body: \\\"test\\\"}) { commentEdge { node { body } } } }'\")"
----
-decision: ask
-reason: GitHub GraphQL mutation
