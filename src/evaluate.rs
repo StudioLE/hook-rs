@@ -106,7 +106,7 @@ mod tests {
 
     #[test]
     fn rm_denied() {
-        let result = eval("rm -rf /path").expect("should match");
+        let result = eval("rm -rf /tmp/nothing").expect("should match");
         assert_eq!(result.decision, Decision::Deny);
     }
 

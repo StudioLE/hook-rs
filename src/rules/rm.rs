@@ -102,7 +102,7 @@ mod tests {
 
     #[test]
     fn or_chain_rm_rf() {
-        assert_yaml_snapshot!(eval("false || rm -rf /path"));
+        assert_yaml_snapshot!(eval("false || rm -rf /tmp/nothing"));
     }
 
     #[test]
@@ -132,7 +132,7 @@ mod tests {
 
     #[test]
     fn while_do_rm_rf() {
-        assert_yaml_snapshot!(eval("while true; do rm -rf /path; done"));
+        assert_yaml_snapshot!(eval("while true; do rm -rf /tmp/nothing; done"));
     }
     #[test]
     fn tmp_file_denied() {

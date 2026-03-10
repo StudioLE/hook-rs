@@ -2,5 +2,4 @@
 source: src/rules/rm.rs
 expression: "eval(\"echo hi ; rm -r /path\")"
 ---
-decision: allow
-reason: "Safe command: echo"
+~

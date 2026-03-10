@@ -57,11 +57,25 @@ impl CompleteContext {
         let tokens = tokenize_str(command).ok()?;
         let program =
             parse_tokens(&tokens, &ParserOptions::default(), &SourceInfo::default()).ok()?;
-        let aol = &program.complete_commands.first()?.0.first()?.0;
-        let children: Vec<_> = std::iter::once((None, &aol.first))
-            .chain(aol.additional.iter().map(split_and_or))
-            .filter_map(pipeline_to_connector)
-            .collect();
+        let [cc] = program.complete_commands.as_slice() else {
+            return None;
+        };
+        let [statement] = cc.0.as_slice() else {
+            return None;
+        };
+        let aol = &statement.0;
+        let mut children = Vec::new();
+        for pair in
+            std::iter::once((None, &aol.first)).chain(aol.additional.iter().map(split_and_or))
+        {
+            let pipeline_children = walk_pipeline(pair.1)?;
+            if !pipeline_children.is_empty() {
+                children.push(PipelineContext {
+                    connector: pair.0,
+                    children: pipeline_children,
+                });
+            }
+        }
         Some(CompleteContext {
             raw: command.to_owned(),
             children,
@@ -85,37 +99,30 @@ impl CompleteContext {
 }
 
 impl SimpleContext {
-    /// Create a [`SimpleContext`] from a shell [`Command`].
-    ///
-    /// - Return `None` for non-simple commands (compound, function, etc.)
-    fn from_command(cmd: &Command) -> Option<Self> {
-        match cmd {
-            Command::Simple(sc) => Self::from_simple_command(sc),
-            _ => None,
-        }
-    }
-
     /// Create a [`SimpleContext`] from a [`SimpleCommand`](SimpleCommand).
     ///
     /// - Extract the command name and positional arguments
     /// - Detect heredoc redirects in prefix and suffix
     fn from_simple_command(sc: &SimpleCommand) -> Option<Self> {
         let name = unquote(&sc.word_or_name.as_ref()?.value);
-        let args = sc
+        let all_items = sc
             .suffix
             .iter()
             .flat_map(|s| &s.0)
-            .filter_map(|item| match item {
-                CommandPrefixOrSuffixItem::Word(w) => Some(w.value.clone()),
-                _ => None,
-            })
-            .collect();
-        let has_heredoc = sc
-            .suffix
-            .iter()
-            .flat_map(|s| &s.0)
-            .chain(sc.prefix.iter().flat_map(|p| &p.0))
-            .any(is_heredoc);
+            .chain(sc.prefix.iter().flat_map(|p| &p.0));
+        let mut args = Vec::new();
+        let mut has_heredoc = false;
+        for item in all_items {
+            match item {
+                CommandPrefixOrSuffixItem::Word(w) => args.push(w.value.clone()),
+                CommandPrefixOrSuffixItem::IoRedirect(IoRedirect::HereDocument(..)) => {
+                    has_heredoc = true;
+                }
+                CommandPrefixOrSuffixItem::IoRedirect(r) if is_safe_redirect(r) => {}
+                CommandPrefixOrSuffixItem::IoRedirect(_) => return None,
+                _ => {}
+            }
+        }
         Some(Self {
             name,
             args,
@@ -138,33 +145,32 @@ fn split_and_or(ao: &AndOr) -> (Option<Connector>, &Pipeline) {
     }
 }
 
-/// Create a [`PipelineContext`] from a connector–pipeline pair.
+/// Extract [`SimpleContext`] from each command in a pipeline.
 ///
-/// - Return `None` if the pipeline contains no simple commands
-fn pipeline_to_connector(
-    (connector, pipeline): (Option<Connector>, &Pipeline),
-) -> Option<PipelineContext> {
-    let children = walk_pipeline(pipeline);
-    (!children.is_empty()).then_some(PipelineContext {
-        connector,
-        children,
-    })
-}
-
-/// Extract [`SimpleContext`] from each simple command in a pipeline.
-fn walk_pipeline(pipeline: &Pipeline) -> Vec<SimpleContext> {
+/// Returns `None` if any command is compound (while, for, if, etc.)
+/// so the evaluator falls through to Claude Code's default approval flow.
+fn walk_pipeline(pipeline: &Pipeline) -> Option<Vec<SimpleContext>> {
     pipeline
         .seq
         .iter()
-        .filter_map(SimpleContext::from_command)
+        .map(|cmd| match cmd {
+            Command::Simple(sc) => SimpleContext::from_simple_command(sc),
+            _ => None,
+        })
         .collect()
 }
 
-fn is_heredoc(item: &CommandPrefixOrSuffixItem) -> bool {
-    matches!(
-        item,
-        CommandPrefixOrSuffixItem::IoRedirect(IoRedirect::HereDocument(..))
-    )
+/// A redirect is safe if it's an fd dup (`2>&1`) or targets `/dev/null`.
+fn is_safe_redirect(r: &IoRedirect) -> bool {
+    match r {
+        IoRedirect::File(
+            _,
+            IoFileRedirectKind::DuplicateInput | IoFileRedirectKind::DuplicateOutput,
+            IoFileRedirectTarget::Fd(_) | IoFileRedirectTarget::Duplicate(_),
+        ) => true,
+        IoRedirect::File(_, _, IoFileRedirectTarget::Filename(w)) => w.value == "/dev/null",
+        _ => false,
+    }
 }
 
 #[cfg(test)]
@@ -241,5 +247,82 @@ mod tests {
         let p = CompleteContext::parse("git commit -m 'msg'&& git push").expect("should parse");
         assert_eq!(p.children.len(), 2);
         assert_eq!(p.children[1].children[0].name, "git");
+    }
+
+    #[test]
+    fn while_loop_returns_none() {
+        assert!(CompleteContext::parse("while true; do echo hi; done").is_none());
+    }
+
+    #[test]
+    fn pipe_into_while_returns_none() {
+        assert!(CompleteContext::parse("git log | while read line; do echo $line; done").is_none());
+    }
+
+    #[test]
+    fn for_loop_returns_none() {
+        assert!(CompleteContext::parse("for f in *.tmp; do echo $f; done").is_none());
+    }
+
+    #[test]
+    fn if_then_returns_none() {
+        assert!(CompleteContext::parse("if true; then echo hello; fi").is_none());
+    }
+
+    #[test]
+    fn subshell_returns_none() {
+        assert!(CompleteContext::parse("(echo hello && echo world)").is_none());
+    }
+
+    #[test]
+    fn brace_group_returns_none() {
+        assert!(CompleteContext::parse("{ echo hello; echo world; }").is_none());
+    }
+
+    #[test]
+    fn chained_with_while_returns_none() {
+        assert!(CompleteContext::parse("git status && while true; do echo hi; done").is_none());
+    }
+
+    #[test]
+    fn semicolon_separated() {
+        assert!(CompleteContext::parse("git status ; echo hi").is_none());
+    }
+
+    #[test]
+    fn redirect_to_file_returns_none() {
+        assert!(CompleteContext::parse("echo hi > /tmp/file").is_none());
+    }
+
+    #[test]
+    fn redirect_append_returns_none() {
+        assert!(CompleteContext::parse("echo hi >> /tmp/file").is_none());
+    }
+
+    #[test]
+    fn redirect_overwrite_returns_none() {
+        assert!(CompleteContext::parse("echo '' > ~/.ssh/authorized_keys").is_none());
+    }
+
+    #[test]
+    fn redirect_dev_null_allowed() {
+        let p = CompleteContext::parse("git status 2>/dev/null").expect("should parse");
+        assert_eq!(p.children[0].children[0].name, "git");
+    }
+
+    #[test]
+    fn redirect_fd_dup_allowed() {
+        let p = CompleteContext::parse("cargo test 2>&1").expect("should parse");
+        assert_eq!(p.children[0].children[0].name, "cargo");
+    }
+
+    #[test]
+    fn redirect_input_returns_none() {
+        assert!(CompleteContext::parse("cat < /etc/passwd").is_none());
+    }
+
+    #[test]
+    fn redirect_clobber_returns_none() {
+        assert!(CompleteContext::parse("echo hi >| /tmp/file").is_none());
     }
 }

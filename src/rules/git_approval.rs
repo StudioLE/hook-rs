@@ -363,8 +363,7 @@ mod tests {
 
     #[test]
     fn chained_semicolon_passthrough() {
-        let result = eval("git status ; git log").expect("should match");
-        assert_eq!(result.decision, Decision::Allow);
+        assert_eq!(eval("git status ; git log"), None);
     }
 
     #[test]
