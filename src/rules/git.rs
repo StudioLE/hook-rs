@@ -1,5 +1,8 @@
+//! Deny rules for destructive git operations.
+
 use crate::prelude::*;
 
+/// Deny `git reset --hard`, `git stash pop/drop/clear`, and `git clean -d`.
 pub fn git_rules() -> Vec<SimpleRule> {
     vec![
         SimpleRule {

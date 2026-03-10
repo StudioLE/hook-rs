@@ -1,3 +1,5 @@
+//! Allow rules for safe, read-only git subcommands.
+
 use crate::prelude::*;
 
 const SAFE_SUBCOMMANDS: &[&str] = &[
@@ -15,6 +17,7 @@ const SAFE_SUBCOMMANDS: &[&str] = &[
     "status",
 ];
 
+/// Allow read-only git subcommands, including trusted-path variants via `git -C`.
 pub fn git_approval_rules() -> Vec<SimpleRule> {
     let mut rules: Vec<SimpleRule> = SAFE_SUBCOMMANDS
         .iter()

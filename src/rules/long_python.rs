@@ -1,8 +1,11 @@
+//! Deny rule for excessively long inline Python commands.
+
 use crate::prelude::*;
 
 const MAX_CHARS: usize = 1000;
 const MAX_LINES: usize = 20;
 
+/// Deny inline Python exceeding length or line count thresholds.
 pub fn long_python_rules() -> Vec<CompleteRule> {
     vec![CompleteRule {
         condition: Some(is_long_inline_python),

@@ -1,6 +1,8 @@
+//! Outcome and decision types for rule evaluation.
+
 use crate::prelude::*;
 
-/// Result of evaluating a single check against a parsed command.
+/// Result of evaluating a single rule against a parsed command.
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Outcome {
     /// The permission decision.
@@ -9,7 +11,7 @@ pub struct Outcome {
     pub reason: String,
 }
 
-/// Outcome of a hook check.
+/// Permission decision for a hook rule.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Decision {
@@ -44,6 +46,7 @@ impl Outcome {
         }
     }
 
+    /// Serialize this outcome as [`HookOutput`] JSON and print to stdout.
     pub fn print_hook_output(self) {
         HookOutput::from(self).print();
     }

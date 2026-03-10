@@ -1,5 +1,8 @@
+//! Deny rule for faking interactive input to `cargo insta review`.
+
 use crate::prelude::*;
 
+/// Deny `cargo insta review` when used with heredoc input.
 pub fn insta_rules() -> Vec<SimpleRule> {
     vec![SimpleRule {
         prefix: "cargo insta".to_owned(),

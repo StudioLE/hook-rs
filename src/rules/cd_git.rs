@@ -1,5 +1,8 @@
+//! Deny rule for `cd <path> && git <cmd>` patterns.
+
 use crate::prelude::*;
 
+/// Deny `cd` chained with `git`, directing to `git -C <path>` instead.
 pub fn cd_git_rules() -> Vec<CompleteRule> {
     vec![CompleteRule {
         condition: Some(is_cd_then_git),

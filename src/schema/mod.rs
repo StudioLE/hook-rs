@@ -1,3 +1,5 @@
+//! Schema types for hook I/O, outcomes, and rule definitions.
+
 mod complete_rule;
 mod hook_input;
 mod hook_output;

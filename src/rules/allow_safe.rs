@@ -1,3 +1,5 @@
+//! Allow rules for read-only and side-effect-free commands.
+
 use crate::prelude::*;
 
 const SAFE_COMMANDS: &[&str] = &[
@@ -5,6 +7,7 @@ const SAFE_COMMANDS: &[&str] = &[
     "tree", "uniq", "wc", "xxd",
 ];
 
+/// Rules for safe read-only commands, with denials for commands that can write or execute.
 #[must_use]
 pub fn safe_rules() -> Vec<SimpleRule> {
     let mut rules: Vec<SimpleRule> = SAFE_COMMANDS

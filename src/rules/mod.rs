@@ -1,3 +1,5 @@
+//! Security rules for evaluating shell commands.
+
 mod allow_safe;
 mod cd_git;
 mod chained_push;

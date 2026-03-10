@@ -1,6 +1,9 @@
+//! Deny rules for `git checkout` that discards uncommitted changes.
+
 use crate::prelude::*;
 use crate::utils::git::parse_git_args;
 
+/// Deny `git checkout -- <path>` and `git checkout HEAD -- <path>`.
 pub fn git_checkout_rules() -> Vec<SimpleRule> {
     vec![
         SimpleRule {

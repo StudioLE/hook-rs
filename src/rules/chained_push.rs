@@ -1,5 +1,8 @@
+//! Deny rule for `git push` chained with other commands.
+
 use crate::prelude::*;
 
+/// Deny `git push` when part of a compound command.
 pub fn chained_push_rules() -> Vec<CompleteRule> {
     vec![CompleteRule {
         condition: Some(is_chained_git_push),

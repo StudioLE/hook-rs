@@ -1,5 +1,8 @@
+//! Deny rule for `rm` to prevent file deletion.
+
 use crate::prelude::*;
 
+/// Deny all `rm` invocations, directing to `git rm` or `git clean` instead.
 #[must_use]
 pub fn rm_rule() -> SimpleRule {
     SimpleRule::new(

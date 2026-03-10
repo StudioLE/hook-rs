@@ -1,5 +1,8 @@
+//! Prefix-based rule matching individual simple commands.
+
 use crate::prelude::*;
 
+/// Rule that matches a [`SimpleContext`] by command prefix, options, and conditions.
 #[derive(Default)]
 pub struct SimpleRule {
     /// Match commands that start with prefix.
@@ -30,6 +33,7 @@ pub struct SimpleRule {
 }
 
 impl SimpleRule {
+    /// Create a new [`SimpleRule`] matching the given prefix.
     pub fn new(prefix: impl Into<String>, outcome: Outcome) -> Self {
         Self {
             prefix: prefix.into(),

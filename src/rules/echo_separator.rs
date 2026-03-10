@@ -1,5 +1,8 @@
+//! Deny rule for chained echo separators like `cmd && echo "---" && cmd`.
+
 use crate::prelude::*;
 
+/// Deny compound commands that use echo with `---` or `===` as visual separators.
 pub fn echo_separator_rules() -> Vec<CompleteRule> {
     vec![CompleteRule {
         condition: Some(has_chained_echo_separator),

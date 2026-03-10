@@ -19,6 +19,7 @@ pub struct ToolInput {
 }
 
 impl HookInput {
+    /// Read and deserialize hook input JSON from stdin.
     pub fn from_stdin() -> Result<Self, Report<HookError>> {
         let mut input = String::new();
         io::stdin()
@@ -32,6 +33,7 @@ impl HookInput {
     }
 }
 
+/// Errors returned by [`HookInput`] deserialization.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, thiserror::Error)]
 pub enum HookError {
     #[error("read stdin")]

@@ -1,5 +1,8 @@
+//! Condition-based rule matching complete parsed commands.
+
 use crate::prelude::*;
 
+/// Rule that matches a [`CompleteContext`] by a condition function.
 pub struct CompleteRule {
     /// Only match if the command satisfies this condition.
     pub condition: Option<fn(&CompleteContext) -> bool>,

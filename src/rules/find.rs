@@ -1,5 +1,8 @@
+//! Deny rules for destructive `find` operations.
+
 use crate::prelude::*;
 
+/// Deny `find -delete` and `find -exec rm` to prevent bulk file deletion.
 pub fn find_rules() -> Vec<SimpleRule> {
     vec![
         SimpleRule {

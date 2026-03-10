@@ -1,7 +1,10 @@
+//! Rules for GitHub CLI commands, distinguishing read vs write operations.
+
 use std::process::Command;
 
 use crate::prelude::*;
 
+/// Allow read-only `gh` operations, ask for write operations, and handle bot contexts.
 pub fn gh_rules() -> Vec<SimpleRule> {
     vec![
         SimpleRule::new("gh run list", Outcome::allow("Read-only gh run list")),
