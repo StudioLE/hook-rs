@@ -1,5 +1,5 @@
 ---
 source: src/rules/chained_push.rs
-expression: "eval(\"git commit -m 'msg' ; git push\")"
+expression: result
 ---
 ~

@@ -81,110 +81,111 @@ mod tests {
     use crate::prelude::*;
     use insta::assert_yaml_snapshot;
 
-    fn eval(command: &str) -> Option<Outcome> {
-        crate::evaluate::evaluate(command)
-    }
-
     // === git reset --hard tests ===
 
     #[test]
     fn reset_hard() {
-        assert_yaml_snapshot!(eval("git reset --hard"));
+        let result = evaluate("git reset --hard");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn reset_hard_head() {
-        assert_yaml_snapshot!(eval("git reset --hard HEAD"));
+        let result = evaluate("git reset --hard HEAD");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn reset_hard_head_1() {
-        assert_yaml_snapshot!(eval("git reset --hard HEAD~1"));
+        let result = evaluate("git reset --hard HEAD~1");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn reset_hard_origin_main() {
-        assert_yaml_snapshot!(eval("git reset --hard origin/main"));
+        let result = evaluate("git reset --hard origin/main");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn chained_reset_hard() {
-        assert_yaml_snapshot!(eval("git fetch && git reset --hard origin/main"));
+        let result = evaluate("git fetch && git reset --hard origin/main");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn reset_hard_in_chain() {
-        assert_yaml_snapshot!(eval("git stash && git reset --hard && git stash pop"));
+        let result = evaluate("git stash && git reset --hard && git stash pop");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn reset_passthrough() {
-        assert_eq!(eval("git reset"), None);
+        assert_eq!(evaluate("git reset"), None);
     }
 
     #[test]
     fn reset_head_passthrough() {
-        assert_eq!(eval("git reset HEAD"), None);
+        assert_eq!(evaluate("git reset HEAD"), None);
     }
 
     #[test]
     fn reset_soft_passthrough() {
-        assert_eq!(eval("git reset --soft HEAD~1"), None);
+        assert_eq!(evaluate("git reset --soft HEAD~1"), None);
     }
 
     #[test]
     fn reset_mixed_passthrough() {
-        assert_eq!(eval("git reset --mixed HEAD~1"), None);
+        assert_eq!(evaluate("git reset --mixed HEAD~1"), None);
     }
 
     #[test]
     fn reset_file_passthrough() {
-        assert_eq!(eval("git reset HEAD -- file.txt"), None);
+        assert_eq!(evaluate("git reset HEAD -- file.txt"), None);
     }
 
     #[test]
     fn git_status_passthrough() {
-        let result = eval("git status").expect("should match");
+        let result = evaluate("git status").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn echo_reset_hard_passthrough() {
         // echo is Allow via safe_rules
-        let result = eval("echo git reset --hard is dangerous").expect("should match");
+        let result = evaluate("echo git reset --hard is dangerous").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn grep_reset_hard_passthrough() {
         // grep is Allow via safe_rules
-        let result = eval("grep 'git reset --hard' README.md").expect("should match");
+        let result = evaluate("grep 'git reset --hard' README.md").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn c_path_reset_hard() {
-        assert_yaml_snapshot!(eval("git -C /var/mnt/e/Repos/Rust/caesura reset --hard"));
+        let result = evaluate("git -C /var/mnt/e/Repos/Rust/caesura reset --hard");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn c_path_reset_hard_head() {
-        assert_yaml_snapshot!(eval(
-            "git -C /var/mnt/e/Repos/Rust/caesura reset --hard HEAD~1"
-        ));
+        let result = evaluate("git -C /var/mnt/e/Repos/Rust/caesura reset --hard HEAD~1");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn c_path_quoted_reset_hard() {
-        assert_yaml_snapshot!(eval(
-            "git -C \"/var/mnt/e/Repos/Rust/caesura\" reset --hard"
-        ));
+        let result = evaluate("git -C \"/var/mnt/e/Repos/Rust/caesura\" reset --hard");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn c_path_reset_soft_passthrough() {
         assert_eq!(
-            eval("git -C /var/mnt/e/Repos/Rust/caesura reset --soft HEAD~1"),
+            evaluate("git -C /var/mnt/e/Repos/Rust/caesura reset --soft HEAD~1"),
             None
         );
     }
@@ -193,235 +194,258 @@ mod tests {
 
     #[test]
     fn stash_pop() {
-        assert_yaml_snapshot!(eval("git stash pop"));
+        let result = evaluate("git stash pop");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn stash_pop_with_ref() {
-        assert_yaml_snapshot!(eval("git stash pop stash@{0}"));
+        let result = evaluate("git stash pop stash@{0}");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn stash_pop_index() {
-        assert_yaml_snapshot!(eval("git stash pop --index"));
+        let result = evaluate("git stash pop --index");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn chained_stash_pop() {
-        assert_yaml_snapshot!(eval("git stash && git pull && git stash pop"));
+        let result = evaluate("git stash && git pull && git stash pop");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn stash_drop() {
-        assert_yaml_snapshot!(eval("git stash drop"));
+        let result = evaluate("git stash drop");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn stash_drop_with_ref() {
-        assert_yaml_snapshot!(eval("git stash drop stash@{0}"));
+        let result = evaluate("git stash drop stash@{0}");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn stash_drop_stash_2() {
-        assert_yaml_snapshot!(eval("git stash drop stash@{2}"));
+        let result = evaluate("git stash drop stash@{2}");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn chained_stash_drop() {
-        assert_yaml_snapshot!(eval("git stash list && git stash drop"));
+        let result = evaluate("git stash list && git stash drop");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn stash_clear() {
-        assert_yaml_snapshot!(eval("git stash clear"));
+        let result = evaluate("git stash clear");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn chained_stash_clear() {
-        assert_yaml_snapshot!(eval("false || git stash clear"));
+        let result = evaluate("false || git stash clear");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn stash_passthrough() {
-        assert_eq!(eval("git stash"), None);
+        assert_eq!(evaluate("git stash"), None);
     }
 
     #[test]
     fn stash_push_passthrough() {
-        assert_eq!(eval("git stash push"), None);
+        assert_eq!(evaluate("git stash push"), None);
     }
 
     #[test]
     fn stash_push_m_passthrough() {
-        assert_eq!(eval("git stash push -m 'wip'"), None);
+        assert_eq!(evaluate("git stash push -m 'wip'"), None);
     }
 
     #[test]
     fn stash_apply_passthrough() {
-        assert_eq!(eval("git stash apply"), None);
+        assert_eq!(evaluate("git stash apply"), None);
     }
 
     #[test]
     fn stash_apply_ref_passthrough() {
-        assert_eq!(eval("git stash apply stash@{0}"), None);
+        assert_eq!(evaluate("git stash apply stash@{0}"), None);
     }
 
     #[test]
     fn stash_list_passthrough() {
-        assert_eq!(eval("git stash list"), None);
+        assert_eq!(evaluate("git stash list"), None);
     }
 
     #[test]
     fn stash_show_passthrough() {
-        assert_eq!(eval("git stash show"), None);
+        assert_eq!(evaluate("git stash show"), None);
     }
 
     #[test]
     fn stash_show_p_passthrough() {
-        assert_eq!(eval("git stash show -p"), None);
+        assert_eq!(evaluate("git stash show -p"), None);
     }
 
     #[test]
     fn stash_branch_passthrough() {
-        assert_eq!(eval("git stash branch newbranch"), None);
+        assert_eq!(evaluate("git stash branch newbranch"), None);
     }
 
     #[test]
     fn echo_stash_pop_passthrough() {
-        let result = eval("echo git stash pop is blocked").expect("should match");
+        let result = evaluate("echo git stash pop is blocked").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn grep_stash_drop_passthrough() {
-        let result = eval("grep 'git stash drop' file.txt").expect("should match");
+        let result = evaluate("grep 'git stash drop' file.txt").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn cat_stash_clear_passthrough() {
-        let result = eval("cat stash-clear-notes.txt").expect("should match");
+        let result = evaluate("cat stash-clear-notes.txt").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn c_path_stash_pop() {
-        assert_yaml_snapshot!(eval("git -C /var/mnt/e/Repos/Rogue/docker/caddy stash pop"));
+        let result = evaluate("git -C /var/mnt/e/Repos/Rogue/docker/caddy stash pop");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn c_path_stash_drop() {
-        assert_yaml_snapshot!(eval("git -C /var/mnt/e/Repos/Rust/caesura stash drop"));
+        let result = evaluate("git -C /var/mnt/e/Repos/Rust/caesura stash drop");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn c_path_stash_clear() {
-        assert_yaml_snapshot!(eval("git -C /tmp/repo stash clear"));
+        let result = evaluate("git -C /tmp/repo stash clear");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn c_path_quoted_stash_pop() {
-        assert_yaml_snapshot!(eval("git -C \"/var/mnt/e/Repos/Rust/caesura\" stash pop"));
+        let result = evaluate("git -C \"/var/mnt/e/Repos/Rust/caesura\" stash pop");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn c_path_stash_apply_passthrough() {
         assert_eq!(
-            eval("git -C /var/mnt/e/Repos/Rust/caesura stash apply"),
+            evaluate("git -C /var/mnt/e/Repos/Rust/caesura stash apply"),
             None
         );
     }
 
     #[test]
     fn c_path_stash_passthrough() {
-        assert_eq!(eval("git -C /var/mnt/e/Repos/Rust/caesura stash"), None);
+        assert_eq!(evaluate("git -C /var/mnt/e/Repos/Rust/caesura stash"), None);
     }
 
     // === git clean tests ===
 
     #[test]
     fn git_clean_fd() {
-        assert_yaml_snapshot!(eval("git clean -fd"));
+        let result = evaluate("git clean -fd");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn git_clean_fxd() {
-        assert_yaml_snapshot!(eval("git clean -fxd"));
+        let result = evaluate("git clean -fxd");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn git_clean_d() {
-        assert_yaml_snapshot!(eval("git clean -d"));
+        let result = evaluate("git clean -d");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn git_clean_df() {
-        assert_yaml_snapshot!(eval("git clean -df"));
+        let result = evaluate("git clean -df");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn git_clean_dxf() {
-        assert_yaml_snapshot!(eval("git clean -dxf"));
+        let result = evaluate("git clean -dxf");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn chained_git_clean_fd() {
-        assert_yaml_snapshot!(eval("ls && git clean -fd"));
+        let result = evaluate("ls && git clean -fd");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn git_clean_f_passthrough() {
-        assert_eq!(eval("git clean -f file.txt"), None);
+        assert_eq!(evaluate("git clean -f file.txt"), None);
     }
 
     #[test]
     fn git_clean_fx_passthrough() {
-        assert_eq!(eval("git clean -fx file.txt"), None);
+        assert_eq!(evaluate("git clean -fx file.txt"), None);
     }
 
     #[test]
     fn git_clean_fx_dash_in_filename_passthrough() {
         assert_eq!(
-            eval("git clean -fx /path/to/some-dash-delimited-file.sh"),
+            evaluate("git clean -fx /path/to/some-dash-delimited-file.sh"),
             None
         );
     }
 
     #[test]
     fn git_clean_f_dash_in_path_passthrough() {
-        assert_eq!(eval("git clean -f /path/dir-name/file.txt"), None);
+        assert_eq!(evaluate("git clean -f /path/dir-name/file.txt"), None);
     }
 
     #[test]
     fn git_clean_n_passthrough() {
-        assert_eq!(eval("git clean -n"), None);
+        assert_eq!(evaluate("git clean -n"), None);
     }
 
     #[test]
     fn echo_git_clean_passthrough() {
-        let result = eval("echo git clean -fxd").expect("should match");
+        let result = evaluate("echo git clean -fxd").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn c_path_git_clean_fd() {
-        assert_yaml_snapshot!(eval("git -C /var/mnt/e/Repos/Rust/caesura clean -fd"));
+        let result = evaluate("git -C /var/mnt/e/Repos/Rust/caesura clean -fd");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn c_path_git_clean_fxd() {
-        assert_yaml_snapshot!(eval("git -C /var/mnt/e/Repos/Rust/caesura clean -fxd"));
+        let result = evaluate("git -C /var/mnt/e/Repos/Rust/caesura clean -fxd");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn c_path_quoted_git_clean_fd() {
-        assert_yaml_snapshot!(eval("git -C \"/var/mnt/e/Repos/Rust/caesura\" clean -fd"));
+        let result = evaluate("git -C \"/var/mnt/e/Repos/Rust/caesura\" clean -fd");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn c_path_git_clean_f_passthrough() {
         assert_eq!(
-            eval("git -C /var/mnt/e/Repos/Rust/caesura clean -f file.txt"),
+            evaluate("git -C /var/mnt/e/Repos/Rust/caesura clean -f file.txt"),
             None
         );
     }

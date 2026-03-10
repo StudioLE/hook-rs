@@ -1,6 +1,6 @@
 ---
 source: src/rules/gh.rs
-expression: "eval(\"gh run view 12345\")"
+expression: result
 ---
 decision: allow
 reason: Read-only gh run view

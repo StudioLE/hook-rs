@@ -94,145 +94,141 @@ pub fn evaluate(command: &str) -> Option<Outcome> {
 mod tests {
     use super::*;
 
-    fn eval(command: &str) -> Option<Outcome> {
-        evaluate(command)
-    }
-
     #[test]
     fn safe_git_allowed() {
-        let result = eval("git status").expect("should match");
+        let result = evaluate("git status").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn rm_denied() {
-        let result = eval("rm -rf /tmp/nothing").expect("should match");
+        let result = evaluate("rm -rf /tmp/nothing").expect("should match");
         assert_eq!(result.decision, Decision::Deny);
     }
 
     #[test]
     fn stash_pop_denied() {
-        let result = eval("git stash pop").expect("should match");
+        let result = evaluate("git stash pop").expect("should match");
         assert_eq!(result.decision, Decision::Deny);
     }
 
     #[test]
     fn reset_hard_denied() {
-        let result = eval("git reset --hard").expect("should match");
+        let result = evaluate("git reset --hard").expect("should match");
         assert_eq!(result.decision, Decision::Deny);
     }
 
     #[test]
     fn checkout_discard_denied() {
-        let result = eval("git checkout -- file.txt").expect("should match");
+        let result = evaluate("git checkout -- file.txt").expect("should match");
         assert_eq!(result.decision, Decision::Deny);
     }
 
     #[test]
     fn chained_push_denied() {
-        let result = eval("git commit -m 'msg' && git push").expect("should match");
+        let result = evaluate("git commit -m 'msg' && git push").expect("should match");
         assert_eq!(result.decision, Decision::Deny);
     }
 
     #[test]
     fn echo_separator_denied() {
-        let result = eval("cmd && echo \"---\"").expect("should match");
+        let result = evaluate("cmd && echo \"---\"").expect("should match");
         assert_eq!(result.decision, Decision::Deny);
     }
 
     #[test]
     fn find_delete_denied() {
-        let result = eval("find . -name '*.tmp' -delete").expect("should match");
+        let result = evaluate("find . -name '*.tmp' -delete").expect("should match");
         assert_eq!(result.decision, Decision::Deny);
     }
 
     #[test]
     fn insta_heredoc_denied() {
-        let result = eval("cargo insta review <<EOF\na\nEOF").expect("should match");
+        let result = evaluate("cargo insta review <<EOF\na\nEOF").expect("should match");
         assert_eq!(result.decision, Decision::Deny);
     }
 
     #[test]
     fn cd_git_denied() {
-        let result = eval("cd /path && git status").expect("should match");
+        let result = evaluate("cd /path && git status").expect("should match");
         assert_eq!(result.decision, Decision::Deny);
     }
 
     #[test]
     fn plain_ls_allowed() {
-        let result = eval("ls -la").expect("should match");
+        let result = evaluate("ls -la").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn plain_cargo_passthrough() {
-        assert_eq!(eval("cargo build"), None);
+        assert_eq!(evaluate("cargo build"), None);
     }
 
     #[test]
     fn standalone_push_passthrough() {
-        assert_eq!(eval("git push"), None);
+        assert_eq!(evaluate("git push"), None);
     }
 
     #[test]
     fn git_branch_read_allowed() {
-        let result = eval("git branch -a").expect("should match");
+        let result = evaluate("git branch -a").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn git_branch_write_passthrough() {
-        assert_eq!(eval("git branch -d old"), None);
+        assert_eq!(evaluate("git branch -d old"), None);
     }
 
     #[test]
     fn git_tag_read_allowed() {
-        let result = eval("git tag -l").expect("should match");
+        let result = evaluate("git tag -l").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn git_tag_create_passthrough() {
-        assert_eq!(eval("git tag v1.0"), None);
+        assert_eq!(evaluate("git tag v1.0"), None);
     }
 
     #[test]
     fn git_remote_verbose_allowed() {
-        let result = eval("git remote -v").expect("should match");
+        let result = evaluate("git remote -v").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn git_remote_add_passthrough() {
-        assert_eq!(eval("git remote add upstream https://x.com"), None);
+        assert_eq!(evaluate("git remote add upstream https://x.com"), None);
     }
 
     #[test]
     fn tmp_rm_denied() {
-        let result = eval("rm /tmp/file.txt").expect("should match");
+        let result = evaluate("rm /tmp/file.txt").expect("should match");
         assert_eq!(result.decision, Decision::Deny);
     }
 
     #[test]
     fn git_clean_d_denied() {
-        let result = eval("git clean -fd").expect("should match");
+        let result = evaluate("git clean -fd").expect("should match");
         assert_eq!(result.decision, Decision::Deny);
     }
 
     #[test]
     fn forked_path_passthrough() {
-        assert_eq!(eval("git -C /var/mnt/e/Repos/Forked/repo status"), None);
+        assert_eq!(evaluate("git -C /var/mnt/e/Repos/Forked/repo status"), None);
     }
 
     #[test]
     fn unknown_path_passthrough() {
-        assert_eq!(eval("git -C /tmp/sketchy status"), None);
+        assert_eq!(evaluate("git -C /tmp/sketchy status"), None);
     }
 
     #[test]
     fn c_path_stash_pop_denied() {
         let result =
-            eval("git -C /var/mnt/e/Repos/Rogue/docker/caddy stash pop").expect("should match");
+            evaluate("git -C /var/mnt/e/Repos/Rogue/docker/caddy stash pop").expect("should match");
         assert_eq!(result.decision, Decision::Deny);
         assert!(result.reason.contains("stash pop"));
     }
@@ -240,14 +236,14 @@ mod tests {
     #[test]
     fn c_path_reset_hard_denied() {
         let result =
-            eval("git -C /var/mnt/e/Repos/Rust/caesura reset --hard").expect("should match");
+            evaluate("git -C /var/mnt/e/Repos/Rust/caesura reset --hard").expect("should match");
         assert_eq!(result.decision, Decision::Deny);
         assert!(result.reason.contains("reset --hard"));
     }
 
     #[test]
     fn c_path_checkout_discard_denied() {
-        let result = eval("git -C /var/mnt/e/Repos/Rust/caesura checkout -- file.txt")
+        let result = evaluate("git -C /var/mnt/e/Repos/Rust/caesura checkout -- file.txt")
             .expect("should match");
         assert_eq!(result.decision, Decision::Deny);
         assert!(result.reason.contains("checkout --"));
@@ -255,25 +251,26 @@ mod tests {
 
     #[test]
     fn c_path_git_clean_d_denied() {
-        let result = eval("git -C /var/mnt/e/Repos/Rust/caesura clean -fd").expect("should match");
+        let result =
+            evaluate("git -C /var/mnt/e/Repos/Rust/caesura clean -fd").expect("should match");
         assert_eq!(result.decision, Decision::Deny);
         assert!(result.reason.contains("clean"));
     }
 
     #[test]
     fn git_status_piped_allowed() {
-        let result = eval("git status | head -5").expect("should match");
+        let result = evaluate("git status | head -5").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn git_diff_and_status_allowed() {
-        let result = eval("git diff && git status").expect("should match");
+        let result = evaluate("git diff && git status").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn safe_and_unknown_passthrough() {
-        assert_eq!(eval("git status && cargo build"), None);
+        assert_eq!(evaluate("git status && cargo build"), None);
     }
 }

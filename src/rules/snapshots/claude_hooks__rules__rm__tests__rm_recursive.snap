@@ -1,6 +1,6 @@
 ---
 source: src/rules/rm.rs
-expression: "eval(\"rm --recursive /path/to/dir\")"
+expression: result
 ---
 decision: deny
 reason: "rm is blocked. Use 'git rm -f <file>' for specific files (or -fx if gitignored) or 'git clean -f <file>' for untracked files (or -fx if gitignored)."

@@ -188,179 +188,197 @@ mod tests {
     use crate::prelude::*;
     use insta::assert_yaml_snapshot;
 
-    fn eval(command: &str) -> Option<Outcome> {
-        crate::evaluate::evaluate(command)
-    }
-
     #[test]
     fn non_gh_passthrough() {
         // ls and echo are Allow via safe_rules
-        let result = eval("ls -la").expect("should match");
+        let result = evaluate("ls -la").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
-        let result = eval("echo hello").expect("should match");
+        let result = evaluate("echo hello").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
         // git status is Allow via git_approval
-        let result = eval("git status").expect("should match");
+        let result = evaluate("git status").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn gh_non_api_passthrough() {
-        assert_eq!(eval("gh pr list"), None);
-        assert_eq!(eval("gh issue view 123"), None);
-        assert_eq!(eval("gh repo view"), None);
+        assert_eq!(evaluate("gh pr list"), None);
+        assert_eq!(evaluate("gh issue view 123"), None);
+        assert_eq!(evaluate("gh repo view"), None);
     }
 
     #[test]
     fn gh_run_list() {
-        assert_yaml_snapshot!(eval("gh run list"));
+        let result = evaluate("gh run list");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_run_list_flags() {
-        assert_yaml_snapshot!(eval("gh run list --limit 10"));
+        let result = evaluate("gh run list --limit 10");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_run_view() {
-        assert_yaml_snapshot!(eval("gh run view 12345"));
+        let result = evaluate("gh run view 12345");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_run_view_log() {
-        assert_yaml_snapshot!(eval("gh run view 12345 --log"));
+        let result = evaluate("gh run view 12345 --log");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_release_list() {
-        assert_yaml_snapshot!(eval("gh release list"));
+        let result = evaluate("gh release list");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_release_list_flags() {
-        assert_yaml_snapshot!(eval("gh release list --limit 10"));
+        let result = evaluate("gh release list --limit 10");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_api_user() {
-        assert_yaml_snapshot!(eval("gh api user"));
+        let result = evaluate("gh api user");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_api_repos() {
-        assert_yaml_snapshot!(eval("gh api repos/owner/repo"));
+        let result = evaluate("gh api repos/owner/repo");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_api_pulls() {
-        assert_yaml_snapshot!(eval("gh api repos/owner/repo/pulls"));
+        let result = evaluate("gh api repos/owner/repo/pulls");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_api_post() {
-        assert_yaml_snapshot!(eval("gh api -X POST /repos/owner/repo/issues"));
+        let result = evaluate("gh api -X POST /repos/owner/repo/issues");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_api_put() {
-        assert_yaml_snapshot!(eval("gh api -X PUT /repos/owner/repo/issues/1"));
+        let result = evaluate("gh api -X PUT /repos/owner/repo/issues/1");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_api_patch() {
-        assert_yaml_snapshot!(eval("gh api -X PATCH /repos/owner/repo/issues/1"));
+        let result = evaluate("gh api -X PATCH /repos/owner/repo/issues/1");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_api_delete() {
-        assert_yaml_snapshot!(eval("gh api -X DELETE /repos/owner/repo/issues/1"));
+        let result = evaluate("gh api -X DELETE /repos/owner/repo/issues/1");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_api_pipe_base64() {
-        assert_yaml_snapshot!(eval(
-            "gh api repos/USER/REPO/readme --jq .content 2>&1 | base64 -d"
-        ));
+        let result = evaluate("gh api repos/USER/REPO/readme --jq .content 2>&1 | base64 -d");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_api_pipe_jq() {
-        assert_yaml_snapshot!(eval("gh api repos/owner/repo/pulls | jq -r '.[].title'"));
+        let result = evaluate("gh api repos/owner/repo/pulls | jq -r '.[].title'");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_api_jq_pipe_in_jq() {
-        assert_yaml_snapshot!(eval(
-            "gh api repos/owner/repo/readme --jq '.content | @base64d'"
-        ));
+        let result = evaluate("gh api repos/owner/repo/readme --jq '.content | @base64d'");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_api_d_before_jq() {
-        assert_yaml_snapshot!(eval(
-            "gh api repos/owner/repo -d @body.json --jq '.content | @base64d'"
-        ));
+        let result = evaluate("gh api repos/owner/repo -d @body.json --jq '.content | @base64d'");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_graphql_read() {
-        assert_yaml_snapshot!(eval(
-            "gh api graphql -f query='{ repository(owner: \"owner\", name: \"repo\") { discussions(first: 10) { nodes { title } } } }'"
-        ));
+        let result = evaluate(
+            "gh api graphql -f query='{ repository(owner: \"owner\", name: \"repo\") { discussions(first: 10) { nodes { title } } } }'",
+        );
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_graphql_with_jq() {
-        assert_yaml_snapshot!(eval(
-            "gh api graphql -f query='{ repository(owner: \"owner\", name: \"repo\") { discussion(number: 97) { author { login } } } }' --jq '.data.repository.discussion'"
-        ));
+        let result = evaluate(
+            "gh api graphql -f query='{ repository(owner: \"owner\", name: \"repo\") { discussion(number: 97) { author { login } } } }' --jq '.data.repository.discussion'",
+        );
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_graphql_explicit_query() {
-        assert_yaml_snapshot!(eval("gh api graphql -f query='query { viewer { login } }'"));
+        let result = evaluate("gh api graphql -f query='query { viewer { login } }'");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_graphql_mutation() {
-        assert_yaml_snapshot!(eval(
-            "gh api graphql -f query='mutation { addComment(input: {subjectId: \"123\", body: \"test\"}) { commentEdge { node { body } } } }'"
-        ));
+        let result = evaluate(
+            "gh api graphql -f query='mutation { addComment(input: {subjectId: \"123\", body: \"test\"}) { commentEdge { node { body } } } }'",
+        );
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_api_f_flag() {
-        assert_yaml_snapshot!(eval("gh api /repos/owner/repo/issues -f title=test"));
+        let result = evaluate("gh api /repos/owner/repo/issues -f title=test");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_api_cap_f_flag() {
-        assert_yaml_snapshot!(eval("gh api /repos/owner/repo/issues -F body=test"));
+        let result = evaluate("gh api /repos/owner/repo/issues -F body=test");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_api_field_flag() {
-        assert_yaml_snapshot!(eval("gh api /repos/owner/repo/issues --field title=test"));
+        let result = evaluate("gh api /repos/owner/repo/issues --field title=test");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_api_d_flag() {
-        assert_yaml_snapshot!(eval("gh api /repos/owner/repo -d @body.json"));
+        let result = evaluate("gh api /repos/owner/repo -d @body.json");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_api_data_flag() {
-        assert_yaml_snapshot!(eval("gh api /repos/owner/repo --data @body.json"));
+        let result = evaluate("gh api /repos/owner/repo --data @body.json");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_api_input_flag() {
-        assert_yaml_snapshot!(eval("gh api /repos/owner/repo --input file.json"));
+        let result = evaluate("gh api /repos/owner/repo --input file.json");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn gh_pr_comment() {
-        assert_yaml_snapshot!(eval("gh pr comment 123 --body 'test'"));
+        let result = evaluate("gh pr comment 123 --body 'test'");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]

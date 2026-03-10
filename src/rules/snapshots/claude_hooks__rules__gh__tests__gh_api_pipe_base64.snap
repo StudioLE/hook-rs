@@ -1,5 +1,5 @@
 ---
 source: src/rules/gh.rs
-expression: "eval(\"gh api repos/USER/REPO/readme --jq .content 2>&1 | base64 -d\")"
+expression: result
 ---
 ~

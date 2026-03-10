@@ -18,42 +18,42 @@ mod tests {
     use crate::prelude::*;
     use insta::assert_yaml_snapshot;
 
-    fn eval(command: &str) -> Option<Outcome> {
-        crate::evaluate::evaluate(command)
-    }
-
     #[test]
     fn heredoc_single_quoted() {
-        assert_yaml_snapshot!(eval("cargo insta review 2>&1 <<'EOF'\na\nEOF"));
+        let result = evaluate("cargo insta review 2>&1 <<'EOF'\na\nEOF");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn heredoc_unquoted() {
-        assert_yaml_snapshot!(eval("cargo insta review <<EOF\na\nEOF"));
+        let result = evaluate("cargo insta review <<EOF\na\nEOF");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn heredoc_double_quoted() {
-        assert_yaml_snapshot!(eval("cargo insta review <<\"EOF\"\na\nEOF"));
+        let result = evaluate("cargo insta review <<\"EOF\"\na\nEOF");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn heredoc_dash() {
-        assert_yaml_snapshot!(eval("cargo insta review <<-EOF\na\nEOF"));
+        let result = evaluate("cargo insta review <<-EOF\na\nEOF");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn plain_review_passthrough() {
-        assert_eq!(eval("cargo insta review"), None);
+        assert_eq!(evaluate("cargo insta review"), None);
     }
 
     #[test]
     fn insta_test_passthrough() {
-        assert_eq!(eval("cargo insta test"), None);
+        assert_eq!(evaluate("cargo insta test"), None);
     }
 
     #[test]
     fn insta_test_review_passthrough() {
-        assert_eq!(eval("cargo insta test --review"), None);
+        assert_eq!(evaluate("cargo insta test --review"), None);
     }
 }

@@ -1,5 +1,5 @@
 ---
 source: src/rules/rm.rs
-expression: "eval(\"if true; then rm file.txt; fi\")"
+expression: result
 ---
 ~

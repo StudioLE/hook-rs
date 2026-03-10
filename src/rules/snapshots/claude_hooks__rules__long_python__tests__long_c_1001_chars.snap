@@ -1,6 +1,6 @@
 ---
 source: src/rules/long_python.rs
-expression: eval(&make_long_c(979))
+expression: result
 ---
 decision: deny
 reason: Inline Python too long (must be < 1000 chars and < 20 lines). Write a script to /tmp/ and run it instead.

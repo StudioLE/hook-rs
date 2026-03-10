@@ -1,6 +1,6 @@
 ---
 source: src/rules/gh.rs
-expression: "eval(\"gh api graphql -f query='query { viewer { login } }'\")"
+expression: result
 ---
 decision: allow
 reason: Read-only GraphQL query

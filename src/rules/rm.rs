@@ -16,205 +16,230 @@ mod tests {
     use crate::prelude::*;
     use insta::assert_yaml_snapshot;
 
-    fn eval(command: &str) -> Option<Outcome> {
-        crate::evaluate::evaluate(command)
-    }
-
     #[test]
     fn rm_r() {
-        assert_yaml_snapshot!(eval("rm -r /path/to/dir"));
+        let result = evaluate("rm -r /path/to/dir");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn rm_cap_r() {
-        assert_yaml_snapshot!(eval("rm -R /path/to/dir"));
+        let result = evaluate("rm -R /path/to/dir");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn rm_rf() {
-        assert_yaml_snapshot!(eval("rm -rf /path/to/dir"));
+        let result = evaluate("rm -rf /path/to/dir");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn rm_cap_rf() {
-        assert_yaml_snapshot!(eval("rm -Rf /path/to/dir"));
+        let result = evaluate("rm -Rf /path/to/dir");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn rm_fr() {
-        assert_yaml_snapshot!(eval("rm -fr /path/to/dir"));
+        let result = evaluate("rm -fr /path/to/dir");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn rm_f_cap_r() {
-        assert_yaml_snapshot!(eval("rm -fR /path/to/dir"));
+        let result = evaluate("rm -fR /path/to/dir");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn rm_recursive() {
-        assert_yaml_snapshot!(eval("rm --recursive /path/to/dir"));
+        let result = evaluate("rm --recursive /path/to/dir");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn rm_rfi() {
-        assert_yaml_snapshot!(eval("rm -rfi /path/to/dir"));
+        let result = evaluate("rm -rfi /path/to/dir");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn rm_ir() {
-        assert_yaml_snapshot!(eval("rm -ir /path/to/dir"));
+        let result = evaluate("rm -ir /path/to/dir");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn rm_single_file() {
-        assert_yaml_snapshot!(eval("rm file.txt"));
+        let result = evaluate("rm file.txt");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn rm_multiple_files() {
-        assert_yaml_snapshot!(eval("rm file1.txt file2.txt"));
+        let result = evaluate("rm file1.txt file2.txt");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn rm_f() {
-        assert_yaml_snapshot!(eval("rm -f file.txt"));
+        let result = evaluate("rm -f file.txt");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn rm_i() {
-        assert_yaml_snapshot!(eval("rm -i file.txt"));
+        let result = evaluate("rm -i file.txt");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn rm_with_path() {
-        assert_yaml_snapshot!(eval("rm /path/to/file.txt"));
+        let result = evaluate("rm /path/to/file.txt");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn rm_wildcard() {
-        assert_yaml_snapshot!(eval("rm *.tmp"));
+        let result = evaluate("rm *.tmp");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn chained_rm_r() {
-        assert_yaml_snapshot!(eval("ls && rm -r /path"));
+        let result = evaluate("ls && rm -r /path");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn or_chain_rm_rf() {
-        assert_yaml_snapshot!(eval("false || rm -rf /tmp/nothing"));
+        let result = evaluate("false || rm -rf /tmp/nothing");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn semicolon_rm_r() {
-        assert_yaml_snapshot!(eval("echo hi ; rm -r /path"));
+        let result = evaluate("echo hi ; rm -r /path");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn chained_rm_file() {
-        assert_yaml_snapshot!(eval("ls && rm file.txt"));
+        let result = evaluate("ls && rm file.txt");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn for_do_rm() {
-        assert_yaml_snapshot!(eval("for f in *.tmp; do rm $f; done"));
+        let result = evaluate("for f in *.tmp; do rm $f; done");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn if_then_rm() {
-        assert_yaml_snapshot!(eval("if true; then rm file.txt; fi"));
+        let result = evaluate("if true; then rm file.txt; fi");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn if_else_rm() {
-        assert_yaml_snapshot!(eval("if false; then echo hi; else rm file.txt; fi"));
+        let result = evaluate("if false; then echo hi; else rm file.txt; fi");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn while_do_rm_rf() {
-        assert_yaml_snapshot!(eval("while true; do rm -rf /tmp/nothing; done"));
+        let result = evaluate("while true; do rm -rf /tmp/nothing; done");
+        assert_yaml_snapshot!(result);
     }
     #[test]
     fn tmp_file_denied() {
-        assert_yaml_snapshot!(eval("rm /tmp/file.txt"));
+        let result = evaluate("rm /tmp/file.txt");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn tmp_f_denied() {
-        assert_yaml_snapshot!(eval("rm -f /tmp/file.txt"));
+        let result = evaluate("rm -f /tmp/file.txt");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn tmp_rf_denied() {
-        assert_yaml_snapshot!(eval("rm -rf /tmp/dir"));
+        let result = evaluate("rm -rf /tmp/dir");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn tmp_multiple_denied() {
-        assert_yaml_snapshot!(eval("rm /tmp/file1 /tmp/file2"));
+        let result = evaluate("rm /tmp/file1 /tmp/file2");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn tmp_path_traversal_denied() {
-        assert_yaml_snapshot!(eval("rm /tmp/../etc/passwd"));
+        let result = evaluate("rm /tmp/../etc/passwd");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn tmp_mixed_non_tmp_denied() {
-        assert_yaml_snapshot!(eval("rm /tmp/file.txt /home/user/file.txt"));
+        let result = evaluate("rm /tmp/file.txt /home/user/file.txt");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn ls_passthrough() {
-        let result = eval("ls -la").expect("should match");
+        let result = evaluate("ls -la").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn git_rm_passthrough() {
         // git rm is Allow via git_approval
-        let result = eval("git rm file.txt").expect("should match");
+        let result = evaluate("git rm file.txt").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn git_rm_r_passthrough() {
-        let result = eval("git rm -r dir/").expect("should match");
+        let result = evaluate("git rm -r dir/").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn echo_rm_passthrough() {
-        let result = eval("echo rm is blocked").expect("should match");
+        let result = evaluate("echo rm is blocked").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn grep_r_passthrough() {
-        let result = eval("grep -r rm .").expect("should match");
+        let result = evaluate("grep -r rm .").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn cat_passthrough() {
-        let result = eval("cat file.txt").expect("should match");
+        let result = evaluate("cat file.txt").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn mv_passthrough() {
-        assert_eq!(eval("mv old.txt new.txt"), None);
+        assert_eq!(evaluate("mv old.txt new.txt"), None);
     }
 
     #[test]
     fn cargo_rm_passthrough() {
-        assert_eq!(eval("cargo rm some-dep"), None);
+        assert_eq!(evaluate("cargo rm some-dep"), None);
     }
 
     #[test]
     fn xargs_rm_passthrough() {
         // echo | xargs rm — echo is Allow via safe_rules, xargs is not matched
         // but rm is not the command name here (xargs is), so rm rule doesn't fire
-        assert_eq!(eval("echo file | xargs rm"), None);
+        assert_eq!(evaluate("echo file | xargs rm"), None);
     }
 }

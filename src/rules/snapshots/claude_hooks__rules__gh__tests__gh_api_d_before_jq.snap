@@ -1,6 +1,6 @@
 ---
 source: src/rules/gh.rs
-expression: "eval(\"gh api repos/owner/repo -d @body.json --jq '.content | @base64d'\")"
+expression: result
 ---
 decision: ask
 reason: GitHub API request with data flags

@@ -1,5 +1,5 @@
 ---
 source: src/rules/rm.rs
-expression: "eval(\"echo hi ; rm -r /path\")"
+expression: result
 ---
 ~

@@ -1,6 +1,6 @@
 ---
 source: src/rules/gh.rs
-expression: "eval(\"gh pr comment 123 --body 'test'\")"
+expression: result
 ---
 decision: ask
 reason: PR comment requires approval

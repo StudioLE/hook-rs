@@ -1,6 +1,6 @@
 ---
 source: src/rules/git.rs
-expression: "eval(\"false || git stash clear\")"
+expression: result
 ---
 decision: deny
 reason: git stash clear permanently deletes all stash entries

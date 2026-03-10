@@ -28,10 +28,6 @@ mod tests {
     use crate::prelude::*;
     use insta::assert_yaml_snapshot;
 
-    fn eval(command: &str) -> Option<Outcome> {
-        crate::evaluate::evaluate(command)
-    }
-
     fn make_heredoc(lines: usize) -> String {
         use std::fmt::Write;
         let mut cmd = "python3 << 'EOF'".to_owned();
@@ -49,71 +45,76 @@ mod tests {
 
     #[test]
     fn long_heredoc_25_lines() {
-        assert_yaml_snapshot!(eval(&make_heredoc(25)));
+        let result = evaluate(&make_heredoc(25));
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn long_heredoc_python2() {
         let cmd = make_heredoc(25).replace("python3", "python");
-        assert_yaml_snapshot!(eval(&cmd));
+        let result = evaluate(&cmd);
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn long_c_1001_chars() {
-        assert_yaml_snapshot!(eval(&make_long_c(979)));
+        let result = evaluate(&make_long_c(979));
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn short_heredoc_passthrough() {
-        assert_eq!(eval(&make_heredoc(5)), None);
+        assert_eq!(evaluate(&make_heredoc(5)), None);
     }
 
     #[test]
     fn short_c_passthrough() {
-        assert_eq!(eval("python3 -c 'print(\"hello\")'"), None);
+        assert_eq!(evaluate("python3 -c 'print(\"hello\")'"), None);
     }
 
     #[test]
     fn python_script_passthrough() {
-        assert_eq!(eval("python3 /tmp/script.py"), None);
+        assert_eq!(evaluate("python3 /tmp/script.py"), None);
     }
 
     #[test]
     fn python_module_passthrough() {
-        assert_eq!(eval("python3 -m http.server 8080"), None);
+        assert_eq!(evaluate("python3 -m http.server 8080"), None);
     }
 
     #[test]
     fn long_non_python_passthrough() {
         let long_bash = format!("bash -c 'echo {}'", "x".repeat(1100));
-        assert_eq!(eval(&long_bash), None);
+        assert_eq!(evaluate(&long_bash), None);
     }
 
     #[test]
     fn ls_passthrough() {
         // ls is Allow via safe_rules
-        let result = eval("ls -la").expect("should match");
+        let result = evaluate("ls -la").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn boundary_exactly_20_lines_passthrough() {
-        assert_eq!(eval(&make_heredoc(18)), None);
+        assert_eq!(evaluate(&make_heredoc(18)), None);
     }
 
     #[test]
     fn boundary_21_lines_denied() {
-        assert_yaml_snapshot!(eval(&make_heredoc(19)));
+        let result = evaluate(&make_heredoc(19));
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn boundary_exactly_1000_chars_passthrough() {
-        assert_eq!(eval(&make_long_c(978)), None);
+        assert_eq!(evaluate(&make_long_c(978)), None);
     }
 
     #[test]
     fn boundary_1001_chars_denied() {
-        assert_yaml_snapshot!(eval(&make_long_c(979)));
+        let result = evaluate(&make_long_c(979));
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
@@ -124,6 +125,7 @@ mod tests {
             write!(cmd, "\nprint('line {i}')").expect("write to String should not fail");
         }
         cmd.push_str("\nEOF");
-        assert_yaml_snapshot!(eval(&cmd));
+        let result = evaluate(&cmd);
+        assert_yaml_snapshot!(result);
     }
 }

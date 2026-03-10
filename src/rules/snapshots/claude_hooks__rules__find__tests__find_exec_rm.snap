@@ -1,6 +1,6 @@
 ---
 source: src/rules/find.rs
-expression: "eval(\"find . -name '*.tmp' -exec rm {} \\\\;\")"
+expression: result
 ---
 decision: deny
 reason: "find -exec rm is blocked. Use 'find ... -print' to preview matches first, then delete with targeted commands."

@@ -1,6 +1,6 @@
 ---
 source: src/rules/gh.rs
-expression: "eval(\"gh api -X PUT /repos/owner/repo/issues/1\")"
+expression: result
 ---
 decision: ask
 reason: GitHub API write method

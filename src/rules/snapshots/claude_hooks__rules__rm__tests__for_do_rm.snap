@@ -1,5 +1,5 @@
 ---
 source: src/rules/rm.rs
-expression: "eval(\"for f in *.tmp; do rm $f; done\")"
+expression: result
 ---
 ~

@@ -1,6 +1,6 @@
 ---
 source: src/rules/git.rs
-expression: "eval(\"git fetch && git reset --hard origin/main\")"
+expression: result
 ---
 decision: deny
 reason: git reset --hard discards uncommitted changes

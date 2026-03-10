@@ -1,6 +1,6 @@
 ---
 source: src/rules/gh.rs
-expression: "eval(\"gh release list --limit 10\")"
+expression: result
 ---
 decision: allow
 reason: Read-only gh release list

@@ -1,6 +1,6 @@
 ---
 source: src/rules/git.rs
-expression: "eval(\"git stash drop stash@{0}\")"
+expression: result
 ---
 decision: deny
 reason: git stash drop permanently deletes a stash entry

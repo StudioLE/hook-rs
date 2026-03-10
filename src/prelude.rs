@@ -1,6 +1,7 @@
 //! Common re-exports used across the crate.
 
 pub use crate::command::*;
+pub use crate::evaluate::*;
 pub use crate::rules::*;
 pub use crate::schema::*;
 pub use crate::utils::*;

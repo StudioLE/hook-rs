@@ -1,6 +1,6 @@
 ---
 source: src/rules/git.rs
-expression: "eval(\"git -C \\\"/var/mnt/e/Repos/Rust/caesura\\\" reset --hard\")"
+expression: result
 ---
 decision: deny
 reason: git reset --hard discards uncommitted changes

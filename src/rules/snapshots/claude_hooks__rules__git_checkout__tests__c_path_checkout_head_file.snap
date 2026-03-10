@@ -1,6 +1,6 @@
 ---
 source: src/rules/git_checkout.rs
-expression: "eval(\"git -C /var/mnt/e/Repos/Rust/caesura checkout HEAD -- file.txt\")"
+expression: result
 ---
 decision: deny
 reason: git checkout HEAD -- is blocked. Do not discard changes to revert your mistakes. Fix the code properly.

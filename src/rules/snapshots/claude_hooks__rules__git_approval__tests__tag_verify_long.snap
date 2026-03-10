@@ -1,5 +1,5 @@
 ---
 source: src/rules/git_approval.rs
-expression: "eval(\"git tag --verify v1.0\")"
+expression: result
 ---
 ~

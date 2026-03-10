@@ -1,5 +1,5 @@
 ---
 source: src/rules/echo_separator.rs
-expression: "eval(r#\"cmd1 ; echo \"---\" ; cmd2\"#)"
+expression: result
 ---
 ~

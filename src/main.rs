@@ -1,4 +1,3 @@
-use claude_hooks::evaluate::evaluate;
 use claude_hooks::prelude::*;
 
 fn main() {

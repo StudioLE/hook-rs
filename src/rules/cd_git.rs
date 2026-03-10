@@ -22,67 +22,66 @@ mod tests {
     use crate::prelude::*;
     use insta::assert_yaml_snapshot;
 
-    fn eval(command: &str) -> Option<Outcome> {
-        crate::evaluate::evaluate(command)
-    }
-
     #[test]
     fn cd_and_git_status() {
-        assert_yaml_snapshot!(eval("cd /var/mnt/e/Repos/Rust/caesura && git status"));
+        let result = evaluate("cd /var/mnt/e/Repos/Rust/caesura && git status");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn cd_and_git_commit() {
-        assert_yaml_snapshot!(eval(
-            "cd /var/mnt/e/Repos/Rust/caesura && git commit -m 'msg'"
-        ));
+        let result = evaluate("cd /var/mnt/e/Repos/Rust/caesura && git commit -m 'msg'");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn cd_untrusted_and_git() {
-        assert_yaml_snapshot!(eval("cd /tmp/sketchy && git log"));
+        let result = evaluate("cd /tmp/sketchy && git log");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn cd_relative_and_git() {
-        assert_yaml_snapshot!(eval("cd ../relative/path && git diff"));
+        let result = evaluate("cd ../relative/path && git diff");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn cd_forked_and_git() {
-        assert_yaml_snapshot!(eval("cd /var/mnt/e/Repos/Forked/repo && git status"));
+        let result = evaluate("cd /var/mnt/e/Repos/Forked/repo && git status");
+        assert_yaml_snapshot!(result);
     }
 
     #[test]
     fn cd_alone_passthrough() {
-        assert_eq!(eval("cd /var/mnt/e/Repos/Rust/caesura"), None);
+        assert_eq!(evaluate("cd /var/mnt/e/Repos/Rust/caesura"), None);
     }
 
     #[test]
     fn git_alone_passthrough() {
         // git status alone is matched by git_approval as Allow, not passthrough
-        let result = eval("git status").expect("should match");
+        let result = evaluate("git status").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn git_log_passthrough() {
         // git log is matched by git_approval as Allow
-        let result = eval("git log --oneline -5").expect("should match");
+        let result = evaluate("git log --oneline -5").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn non_cd_compound_passthrough() {
         // ls -la is Allow via safe_rules, git status is Allow via git_approval
-        let result = eval("ls -la && git status").expect("should match");
+        let result = evaluate("ls -la && git status").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 
     #[test]
     fn echo_cd_allowed() {
         // echo is Allow via safe_rules, git status is Allow via git_approval
-        let result = eval("echo cd /path && git status").expect("should match");
+        let result = evaluate("echo cd /path && git status").expect("should match");
         assert_eq!(result.decision, Decision::Allow);
     }
 }
