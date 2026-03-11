@@ -1,0 +1,21 @@
+---
+source: src/logic/parse.rs
+expression: context
+---
+raw: "git commit -m 'msg'&& git push"
+children:
+  - connector: ~
+    children:
+      - name: git
+        args:
+          - commit
+          - "-m"
+          - "'msg'"
+        has_heredoc: false
+  - connector: And
+    children:
+      - name: git
+        args:
+          - push
+        has_heredoc: false
+has_for: false

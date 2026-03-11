@@ -1,0 +1,18 @@
+---
+source: src/logic/parse.rs
+expression: context
+---
+raw: ls && git status
+children:
+  - connector: ~
+    children:
+      - name: ls
+        args: []
+        has_heredoc: false
+  - connector: And
+    children:
+      - name: git
+        args:
+          - status
+        has_heredoc: false
+has_for: false

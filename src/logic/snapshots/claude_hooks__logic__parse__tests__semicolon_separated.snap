@@ -1,0 +1,19 @@
+---
+source: src/logic/parse.rs
+expression: context
+---
+raw: git status ; echo hi
+children:
+  - connector: ~
+    children:
+      - name: git
+        args:
+          - status
+        has_heredoc: false
+  - connector: Semi
+    children:
+      - name: echo
+        args:
+          - hi
+        has_heredoc: false
+has_for: false

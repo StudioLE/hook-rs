@@ -1,0 +1,71 @@
+//! Deny rule for faking interactive input to `cargo insta review`.
+
+use crate::prelude::*;
+
+/// Deny `cargo insta review` when used with heredoc input.
+pub fn insta_rules() -> Vec<SimpleRule> {
+    vec![cargo_insta_review__heredoc()]
+}
+
+/// Deny `cargo insta review` with heredoc input.
+fn cargo_insta_review__heredoc() -> SimpleRule {
+    SimpleRule {
+        id: "cargo_insta_review__heredoc".to_owned(),
+        prefix: "cargo insta".to_owned(),
+        condition: Some(is_review_with_heredoc),
+        outcome: Outcome::deny("Do not fake interactive input to cargo insta review."),
+        ..Default::default()
+    }
+}
+
+fn is_review_with_heredoc(cmd: &SimpleContext) -> bool {
+    cmd.args.get(1).is_some_and(|a| a == "review") && cmd.has_heredoc
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::prelude::*;
+    use insta::assert_yaml_snapshot;
+
+    #[test]
+    fn heredoc_single_quoted() {
+        let outcome = evaluate_expect_outcome("cargo insta review 2>&1 <<'EOF'\na\nEOF");
+        assert_yaml_snapshot!(outcome);
+    }
+
+    #[test]
+    fn heredoc_unquoted() {
+        let outcome = evaluate_expect_outcome("cargo insta review <<EOF\na\nEOF");
+        assert_yaml_snapshot!(outcome);
+    }
+
+    #[test]
+    fn heredoc_double_quoted() {
+        let outcome = evaluate_expect_outcome("cargo insta review <<\"EOF\"\na\nEOF");
+        assert_yaml_snapshot!(outcome);
+    }
+
+    #[test]
+    fn heredoc_dash() {
+        let outcome = evaluate_expect_outcome("cargo insta review <<-EOF\na\nEOF");
+        assert_yaml_snapshot!(outcome);
+    }
+
+    #[test]
+    fn plain_review_passthrough() {
+        let reason = evaluate_expect_skip("cargo insta review");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn insta_test_passthrough() {
+        let reason = evaluate_expect_skip("cargo insta test");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn insta_test_review_passthrough() {
+        let reason = evaluate_expect_skip("cargo insta test --review");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+}

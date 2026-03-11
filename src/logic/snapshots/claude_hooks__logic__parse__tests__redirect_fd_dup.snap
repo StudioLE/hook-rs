@@ -1,0 +1,13 @@
+---
+source: src/logic/parse.rs
+expression: context
+---
+raw: cargo test 2>&1
+children:
+  - connector: ~
+    children:
+      - name: cargo
+        args:
+          - test
+        has_heredoc: false
+has_for: false

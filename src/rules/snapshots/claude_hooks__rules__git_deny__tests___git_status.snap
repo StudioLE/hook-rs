@@ -1,0 +1,6 @@
+---
+source: src/rules/git_deny.rs
+expression: outcome
+---
+decision: allow
+reason: "Safe git subcommand: status"
