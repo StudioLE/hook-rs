@@ -16,7 +16,7 @@ fn echo_separator() -> CompleteRule {
     }
 }
 
-fn has_chained_echo_separator(parsed: &CompleteContext) -> bool {
+fn has_chained_echo_separator(parsed: &CompleteContext, _settings: &Settings) -> bool {
     parsed.children.iter().any(|pi| {
         pi.connector.is_some()
             && pi.children.first().is_some_and(|cmd| {

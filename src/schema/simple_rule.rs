@@ -36,7 +36,7 @@ pub struct SimpleRule {
     /// - `--output`
     pub without_any: Option<Vec<String>>,
     /// Only match if the command satisfies this condition.
-    pub condition: Option<fn(&SimpleContext) -> bool>,
+    pub condition: Option<fn(&SimpleContext, &CompleteContext, &Settings) -> bool>,
     /// Outcome if the command matches.
     pub outcome: Outcome,
 }
@@ -55,7 +55,12 @@ impl SimpleRule {
     /// Check if this rule matches the given command.
     ///
     /// Single-char short flags (e.g. `-d`) also match inside bundled args (e.g. `-fd`).
-    pub fn matches(&self, cmd: &SimpleContext) -> bool {
+    pub fn matches(
+        &self,
+        cmd: &SimpleContext,
+        complete: &CompleteContext,
+        settings: &Settings,
+    ) -> bool {
         let mut parts = self.prefix.split_whitespace();
         let Some(name) = parts.next() else {
             return false;
@@ -96,7 +101,7 @@ impl SimpleRule {
             return false;
         }
         if let Some(condition) = &self.condition
-            && !condition(cmd)
+            && !condition(cmd, complete, settings)
         {
             return false;
         }

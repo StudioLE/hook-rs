@@ -21,7 +21,7 @@ fn python__long_inline() -> CompleteRule {
     }
 }
 
-fn is_long_inline_python(parsed: &CompleteContext) -> bool {
+fn is_long_inline_python(parsed: &CompleteContext, _settings: &Settings) -> bool {
     let has_inline_python = parsed.all_commands().any(|cmd| {
         (cmd.name == "python" || cmd.name == "python3")
             && (cmd.args.iter().any(|a| a == "-c") || cmd.has_heredoc)

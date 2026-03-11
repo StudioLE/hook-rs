@@ -35,7 +35,7 @@ fn find_exec_rm() -> SimpleRule {
     }
 }
 
-fn has_exec_rm(cmd: &SimpleContext) -> bool {
+fn has_exec_rm(cmd: &SimpleContext, _complete: &CompleteContext, _settings: &Settings) -> bool {
     cmd.args.iter().enumerate().any(|(i, arg)| {
         (arg == "-exec" || arg == "-execdir") && cmd.args.get(i + 1).is_some_and(|a| a == "rm")
     })

@@ -18,7 +18,8 @@ fn evaluate_stdin() -> Option<Outcome> {
             )));
         }
     };
-    match Evaluator::default().evaluate_str(&input.tool_input.command) {
+    let settings = Settings::load();
+    match Evaluator::new(settings).evaluate_str(&input.tool_input.command) {
         Ok(Ok(outcome)) => Some(outcome),
         Ok(Err(_reason)) => None,
         Err(e) => Some(Outcome::ask(format!(

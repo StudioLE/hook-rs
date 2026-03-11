@@ -4,9 +4,6 @@ use super::git_allow::git_allow_rules;
 use super::git_deny::git_deny_rules;
 use crate::prelude::*;
 
-const TRUSTED_DIRS: &[&str] = &["/var/mnt/e/Repos/"];
-const UNTRUSTED_DIRS: &[&str] = &["/var/mnt/e/Repos/Forked/"];
-
 /// Deny and allow rules for `git -C <trusted-path>` commands.
 pub fn git_c_rules() -> Vec<SimpleRule> {
     vec![git_c__deny_destructive(), git_c__allow_trusted()]
@@ -52,26 +49,38 @@ fn get_context_without_c(context: &SimpleContext) -> SimpleContext {
     clippy::indexing_slicing,
     reason = "guard() ensures args.len() > 2, so index 1 is safe"
 )]
-fn is_c_path_trusted(context: &SimpleContext) -> bool {
+fn is_c_path_trusted(context: &SimpleContext, settings: &Settings) -> bool {
     let path = unquote_str(&context.args[1]);
-    !UNTRUSTED_DIRS.iter().any(|d| path.starts_with(d))
-        && TRUSTED_DIRS.iter().any(|d| path.starts_with(d))
+    !settings
+        .git
+        .untrusted_dirs
+        .iter()
+        .any(|d| path.starts_with(d.as_str()))
+        && settings
+            .git
+            .trusted_dirs
+            .iter()
+            .any(|d| path.starts_with(d.as_str()))
 }
 
-fn deny_git_c(context: &SimpleContext) -> bool {
+fn deny_git_c(context: &SimpleContext, complete: &CompleteContext, settings: &Settings) -> bool {
     if !guard(context) {
         return false;
     }
     let new_context = get_context_without_c(context);
-    git_deny_rules().iter().any(|r| r.matches(&new_context))
+    git_deny_rules()
+        .iter()
+        .any(|r| r.matches(&new_context, complete, settings))
 }
 
-fn allow_git_c(context: &SimpleContext) -> bool {
-    if !guard(context) || !is_c_path_trusted(context) {
+fn allow_git_c(context: &SimpleContext, complete: &CompleteContext, settings: &Settings) -> bool {
+    if !guard(context) || !is_c_path_trusted(context, settings) {
         return false;
     }
     let new_context = get_context_without_c(context);
-    git_allow_rules().iter().any(|r| r.matches(&new_context))
+    git_allow_rules()
+        .iter()
+        .any(|r| r.matches(&new_context, complete, settings))
 }
 
 #[cfg(test)]
@@ -81,49 +90,49 @@ mod tests {
 
     #[test]
     fn trusted_path_status() {
-        let outcome = evaluate_expect_outcome("git -C /var/mnt/e/Repos/my-project status");
+        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project status");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn trusted_path_log() {
-        let outcome = evaluate_expect_outcome("git -C /var/mnt/e/Repos/my-project log --oneline");
+        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project log --oneline");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn trusted_subdir_diff() {
-        let outcome = evaluate_expect_outcome("git -C /var/mnt/e/Repos/foo/bar diff");
+        let outcome = evaluate_expect_outcome("git -C /home/user/repos/foo/bar diff");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn double_quoted_trusted_path() {
-        let outcome = evaluate_expect_outcome("git -C \"/var/mnt/e/Repos/my-project\" status");
+        let outcome = evaluate_expect_outcome("git -C \"/home/user/repos/my-project\" status");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn single_quoted_trusted_path() {
-        let outcome = evaluate_expect_outcome("git -C '/var/mnt/e/Repos/my-project' status");
+        let outcome = evaluate_expect_outcome("git -C '/home/user/repos/my-project' status");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn trailing_slash_trusted_path() {
-        let outcome = evaluate_expect_outcome("git -C /var/mnt/e/Repos/my-project/ status");
+        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project/ status");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn forked_status_passthrough() {
-        let reason = evaluate_expect_skip("git -C /var/mnt/e/Repos/Forked/some-repo status");
+        let reason = evaluate_expect_skip("git -C /home/user/repos/forked/some-repo status");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn forked_log_passthrough() {
-        let reason = evaluate_expect_skip("git -C /var/mnt/e/Repos/Forked/some-repo log");
+        let reason = evaluate_expect_skip("git -C /home/user/repos/forked/some-repo log");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
@@ -141,19 +150,19 @@ mod tests {
 
     #[test]
     fn unsafe_with_c_path_commit_passthrough() {
-        let reason = evaluate_expect_skip("git -C /var/mnt/e/Repos/my-project commit -m 'test'");
+        let reason = evaluate_expect_skip("git -C /home/user/repos/my-project commit -m 'test'");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn unsafe_with_c_path_push_passthrough() {
-        let reason = evaluate_expect_skip("git -C /var/mnt/e/Repos/my-project push origin main");
+        let reason = evaluate_expect_skip("git -C /home/user/repos/my-project push origin main");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn unsafe_with_c_path_add_passthrough() {
-        let reason = evaluate_expect_skip("git -C /var/mnt/e/Repos/my-project add -A");
+        let reason = evaluate_expect_skip("git -C /home/user/repos/my-project add -A");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
@@ -165,31 +174,31 @@ mod tests {
 
     #[test]
     fn branch_trusted_path() {
-        let outcome = evaluate_expect_outcome("git -C /var/mnt/e/Repos/my-project branch -a");
+        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project branch -a");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn tag_trusted_path() {
-        let outcome = evaluate_expect_outcome("git -C /var/mnt/e/Repos/my-project tag -l");
+        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project tag -l");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn remote_trusted_path() {
-        let outcome = evaluate_expect_outcome("git -C /var/mnt/e/Repos/my-project remote -v");
+        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project remote -v");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn branch_forked_path_passthrough() {
-        let reason = evaluate_expect_skip("git -C /var/mnt/e/Repos/Forked/repo branch");
+        let reason = evaluate_expect_skip("git -C /home/user/repos/forked/repo branch");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn branch_delete_with_path_passthrough() {
-        let reason = evaluate_expect_skip("git -C /var/mnt/e/Repos/my-project branch -d old");
+        let reason = evaluate_expect_skip("git -C /home/user/repos/my-project branch -d old");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
@@ -197,108 +206,108 @@ mod tests {
 
     #[test]
     fn c_path_reset_hard() {
-        let outcome = evaluate_expect_outcome("git -C /var/mnt/e/Repos/my-project reset --hard");
+        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project reset --hard");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn c_path_reset_hard_head() {
         let outcome =
-            evaluate_expect_outcome("git -C /var/mnt/e/Repos/my-project reset --hard HEAD~1");
+            evaluate_expect_outcome("git -C /home/user/repos/my-project reset --hard HEAD~1");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn c_path_quoted_reset_hard() {
         let outcome =
-            evaluate_expect_outcome("git -C \"/var/mnt/e/Repos/my-project\" reset --hard");
+            evaluate_expect_outcome("git -C \"/home/user/repos/my-project\" reset --hard");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn c_path_reset_soft_passthrough() {
-        let reason = evaluate_expect_skip("git -C /var/mnt/e/Repos/my-project reset --soft HEAD~1");
+        let reason = evaluate_expect_skip("git -C /home/user/repos/my-project reset --soft HEAD~1");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn c_path_stash_pop() {
-        let outcome = evaluate_expect_outcome("git -C /var/mnt/e/Repos/my-project stash pop");
+        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project stash pop");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn c_path_stash_drop() {
-        let outcome = evaluate_expect_outcome("git -C /var/mnt/e/Repos/my-project stash drop");
+        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project stash drop");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn c_path_quoted_stash_pop() {
-        let outcome = evaluate_expect_outcome("git -C \"/var/mnt/e/Repos/my-project\" stash pop");
+        let outcome = evaluate_expect_outcome("git -C \"/home/user/repos/my-project\" stash pop");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn c_path_stash_apply_passthrough() {
-        let reason = evaluate_expect_skip("git -C /var/mnt/e/Repos/my-project stash apply");
+        let reason = evaluate_expect_skip("git -C /home/user/repos/my-project stash apply");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn c_path_stash_passthrough() {
-        let reason = evaluate_expect_skip("git -C /var/mnt/e/Repos/my-project stash");
+        let reason = evaluate_expect_skip("git -C /home/user/repos/my-project stash");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn c_path_checkout_denied() {
         let outcome =
-            evaluate_expect_outcome("git -C /var/mnt/e/Repos/my-project checkout -- file.txt");
+            evaluate_expect_outcome("git -C /home/user/repos/my-project checkout -- file.txt");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn c_path_checkout_head_file() {
         let outcome =
-            evaluate_expect_outcome("git -C /var/mnt/e/Repos/my-project checkout HEAD -- file.txt");
+            evaluate_expect_outcome("git -C /home/user/repos/my-project checkout HEAD -- file.txt");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn c_path_quoted_checkout_discard() {
         let outcome =
-            evaluate_expect_outcome("git -C \"/var/mnt/e/Repos/my-project\" checkout -- .");
+            evaluate_expect_outcome("git -C \"/home/user/repos/my-project\" checkout -- .");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn c_path_checkout_branch_passthrough() {
-        let reason = evaluate_expect_skip("git -C /var/mnt/e/Repos/my-project checkout main");
+        let reason = evaluate_expect_skip("git -C /home/user/repos/my-project checkout main");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn c_path_clean_fd() {
-        let outcome = evaluate_expect_outcome("git -C /var/mnt/e/Repos/my-project clean -fd");
+        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project clean -fd");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn c_path_clean_fxd() {
-        let outcome = evaluate_expect_outcome("git -C /var/mnt/e/Repos/my-project clean -fxd");
+        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project clean -fxd");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn c_path_quoted_clean_fd() {
-        let outcome = evaluate_expect_outcome("git -C \"/var/mnt/e/Repos/my-project\" clean -fd");
+        let outcome = evaluate_expect_outcome("git -C \"/home/user/repos/my-project\" clean -fd");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn c_path_clean_f_passthrough() {
-        let reason = evaluate_expect_skip("git -C /var/mnt/e/Repos/my-project clean -f file.txt");
+        let reason = evaluate_expect_skip("git -C /home/user/repos/my-project clean -f file.txt");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
@@ -306,19 +315,19 @@ mod tests {
 
     #[test]
     fn forked_reset_hard_denied() {
-        let outcome = evaluate_expect_outcome("git -C /var/mnt/e/Repos/Forked/repo reset --hard");
+        let outcome = evaluate_expect_outcome("git -C /home/user/repos/forked/repo reset --hard");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn forked_stash_pop_denied() {
-        let outcome = evaluate_expect_outcome("git -C /var/mnt/e/Repos/Forked/repo stash pop");
+        let outcome = evaluate_expect_outcome("git -C /home/user/repos/forked/repo stash pop");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn forked_clean_fd_denied() {
-        let outcome = evaluate_expect_outcome("git -C /var/mnt/e/Repos/Forked/repo clean -fd");
+        let outcome = evaluate_expect_outcome("git -C /home/user/repos/forked/repo clean -fd");
         assert_yaml_snapshot!(outcome);
     }
 

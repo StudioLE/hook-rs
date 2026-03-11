@@ -18,7 +18,7 @@ fn git_push__chained() -> CompleteRule {
     }
 }
 
-fn is_chained_git_push(parsed: &CompleteContext) -> bool {
+fn is_chained_git_push(parsed: &CompleteContext, _settings: &Settings) -> bool {
     let has_git_push = parsed
         .all_commands()
         .any(|cmd| cmd.name == "git" && cmd.args.first().is_some_and(|a| a == "push"));

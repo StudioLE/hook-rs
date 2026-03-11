@@ -64,7 +64,7 @@ pub fn git_allow_rules() -> Vec<SimpleRule> {
             id: format!("git_tag_{flag_id}"),
             prefix: "git tag".to_owned(),
             with_any: Some(vec![flag.to_owned()]),
-            condition: Some(|cmd| !has_positional_after_tag(cmd)),
+            condition: Some(|cmd, _, _| !has_positional_after_tag(cmd)),
             outcome: Outcome::allow("Safe git subcommand: tag"),
             ..Default::default()
         });
@@ -88,7 +88,7 @@ fn git_branch__bare() -> SimpleRule {
     SimpleRule {
         id: "git_branch__bare".to_owned(),
         prefix: "git branch".to_owned(),
-        condition: Some(|cmd| cmd.args.len() == 1),
+        condition: Some(|cmd, _, _| cmd.args.len() == 1),
         outcome: Outcome::allow("Safe git subcommand: branch"),
         ..Default::default()
     }
@@ -99,7 +99,7 @@ fn git_tag__bare() -> SimpleRule {
     SimpleRule {
         id: "git_tag__bare".to_owned(),
         prefix: "git tag".to_owned(),
-        condition: Some(|cmd| cmd.args.len() == 1),
+        condition: Some(|cmd, _, _| cmd.args.len() == 1),
         outcome: Outcome::allow("Safe git subcommand: tag"),
         ..Default::default()
     }
@@ -110,7 +110,7 @@ fn git_remote__bare() -> SimpleRule {
     SimpleRule {
         id: "git_remote__bare".to_owned(),
         prefix: "git remote".to_owned(),
-        condition: Some(|cmd| cmd.args.len() == 1),
+        condition: Some(|cmd, _, _| cmd.args.len() == 1),
         outcome: Outcome::allow("Safe git subcommand: remote"),
         ..Default::default()
     }

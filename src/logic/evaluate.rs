@@ -6,6 +6,7 @@ use std::collections::HashMap;
 
 /// Rule engine that evaluates parsed shell commands against registered security rules.
 pub struct Evaluator {
+    settings: Settings,
     simple_rules: Vec<SimpleRule>,
     complete_rules: Vec<CompleteRule>,
 }
@@ -45,7 +46,7 @@ impl Evaluator {
         for simple_context in complete_context.all_commands() {
             let mut outcomes = Vec::new();
             for rule in &self.simple_rules {
-                if rule.matches(simple_context) {
+                if rule.matches(simple_context, complete_context, &self.settings) {
                     outcomes.push(rule.outcome.clone());
                 }
             }
@@ -66,7 +67,7 @@ impl Evaluator {
     fn evaluate_complete(&self, complete_context: &CompleteContext) -> Vec<Outcome> {
         let mut all_outcomes = Vec::new();
         for rule in &self.complete_rules {
-            if rule.matches(complete_context) {
+            if rule.matches(complete_context, &self.settings) {
                 all_outcomes.push(rule.outcome.clone());
             }
         }
@@ -102,8 +103,9 @@ fn sort_outcomes(outcomes: Vec<Outcome>) -> HashMap<Decision, Vec<String>> {
     map
 }
 
-impl Default for Evaluator {
-    fn default() -> Self {
+impl Evaluator {
+    /// Create an evaluator with the given settings.
+    pub fn new(settings: Settings) -> Self {
         let mut simple_rules = Vec::new();
         simple_rules.push(rm());
         simple_rules.extend(find_rules());
@@ -119,6 +121,7 @@ impl Default for Evaluator {
         complete_rules.extend(echo_separator_rules());
         complete_rules.extend(long_python_rules());
         Self {
+            settings,
             simple_rules,
             complete_rules,
         }
@@ -128,7 +131,7 @@ impl Default for Evaluator {
 #[cfg(test)]
 /// Parse and evaluate `command`, expecting a successful [`Outcome`].
 pub(crate) fn evaluate_expect_outcome(command: &str) -> Outcome {
-    Evaluator::default()
+    Evaluator::new(Settings::mock())
         .evaluate_str(command)
         .expect("command should be parseable")
         .expect("command should not be skipped")
@@ -137,7 +140,7 @@ pub(crate) fn evaluate_expect_outcome(command: &str) -> Outcome {
 #[cfg(test)]
 /// Parse and evaluate `command`, expecting a [`SkipReason`].
 pub(crate) fn evaluate_expect_skip(command: &str) -> SkipReason {
-    Evaluator::default()
+    Evaluator::new(Settings::mock())
         .evaluate_str(command)
         .expect("command should be parseable")
         .expect_err("command should be skipped")
@@ -275,7 +278,7 @@ mod tests {
 
     #[test]
     fn forked_path_passthrough() {
-        let reason = evaluate_expect_skip("git -C /var/mnt/e/Repos/Forked/repo status");
+        let reason = evaluate_expect_skip("git -C /home/user/repos/forked/repo status");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
@@ -287,26 +290,26 @@ mod tests {
 
     #[test]
     fn c_path_stash_pop_denied() {
-        let outcome = evaluate_expect_outcome("git -C /var/mnt/e/Repos/my-project stash pop");
+        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project stash pop");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_reset_hard_denied() {
-        let outcome = evaluate_expect_outcome("git -C /var/mnt/e/Repos/my-project reset --hard");
+        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project reset --hard");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_checkout_discard_denied() {
         let outcome =
-            evaluate_expect_outcome("git -C /var/mnt/e/Repos/my-project checkout -- file.txt");
+            evaluate_expect_outcome("git -C /home/user/repos/my-project checkout -- file.txt");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_git_clean_d_denied() {
-        let outcome = evaluate_expect_outcome("git -C /var/mnt/e/Repos/my-project clean -fd");
+        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project clean -fd");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 

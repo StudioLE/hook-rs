@@ -18,7 +18,11 @@ fn cargo_insta_review__heredoc() -> SimpleRule {
     }
 }
 
-fn is_review_with_heredoc(cmd: &SimpleContext) -> bool {
+fn is_review_with_heredoc(
+    cmd: &SimpleContext,
+    _complete: &CompleteContext,
+    _settings: &Settings,
+) -> bool {
     cmd.args.get(1).is_some_and(|a| a == "review") && cmd.has_heredoc
 }
 

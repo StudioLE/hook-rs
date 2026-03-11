@@ -16,7 +16,7 @@ fn cd_git() -> CompleteRule {
     }
 }
 
-fn is_cd_then_git(parsed: &CompleteContext) -> bool {
+fn is_cd_then_git(parsed: &CompleteContext, _settings: &Settings) -> bool {
     let (Some(first), Some(second)) = (parsed.children.first(), parsed.children.get(1)) else {
         return false;
     };
@@ -33,14 +33,14 @@ mod tests {
 
     #[test]
     fn cd_and_git_status() {
-        let outcome = evaluate_expect_outcome("cd /var/mnt/e/Repos/my-project && git status");
+        let outcome = evaluate_expect_outcome("cd /home/user/repos/my-project && git status");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn cd_and_git_commit() {
         let outcome =
-            evaluate_expect_outcome("cd /var/mnt/e/Repos/my-project && git commit -m 'msg'");
+            evaluate_expect_outcome("cd /home/user/repos/my-project && git commit -m 'msg'");
         assert_yaml_snapshot!(outcome);
     }
 
@@ -58,13 +58,13 @@ mod tests {
 
     #[test]
     fn cd_forked_and_git() {
-        let outcome = evaluate_expect_outcome("cd /var/mnt/e/Repos/Forked/repo && git status");
+        let outcome = evaluate_expect_outcome("cd /home/user/repos/forked/repo && git status");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
     fn cd_alone_passthrough() {
-        let reason = evaluate_expect_skip("cd /var/mnt/e/Repos/my-project");
+        let reason = evaluate_expect_skip("cd /home/user/repos/my-project");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 

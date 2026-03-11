@@ -64,7 +64,7 @@ fn gh_pr_comment() -> SimpleRule {
     SimpleRule {
         id: "gh_pr_comment".to_owned(),
         prefix: "gh pr".to_owned(),
-        condition: Some(is_pr_comment),
+        condition: Some(|cmd, _, _| is_pr_comment(cmd)),
         outcome: Outcome::ask("PR comment requires approval"),
         ..Default::default()
     }
@@ -108,7 +108,7 @@ fn gh_api__data_flags() -> SimpleRule {
     SimpleRule {
         id: "gh_api__data_flags".to_owned(),
         prefix: "gh api".to_owned(),
-        condition: Some(has_data_flags),
+        condition: Some(|cmd, _, _| has_data_flags(cmd)),
         outcome: Outcome::ask("GitHub API request with data flags"),
         ..Default::default()
     }
@@ -138,21 +138,34 @@ fn is_pr_comment(cmd: &SimpleContext) -> bool {
     cmd.args.first().is_some_and(|a| a == "pr") && cmd.args.get(1).is_some_and(|a| a == "comment")
 }
 
-fn is_bot_pr_comment(cmd: &SimpleContext) -> bool {
+fn is_bot_pr_comment(
+    cmd: &SimpleContext,
+    _complete: &CompleteContext,
+    settings: &Settings,
+) -> bool {
     if !is_pr_comment(cmd) {
         return false;
     }
     let args: Vec<&str> = cmd.args.iter().map(String::as_str).collect();
     let gh_user = get_gh_user().unwrap_or_default();
     let repo = extract_repo_flag(&args).unwrap_or_else(|| get_current_repo().unwrap_or_default());
-    repo.starts_with("StudioLE/") && gh_user == "StudioLE-Bot"
+    let org_prefix = format!("{}/", settings.bot_org);
+    repo.starts_with(&org_prefix) && gh_user == settings.bot_username
 }
 
-fn is_graphql_query(cmd: &SimpleContext) -> bool {
+fn is_graphql_query(
+    cmd: &SimpleContext,
+    _complete: &CompleteContext,
+    _settings: &Settings,
+) -> bool {
     cmd.args.get(1).is_some_and(|a| a == "graphql")
 }
 
-fn is_graphql_mutation(cmd: &SimpleContext) -> bool {
+fn is_graphql_mutation(
+    cmd: &SimpleContext,
+    _complete: &CompleteContext,
+    _settings: &Settings,
+) -> bool {
     cmd.args.get(1).is_some_and(|a| a == "graphql")
         && cmd
             .args
@@ -171,17 +184,22 @@ fn has_data_flags(cmd: &SimpleContext) -> bool {
     })
 }
 
-fn is_bot_pr_reply(cmd: &SimpleContext) -> bool {
+fn is_bot_pr_reply(cmd: &SimpleContext, _complete: &CompleteContext, settings: &Settings) -> bool {
     if !has_data_flags(cmd) {
         return false;
     }
     let args: Vec<&str> = cmd.args.iter().map(String::as_str).collect();
     let gh_user = get_gh_user().unwrap_or_default();
     let repo = extract_api_repo(&args).unwrap_or_default();
-    has_pr_reply_path(&args) && repo.starts_with("StudioLE/") && gh_user == "StudioLE-Bot"
+    let org_prefix = format!("{}/", settings.bot_org);
+    has_pr_reply_path(&args) && repo.starts_with(&org_prefix) && gh_user == settings.bot_username
 }
 
-fn has_write_method(cmd: &SimpleContext) -> bool {
+fn has_write_method(
+    cmd: &SimpleContext,
+    _complete: &CompleteContext,
+    _settings: &Settings,
+) -> bool {
     cmd.args.iter().enumerate().any(|(i, arg)| {
         arg == "-X"
             && cmd.args.get(i + 1).is_some_and(|m| {
@@ -466,10 +484,11 @@ mod tests {
             .expect("should not error")
             .expect("should parse");
         let cmd = parsed.all_commands().next().expect("should have command");
-        let is_bot = super::is_bot_pr_comment(cmd);
+        let settings = Settings::mock();
+        let is_bot = super::is_bot_pr_comment(cmd, &parsed, &settings);
         let is_comment = super::is_pr_comment(cmd);
         assert!(is_comment);
-        // is_bot depends on live gh auth — just verify the function runs
+        // is_bot depends on live gh auth - just verify the function runs
         let _ = is_bot;
     }
 
