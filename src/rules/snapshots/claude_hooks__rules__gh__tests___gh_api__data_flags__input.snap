@@ -1,0 +1,6 @@
+---
+source: src/rules/gh.rs
+expression: outcome
+---
+decision: ask
+reason: GitHub API request with data flags

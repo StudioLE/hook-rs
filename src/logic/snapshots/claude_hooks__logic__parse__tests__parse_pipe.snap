@@ -1,0 +1,17 @@
+---
+source: src/logic/parse.rs
+expression: context
+---
+raw: git log | head -5
+children:
+  - connector: ~
+    children:
+      - name: git
+        args:
+          - log
+        has_heredoc: false
+      - name: head
+        args:
+          - "-5"
+        has_heredoc: false
+has_for: false

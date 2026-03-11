@@ -1,0 +1,6 @@
+---
+source: src/rules/git_deny.rs
+expression: outcome
+---
+decision: deny
+reason: "git checkout -- is blocked. Do not discard changes to revert your mistakes. Fix the code properly.\ngit stash pop can cause merge conflicts and lose stash"

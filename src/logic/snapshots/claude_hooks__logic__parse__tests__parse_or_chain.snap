@@ -1,0 +1,19 @@
+---
+source: src/logic/parse.rs
+expression: context
+---
+raw: false || git stash clear
+children:
+  - connector: ~
+    children:
+      - name: "false"
+        args: []
+        has_heredoc: false
+  - connector: Or
+    children:
+      - name: git
+        args:
+          - stash
+          - clear
+        has_heredoc: false
+has_for: false

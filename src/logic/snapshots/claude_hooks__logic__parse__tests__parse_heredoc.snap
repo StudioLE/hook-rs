@@ -1,0 +1,14 @@
+---
+source: src/logic/parse.rs
+expression: context
+---
+raw: "cargo insta review <<EOF\na\nEOF"
+children:
+  - connector: ~
+    children:
+      - name: cargo
+        args:
+          - insta
+          - review
+        has_heredoc: true
+has_for: false
