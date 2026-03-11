@@ -10,12 +10,6 @@ pub struct Settings {
     /// Git-specific settings for `git -C` path classification.
     #[serde(default)]
     pub git: GitSettings,
-    /// GitHub bot username for auto-approving PR comments.
-    #[serde(default)]
-    pub bot_username: String,
-    /// GitHub org prefix for auto-approving bot operations.
-    #[serde(default)]
-    pub bot_org: String,
 }
 
 /// Git path classification for `git -C` operations.
@@ -60,8 +54,6 @@ impl Settings {
                 trusted_dirs: vec!["/home/user/repos/".to_owned()],
                 untrusted_dirs: vec!["/home/user/repos/forked/".to_owned()],
             },
-            bot_username: "StudioLE-Bot".to_owned(),
-            bot_org: "StudioLE".to_owned(),
         }
     }
 }
