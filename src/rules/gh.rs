@@ -46,21 +46,19 @@ fn gh_release_list() -> SimpleRule {
 
 /// Ask for PR comment.
 fn gh_pr_comment() -> SimpleRule {
-    SimpleRule {
-        id: "gh_pr_comment".to_owned(),
-        prefix: "gh pr".to_owned(),
-        condition: Some(|cmd, _, _| is_pr_comment(cmd)),
-        outcome: Outcome::ask("PR comment requires approval"),
-        ..Default::default()
-    }
+    SimpleRule::new(
+        "gh_pr_comment",
+        "gh pr comment",
+        Outcome::ask("PR comment requires approval"),
+    )
 }
 
 /// Ask for GraphQL mutation.
 fn gh_api_graphql__mutation() -> SimpleRule {
     SimpleRule {
         id: "gh_api_graphql__mutation".to_owned(),
-        prefix: "gh api".to_owned(),
-        condition: Some(is_graphql_mutation),
+        prefix: "gh api graphql".to_owned(),
+        condition: Some(has_mutation_in_args),
         outcome: Outcome::ask("GitHub GraphQL mutation"),
         ..Default::default()
     }
@@ -68,13 +66,11 @@ fn gh_api_graphql__mutation() -> SimpleRule {
 
 /// Allow GraphQL query.
 fn gh_api_graphql__query() -> SimpleRule {
-    SimpleRule {
-        id: "gh_api_graphql__query".to_owned(),
-        prefix: "gh api".to_owned(),
-        condition: Some(is_graphql_query),
-        outcome: Outcome::allow("Read-only GraphQL query"),
-        ..Default::default()
-    }
+    SimpleRule::new(
+        "gh_api_graphql__query",
+        "gh api graphql",
+        Outcome::allow("Read-only GraphQL query"),
+    )
 }
 
 /// Ask for API with data flags.
@@ -82,7 +78,15 @@ fn gh_api__data_flags() -> SimpleRule {
     SimpleRule {
         id: "gh_api__data_flags".to_owned(),
         prefix: "gh api".to_owned(),
-        condition: Some(|cmd, _, _| has_data_flags(cmd)),
+        with_any: Some(vec![
+            "-d".to_owned(),
+            "--data".to_owned(),
+            "-f".to_owned(),
+            "--field".to_owned(),
+            "-F".to_owned(),
+            "--raw-field".to_owned(),
+            "--input".to_owned(),
+        ]),
         outcome: Outcome::ask("GitHub API request with data flags"),
         ..Default::default()
     }
@@ -108,39 +112,14 @@ fn gh_api() -> SimpleRule {
     )
 }
 
-fn is_pr_comment(cmd: &SimpleContext) -> bool {
-    cmd.args.first().is_some_and(|a| a == "pr") && cmd.args.get(1).is_some_and(|a| a == "comment")
-}
-
-fn is_graphql_query(
+fn has_mutation_in_args(
     cmd: &SimpleContext,
     _complete: &CompleteContext,
     _settings: &Settings,
 ) -> bool {
-    cmd.args.get(1).is_some_and(|a| a == "graphql")
-}
-
-fn is_graphql_mutation(
-    cmd: &SimpleContext,
-    _complete: &CompleteContext,
-    _settings: &Settings,
-) -> bool {
-    cmd.args.get(1).is_some_and(|a| a == "graphql")
-        && cmd
-            .args
-            .iter()
-            .any(|a| a.to_lowercase().contains("mutation"))
-}
-
-fn has_data_flags(cmd: &SimpleContext) -> bool {
-    cmd.args.iter().any(|a| {
-        matches!(
-            a.as_str(),
-            "-d" | "--data" | "-f" | "--field" | "-F" | "--raw-field" | "--input"
-        ) || a.starts_with("--data=")
-            || a.starts_with("--field=")
-            || a.starts_with("--input=")
-    })
+    cmd.args
+        .iter()
+        .any(|a| a.to_lowercase().contains("mutation"))
 }
 
 fn has_write_method(

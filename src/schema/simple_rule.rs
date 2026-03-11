@@ -122,6 +122,9 @@ fn arg_matches(args: &[&str], arg: &str) -> bool {
         args.iter().any(|a| {
             a.starts_with('-') && !a.starts_with("--") && a.bytes().skip(1).any(|b| b == ch)
         })
+    } else if arg.starts_with("--") {
+        let prefix = format!("{arg}=");
+        args.iter().any(|a| *a == arg || a.starts_with(&prefix))
     } else {
         args.contains(&arg)
     }
