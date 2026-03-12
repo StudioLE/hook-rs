@@ -1,5 +1,6 @@
 //! Schema types for hook I/O, outcomes, and rule definitions.
 
+mod arg;
 mod complete_rule;
 mod context;
 mod hook_input;
@@ -9,6 +10,7 @@ mod settings;
 mod simple_rule;
 mod skip_reason;
 
+pub use arg::*;
 pub use complete_rule::*;
 pub use context::*;
 pub use hook_input::*;

@@ -36,7 +36,7 @@ fn sed() -> SimpleRule {
     SimpleRule {
         id: "sed".to_owned(),
         prefix: "sed".to_owned(),
-        without_any: Some(vec!["-i".to_owned(), "--in-place".to_owned()]),
+        without_any: Some(vec![Arg::new("-i"), Arg::new("--in-place")]),
         outcome: Outcome::allow("Safe command: sed (no in-place edit)"),
         ..Default::default()
     }
@@ -47,7 +47,7 @@ fn sort__cmd() -> SimpleRule {
     SimpleRule {
         id: "sort".to_owned(),
         prefix: "sort".to_owned(),
-        without_any: Some(vec!["-o".to_owned(), "--output".to_owned()]),
+        without_any: Some(vec![Arg::new("-o"), Arg::new("--output")]),
         outcome: Outcome::allow("Safe command: sort (no output file)"),
         ..Default::default()
     }
@@ -63,7 +63,7 @@ fn yq() -> SimpleRule {
     SimpleRule {
         id: "yq".to_owned(),
         prefix: "yq".to_owned(),
-        without_any: Some(vec!["-i".to_owned(), "--in-place".to_owned()]),
+        without_any: Some(vec![Arg::new("-i"), Arg::new("--in-place")]),
         outcome: Outcome::allow("Safe command: yq (no in-place edit)"),
         ..Default::default()
     }

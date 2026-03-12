@@ -13,7 +13,7 @@ pub fn gh_rules() -> Vec<SimpleRule> {
         gh_api_graphql__query(),
         gh_api__data_flags(),
         gh_api__write_method(),
-        gh_api(),
+        gh_api__read_only(),
     ]
 }
 
@@ -58,19 +58,21 @@ fn gh_api_graphql__mutation() -> SimpleRule {
     SimpleRule {
         id: "gh_api_graphql__mutation".to_owned(),
         prefix: "gh api graphql".to_owned(),
-        condition: Some(has_mutation_in_args),
+        with_any: Some(vec![Arg::new("*mutation*")]),
         outcome: Outcome::ask("GitHub GraphQL mutation"),
         ..Default::default()
     }
 }
 
-/// Allow GraphQL query.
+/// Allow GraphQL query (no mutation).
 fn gh_api_graphql__query() -> SimpleRule {
-    SimpleRule::new(
-        "gh_api_graphql__query",
-        "gh api graphql",
-        Outcome::allow("Read-only GraphQL query"),
-    )
+    SimpleRule {
+        id: "gh_api_graphql__query".to_owned(),
+        prefix: "gh api graphql".to_owned(),
+        without_any: Some(vec![Arg::new("*mutation*")]),
+        outcome: Outcome::allow("Read-only GraphQL query"),
+        ..Default::default()
+    }
 }
 
 /// Ask for API with data flags.
@@ -79,13 +81,13 @@ fn gh_api__data_flags() -> SimpleRule {
         id: "gh_api__data_flags".to_owned(),
         prefix: "gh api".to_owned(),
         with_any: Some(vec![
-            "-d".to_owned(),
-            "--data".to_owned(),
-            "-f".to_owned(),
-            "--field".to_owned(),
-            "-F".to_owned(),
-            "--raw-field".to_owned(),
-            "--input".to_owned(),
+            Arg::new("-d"),
+            Arg::new("--data"),
+            Arg::new("-f"),
+            Arg::new("--field"),
+            Arg::new("-F"),
+            Arg::new("--raw-field"),
+            Arg::new("--input"),
         ]),
         outcome: Outcome::ask("GitHub API request with data flags"),
         ..Default::default()
@@ -97,45 +99,30 @@ fn gh_api__write_method() -> SimpleRule {
     SimpleRule {
         id: "gh_api__write_method".to_owned(),
         prefix: "gh api".to_owned(),
-        condition: Some(has_write_method),
+        with_any: Some(vec![Arg::new("-X").ivalue("{POST,PUT,PATCH,DELETE}")]),
         outcome: Outcome::ask("GitHub API write method"),
         ..Default::default()
     }
 }
 
-/// Allow read-only `gh api`.
-fn gh_api() -> SimpleRule {
-    SimpleRule::new(
-        "gh_api",
-        "gh api",
-        Outcome::allow("Read-only gh api command"),
-    )
-}
-
-fn has_mutation_in_args(
-    cmd: &SimpleContext,
-    _complete: &CompleteContext,
-    _settings: &Settings,
-) -> bool {
-    cmd.args
-        .iter()
-        .any(|a| a.to_lowercase().contains("mutation"))
-}
-
-fn has_write_method(
-    cmd: &SimpleContext,
-    _complete: &CompleteContext,
-    _settings: &Settings,
-) -> bool {
-    cmd.args.iter().enumerate().any(|(i, arg)| {
-        arg == "-X"
-            && cmd.args.get(i + 1).is_some_and(|m| {
-                matches!(
-                    m.to_uppercase().as_str(),
-                    "POST" | "PUT" | "PATCH" | "DELETE"
-                )
-            })
-    })
+/// Allow read-only `gh api` (no data flags or write methods).
+fn gh_api__read_only() -> SimpleRule {
+    SimpleRule {
+        id: "gh_api__read_only".to_owned(),
+        prefix: "gh api".to_owned(),
+        without_any: Some(vec![
+            Arg::new("-d"),
+            Arg::new("--data"),
+            Arg::new("-f"),
+            Arg::new("--field"),
+            Arg::new("-F"),
+            Arg::new("--raw-field"),
+            Arg::new("--input"),
+            Arg::new("-X").ivalue("{POST,PUT,PATCH,DELETE}"),
+        ]),
+        outcome: Outcome::allow("Read-only gh api command"),
+        ..Default::default()
+    }
 }
 
 #[cfg(test)]

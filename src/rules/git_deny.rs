@@ -19,7 +19,7 @@ fn git_reset_hard() -> SimpleRule {
     SimpleRule {
         id: "git_reset_hard".to_owned(),
         prefix: "git reset".to_owned(),
-        with_any: Some(vec!["--hard".to_owned()]),
+        with_any: Some(vec![Arg::new("--hard")]),
         outcome: Outcome::deny("git reset --hard discards uncommitted changes"),
         ..Default::default()
     }
@@ -60,7 +60,7 @@ fn git_clean_d() -> SimpleRule {
     SimpleRule {
         id: "git_clean_d".to_owned(),
         prefix: "git clean".to_owned(),
-        with_any: Some(vec!["-d".to_owned()]),
+        with_any: Some(vec![Arg::new("-d")]),
         outcome: Outcome::deny(
             "git clean with -d is blocked. Use 'git clean -f <file>' for specific files \
              (or -fx if gitignored) or 'git rm -r <dir>' for tracked directories.",
@@ -74,7 +74,7 @@ fn git_checkout_discard() -> SimpleRule {
     SimpleRule {
         id: "git_checkout_discard".to_owned(),
         prefix: "git checkout".to_owned(),
-        with_any: Some(vec!["--".to_owned()]),
+        with_any: Some(vec![Arg::new("--")]),
         outcome: Outcome::deny(
             "git checkout -- is blocked. Do not discard changes to revert your mistakes. \
              Fix the code properly.",
