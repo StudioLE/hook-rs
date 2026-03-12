@@ -18,23 +18,21 @@ pub struct SimpleRule {
     /// Only match if any of these arguments are present after the prefix.
     ///
     /// Examples:
-    /// - `-f`
-    /// - `--force`
-    /// - `--output`
-    pub with_any: Option<Vec<String>>,
+    /// - `Arg::new("-f")`
+    /// - `Arg::new("--force")`
+    /// - `Arg::new("-X").value("{POST,PUT}")`
+    pub with_any: Option<Vec<Arg>>,
     /// Only match if **all** of these arguments are present after the prefix.
     ///
     /// Examples:
-    /// - `["reset", "--hard"]`
-    /// - `["stash", "pop"]`
-    pub with_all: Option<Vec<String>>,
+    /// - `[Arg::new("reset"), Arg::new("--hard")]`
+    pub with_all: Option<Vec<Arg>>,
     /// Do not match if any of these arguments are present after the prefix.
     ///
     /// Examples:
-    /// - `-i`
-    /// - `--in-place`
-    /// - `--output`
-    pub without_any: Option<Vec<String>>,
+    /// - `Arg::new("-i")`
+    /// - `Arg::new("--in-place")`
+    pub without_any: Option<Vec<Arg>>,
     /// Only match if the command satisfies this condition.
     pub condition: Option<fn(&SimpleContext, &CompleteContext, &Settings) -> bool>,
     /// Outcome if the command matches.
@@ -86,17 +84,17 @@ impl SimpleRule {
             .map(String::as_str)
             .collect();
         if let Some(with) = &self.with_any
-            && !with.iter().any(|opt| arg_matches(&remaining_args, opt))
+            && !with.iter().any(|a| a.is_present(&remaining_args))
         {
             return false;
         }
         if let Some(all) = &self.with_all
-            && !all.iter().all(|opt| arg_matches(&remaining_args, opt))
+            && !all.iter().all(|a| a.is_present(&remaining_args))
         {
             return false;
         }
         if let Some(without) = &self.without_any
-            && without.iter().any(|opt| arg_matches(&remaining_args, opt))
+            && without.iter().any(|a| a.is_present(&remaining_args))
         {
             return false;
         }
@@ -106,26 +104,5 @@ impl SimpleRule {
             return false;
         }
         true
-    }
-}
-
-/// Check if `arg` is present in `args`.
-///
-/// - Single-char short options (e.g. `-d`) also match inside bundled args (e.g. `-fd`, `-fxd`).
-/// - Long flags and non-flag args require an exact match.
-fn arg_matches(args: &[&str], arg: &str) -> bool {
-    let is_single_short = arg.len() == 2 && arg.starts_with('-') && arg != "--";
-    if is_single_short {
-        let Some(&ch) = arg.as_bytes().get(1) else {
-            return false;
-        };
-        args.iter().any(|a| {
-            a.starts_with('-') && !a.starts_with("--") && a.bytes().skip(1).any(|b| b == ch)
-        })
-    } else if arg.starts_with("--") {
-        let prefix = format!("{arg}=");
-        args.iter().any(|a| *a == arg || a.starts_with(&prefix))
-    } else {
-        args.contains(&arg)
     }
 }

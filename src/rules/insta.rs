@@ -11,19 +11,11 @@ pub fn insta_rules() -> Vec<SimpleRule> {
 fn cargo_insta_review__heredoc() -> SimpleRule {
     SimpleRule {
         id: "cargo_insta_review__heredoc".to_owned(),
-        prefix: "cargo insta".to_owned(),
-        condition: Some(is_review_with_heredoc),
+        prefix: "cargo insta review".to_owned(),
+        condition: Some(|cmd, _, _| cmd.has_heredoc),
         outcome: Outcome::deny("Do not fake interactive input to cargo insta review."),
         ..Default::default()
     }
-}
-
-fn is_review_with_heredoc(
-    cmd: &SimpleContext,
-    _complete: &CompleteContext,
-    _settings: &Settings,
-) -> bool {
-    cmd.args.get(1).is_some_and(|a| a == "review") && cmd.has_heredoc
 }
 
 #[cfg(test)]

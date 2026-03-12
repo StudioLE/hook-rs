@@ -51,7 +51,7 @@ pub fn git_allow_rules() -> Vec<SimpleRule> {
         rules.push(SimpleRule {
             id: format!("git_branch_{flag_id}"),
             prefix: "git branch".to_owned(),
-            with_any: Some(vec![flag.to_owned()]),
+            with_any: Some(vec![Arg::new(flag)]),
             outcome: Outcome::allow("Safe git subcommand: branch"),
             ..Default::default()
         });
@@ -63,7 +63,7 @@ pub fn git_allow_rules() -> Vec<SimpleRule> {
         rules.push(SimpleRule {
             id: format!("git_tag_{flag_id}"),
             prefix: "git tag".to_owned(),
-            with_any: Some(vec![flag.to_owned()]),
+            with_any: Some(vec![Arg::new(flag)]),
             condition: Some(|cmd, _, _| !has_positional_after_tag(cmd)),
             outcome: Outcome::allow("Safe git subcommand: tag"),
             ..Default::default()
@@ -116,6 +116,7 @@ fn git_remote__bare() -> SimpleRule {
     }
 }
 
+/// Check if any non-flag argument follows `tag` in the args.
 fn has_positional_after_tag(cmd: &SimpleContext) -> bool {
     // args: ["tag", ...rest]
     cmd.args.iter().skip(1).any(|a| !a.starts_with('-'))

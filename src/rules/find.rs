@@ -12,7 +12,7 @@ fn find_delete() -> SimpleRule {
     SimpleRule {
         id: "find_delete".to_owned(),
         prefix: "find".to_owned(),
-        with_any: Some(vec!["-delete".to_owned()]),
+        with_any: Some(vec![Arg::new("-delete")]),
         outcome: Outcome::deny(
             "find -delete is blocked. Use 'find ... -print' to preview matches first, \
              then delete with targeted commands.",
@@ -26,19 +26,16 @@ fn find_exec_rm() -> SimpleRule {
     SimpleRule {
         id: "find_exec_rm".to_owned(),
         prefix: "find".to_owned(),
-        condition: Some(has_exec_rm),
+        with_any: Some(vec![
+            Arg::new("-exec").value("rm"),
+            Arg::new("-execdir").value("rm"),
+        ]),
         outcome: Outcome::deny(
             "find -exec rm is blocked. Use 'find ... -print' to preview matches first, \
              then delete with targeted commands.",
         ),
         ..Default::default()
     }
-}
-
-fn has_exec_rm(cmd: &SimpleContext, _complete: &CompleteContext, _settings: &Settings) -> bool {
-    cmd.args.iter().enumerate().any(|(i, arg)| {
-        (arg == "-exec" || arg == "-execdir") && cmd.args.get(i + 1).is_some_and(|a| a == "rm")
-    })
 }
 
 #[cfg(test)]
