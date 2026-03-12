@@ -20,10 +20,12 @@ fn evaluate_stdin() -> Option<Outcome> {
     };
     let settings = Settings::load();
     match Evaluator::new(settings).evaluate_str(&input.tool_input.command) {
-        Ok(Ok(outcome)) => Some(outcome),
-        Ok(Err(_reason)) => None,
-        Err(e) => Some(Outcome::ask(format!(
-            "An error occurred while parsing the command: {e:?}"
-        ))),
+        Ok(outcome) => Some(outcome),
+        Err(report) => match report.current_context() {
+            ParseError::Skip(_) => None,
+            _ => Some(Outcome::ask(format!(
+                "An error occurred while parsing the command: {report:?}"
+            ))),
+        },
     }
 }

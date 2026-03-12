@@ -42,6 +42,8 @@ fn get_context_without_c(context: &SimpleContext) -> SimpleContext {
         name: "git".to_owned(),
         args: context.args.get(2..).unwrap_or_default().to_vec(),
         has_heredoc: context.has_heredoc,
+        contains_substitution: context.contains_substitution,
+        nesting: context.nesting.clone(),
     }
 }
 

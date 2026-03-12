@@ -9,6 +9,8 @@ children:
       - name: "false"
         args: []
         has_heredoc: false
+        contains_substitution: false
+        nesting: []
   - connector: Or
     children:
       - name: git
@@ -16,4 +18,5 @@ children:
           - stash
           - clear
         has_heredoc: false
-has_for: false
+        contains_substitution: false
+        nesting: []

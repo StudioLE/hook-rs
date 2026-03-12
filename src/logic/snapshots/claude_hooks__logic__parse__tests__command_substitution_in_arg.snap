@@ -2,7 +2,7 @@
 source: src/logic/parse.rs
 expression: context
 ---
-raw: "git commit -m 'msg'&& git push"
+raw: "git commit -m \"$(date)\""
 children:
   - connector: ~
     children:
@@ -10,15 +10,13 @@ children:
         args:
           - commit
           - "-m"
-          - "'msg'"
+          - "\"$(date)\""
+        has_heredoc: false
+        contains_substitution: true
+        nesting: []
+      - name: date
+        args: []
         has_heredoc: false
         contains_substitution: false
-        nesting: []
-  - connector: And
-    children:
-      - name: git
-        args:
-          - push
-        has_heredoc: false
-        contains_substitution: false
-        nesting: []
+        nesting:
+          - Substitution

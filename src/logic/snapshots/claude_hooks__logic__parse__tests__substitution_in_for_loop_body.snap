@@ -2,14 +2,21 @@
 source: src/logic/parse.rs
 expression: context
 ---
-raw: for f in *.tmp; do echo $f; done
+raw: for f in a b; do echo $(whoami); done
 children:
   - connector: ~
     children:
       - name: echo
         args:
-          - $f
+          - $(whoami)
+        has_heredoc: false
+        contains_substitution: true
+        nesting:
+          - For
+      - name: whoami
+        args: []
         has_heredoc: false
         contains_substitution: false
         nesting:
           - For
+          - Substitution

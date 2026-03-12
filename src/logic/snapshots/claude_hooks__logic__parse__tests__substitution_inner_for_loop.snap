@@ -2,21 +2,21 @@
 source: src/logic/parse.rs
 expression: context
 ---
-raw: git status ; echo hi
+raw: echo $(for x in a b; do echo $x; done)
 children:
   - connector: ~
     children:
-      - name: git
-        args:
-          - status
-        has_heredoc: false
-        contains_substitution: false
-        nesting: []
-  - connector: Semi
-    children:
       - name: echo
         args:
-          - hi
+          - $(for x in a b; do echo $x; done)
+        has_heredoc: false
+        contains_substitution: true
+        nesting: []
+      - name: echo
+        args:
+          - $x
         has_heredoc: false
         contains_substitution: false
-        nesting: []
+        nesting:
+          - Substitution
+          - For

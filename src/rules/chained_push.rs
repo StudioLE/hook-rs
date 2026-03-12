@@ -22,7 +22,7 @@ fn is_chained_git_push(parsed: &CompleteContext, _settings: &Settings) -> bool {
     let has_git_push = parsed
         .all_commands()
         .any(|cmd| cmd.name == "git" && cmd.args.first().is_some_and(|a| a == "push"));
-    has_git_push && !parsed.is_standalone()
+    has_git_push && parsed.children.len() > 1
 }
 
 #[cfg(test)]
@@ -115,5 +115,11 @@ mod tests {
         // echo is Allow via safe_rules
         let outcome = evaluate_expect_outcome("echo git push");
         assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn push_with_substitution_passthrough() {
+        let reason = evaluate_expect_skip("git push origin \"$(git branch --show-current)\"");
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 }

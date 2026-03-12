@@ -11,4 +11,5 @@ children:
           - insta
           - review
         has_heredoc: true
-has_for: false
+        contains_substitution: false
+        nesting: []
