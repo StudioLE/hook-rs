@@ -681,6 +681,13 @@ mod tests {
     }
 
     #[test]
+    fn complex_multi_statement_with_substitutions_and_redirects() {
+        let cmd = r#"cargo doc --document-private-items -p globset 2>&1 | tail -5; grep -r "impl.*Debug" $(find target/doc -name "struct.GlobMatcher.html" 2>/dev/null) 2>/dev/null || echo "checking source instead"; grep "derive" $(find . -path "*/globset/src/*.rs" -not -path "./target/*" 2>/dev/null) 2>/dev/null || echo "not in local source""#;
+        let context = parse_expect_context(cmd);
+        assert_yaml_snapshot!(context);
+    }
+
+    #[test]
     fn process_substitution_input() {
         let reason = parse_expect_skip("diff <(echo a) <(echo b)");
         assert_eq!(reason, SkipReason::ProcessSubstitution);
