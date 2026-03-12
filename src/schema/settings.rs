@@ -10,6 +10,18 @@ pub struct Settings {
     /// Git-specific settings for `git -C` path classification.
     #[serde(default)]
     pub git: GitSettings,
+    /// Read tool settings for auto-allowing trusted file paths.
+    #[serde(default)]
+    pub read: ReadSettings,
+}
+
+/// Glob patterns for auto-allowing Read tool access to trusted paths.
+///
+/// Patterns starting with `~/` are expanded to `$HOME/`.
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct ReadSettings {
+    /// Glob patterns for paths that are safe to read without prompting.
+    pub paths: Vec<String>,
 }
 
 /// Git path classification for `git -C` operations.
@@ -21,10 +33,8 @@ pub struct Settings {
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct GitSettings {
     /// Directories where read-only `git -C` operations are auto-allowed.
-    #[serde(default)]
     pub trusted_dirs: Vec<String>,
     /// Subdirectories of trusted dirs that should be excluded (e.g. forks).
-    #[serde(default)]
     pub untrusted_dirs: Vec<String>,
 }
 
@@ -53,6 +63,12 @@ impl Settings {
             git: GitSettings {
                 trusted_dirs: vec!["/home/user/repos/".to_owned()],
                 untrusted_dirs: vec!["/home/user/repos/forked/".to_owned()],
+            },
+            read: ReadSettings {
+                paths: vec![
+                    "~/.cargo/registry/src/**".to_owned(),
+                    "~/.rustup/toolchains/**".to_owned(),
+                ],
             },
         }
     }
