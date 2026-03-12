@@ -2,14 +2,13 @@
 source: src/logic/parse.rs
 expression: context
 ---
-raw: cargo insta review
+raw: "echo '$(whoami)'"
 children:
   - connector: ~
     children:
-      - name: cargo
+      - name: echo
         args:
-          - insta
-          - review
+          - "'$(whoami)'"
         has_heredoc: false
         contains_substitution: false
         nesting: []

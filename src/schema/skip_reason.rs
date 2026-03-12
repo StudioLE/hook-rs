@@ -25,6 +25,16 @@ pub enum SkipReason {
     UnsafeRedirect,
     /// A `for` loop has a redirect on the loop itself.
     ForLoopRedirect,
-    /// Command contains a command substitution (`$(...)` or backticks).
-    CommandSubstitution,
+    /// A `for` loop's word list contains a command substitution.
+    ForLoopSubstitution,
+    /// The command name itself is a command substitution.
+    CommandNameSubstitution,
+    /// A command substitution is nested inside another substitution.
+    NestedSubstitution,
+    /// A parameter expansion contains a command substitution.
+    ParameterSubstitution,
+    /// An arithmetic expression could contain a command substitution.
+    ArithmeticSubstitution,
+    /// Command has a process substitution (`<(...)` or `>(...)`).
+    ProcessSubstitution,
 }

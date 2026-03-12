@@ -10,8 +10,11 @@ children:
         args:
           - log
         has_heredoc: false
+        contains_substitution: false
+        nesting: []
       - name: head
         args:
           - "-5"
         has_heredoc: false
-has_for: false
+        contains_substitution: false
+        nesting: []

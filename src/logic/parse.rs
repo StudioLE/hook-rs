@@ -1,43 +1,36 @@
 use crate::prelude::*;
 use brush_parser::ast::*;
+use brush_parser::word::{WordPiece, WordPieceWithSource};
 use brush_parser::*;
 
 /// Shell command parser that walks the brush-parser AST into [`CompleteContext`].
+#[derive(Clone)]
 pub struct Parser {
-    has_for_loop: bool,
+    /// Compound structures the current parse position is nested inside.
+    nesting: Vec<Nesting>,
 }
 
 impl Parser {
     /// Create a new [`Parser`] with default state.
     pub fn new() -> Self {
         Self {
-            has_for_loop: false,
+            nesting: Vec::new(),
         }
     }
 
     /// Parse a shell command string into a [`CompleteContext`].
     ///
-    /// Returns `Ok(None)` for unsupported constructs (compound commands, unsafe
-    /// redirects) so the caller can fall through to the default approval flow.
-    /// Returns `Err` for genuine parse failures (malformed syntax).
-    pub fn parse_str(
-        &mut self,
-        command: &str,
-    ) -> Result<Result<CompleteContext, SkipReason>, Report<ParseError>> {
-        if command.contains("$(") || command.contains('`') {
-            return Ok(Err(SkipReason::CommandSubstitution));
-        }
+    /// - Returns `Err(ParseError::Skip)` for unsupported constructs so the
+    ///   caller can fall through to the default approval flow
+    /// - Returns `Err` for genuine parse failures (malformed syntax)
+    pub fn parse(&mut self, command: &str) -> Result<CompleteContext, Report<ParseError>> {
         let tokens = tokenize_str(command).change_context(ParseError::Tokenize)?;
         let program = parse_tokens(&tokens, &ParserOptions::default(), &SourceInfo::default())
             .change_context(ParseError::ParseTokens)?;
-        match self.from_program(&program) {
-            Ok(children) => Ok(Ok(CompleteContext {
-                raw: command.to_owned(),
-                children,
-                has_for: self.has_for_loop,
-            })),
-            Err(reason) => Ok(Err(reason)),
-        }
+        Ok(CompleteContext {
+            raw: command.to_owned(),
+            children: self.pipelines_from_program(&program)?,
+        })
     }
 
     /// Extract pipelines from a parsed shell program.
@@ -48,15 +41,18 @@ impl Parser {
         clippy::indexing_slicing,
         reason = "length is exactly 1 after the guards above"
     )]
-    fn from_program(&mut self, program: &Program) -> Result<Vec<PipelineContext>, SkipReason> {
+    fn pipelines_from_program(
+        &mut self,
+        program: &Program,
+    ) -> Result<Vec<PipelineContext>, Report<ParseError>> {
         if program.complete_commands.is_empty() {
-            return Err(SkipReason::ZeroCommands);
+            return Err(ParseError::skip(SkipReason::ZeroCommands));
         } else if program.complete_commands.len() > 1 {
-            return Err(SkipReason::MultipleCommands);
+            return Err(ParseError::skip(SkipReason::MultipleCommands));
         }
         let statements = &program.complete_commands[0].0;
         if statements.is_empty() {
-            return Err(SkipReason::ZeroStatements);
+            return Err(ParseError::skip(SkipReason::ZeroStatements));
         }
         let mut children = Vec::new();
         for aol in statements.iter().map(|s| &s.0) {
@@ -74,7 +70,7 @@ impl Parser {
         &mut self,
         aol: &AndOrList,
         first_connector: Option<Connector>,
-    ) -> Result<Vec<PipelineContext>, SkipReason> {
+    ) -> Result<Vec<PipelineContext>, Report<ParseError>> {
         let mut pipelines = Vec::new();
         pipelines.push(PipelineContext {
             children: self.pipeline_to_commands(&aol.first)?,
@@ -95,49 +91,80 @@ impl Parser {
 
     /// Extract [`SimpleContext`] from each command in a pipeline.
     ///
-    /// For `for` loops, extracts body commands and sets `has_for_loop`.
-    /// Returns `Err` for unsupported compound commands (while, if, etc.).
+    /// - Pushes [`Nesting::For`] and extracts body commands for `for` loops
+    /// - Returns `Err` for unsupported compound commands
     fn pipeline_to_commands(
         &mut self,
         pipeline: &Pipeline,
-    ) -> Result<Vec<SimpleContext>, SkipReason> {
+    ) -> Result<Vec<SimpleContext>, Report<ParseError>> {
         let mut commands = Vec::new();
         for command in &pipeline.seq {
             match command {
                 Command::Simple(simple) => {
-                    commands.push(SimpleContext::from_simple_command(simple)?);
+                    commands.extend(self.contexts_from_simple_command(simple)?);
                 }
                 Command::Compound(CompoundCommand::ForClause(f), redirects) => {
-                    if redirects.is_some() {
-                        return Err(SkipReason::ForLoopRedirect);
-                    }
-                    if self.has_for_loop {
-                        return Err(SkipReason::NestedForLoop);
-                    }
-                    self.has_for_loop = true;
-                    for item in &f.body.list.0 {
-                        for p in self.aol_to_pipelines(&item.0, None)? {
-                            commands.extend(p.children);
-                        }
-                    }
+                    commands.extend(self.contexts_from_for(f, redirects.as_ref())?);
                 }
-                _ => return Err(SkipReason::UnsupportedCompound),
+                _ => return Err(ParseError::skip(SkipReason::UnsupportedCompound)),
             }
         }
         Ok(commands)
     }
-}
 
-impl SimpleContext {
-    /// Create a [`SimpleContext`] from a [`SimpleCommand`](SimpleCommand).
+    /// Create [`SimpleContext`] from a [`ForClauseCommand`].
     ///
-    /// - Extract the command name and positional arguments
-    /// - Detect heredoc redirects in prefix and suffix
-    fn from_simple_command(simple: &SimpleCommand) -> Result<Self, SkipReason> {
+    /// Rejects nested for loops, redirects on the loop, and substitutions
+    /// in the iteration values.
+    fn contexts_from_for(
+        &mut self,
+        for_clause: &ForClauseCommand,
+        redirects: Option<&RedirectList>,
+    ) -> Result<Vec<SimpleContext>, Report<ParseError>> {
+        if redirects.is_some() {
+            return Err(ParseError::skip(SkipReason::ForLoopRedirect));
+        }
+        if self.nesting.contains(&Nesting::For) {
+            return Err(ParseError::skip(SkipReason::NestedForLoop));
+        }
+        if let Some(values) = &for_clause.values {
+            for word in values {
+                let subs = extract_substitutions(&word.value)?;
+                if !subs.is_empty() {
+                    return Err(ParseError::skip(SkipReason::ForLoopSubstitution));
+                }
+            }
+        }
+        self.nesting.push(Nesting::For);
+        let mut contexts = Vec::new();
+        for item in &for_clause.body.list.0 {
+            for p in self.aol_to_pipelines(&item.0, None)? {
+                contexts.extend(p.children);
+            }
+        }
+        self.nesting.pop();
+        Ok(contexts)
+    }
+
+    /// Create [`SimpleContext`] from a [`SimpleCommand`].
+    ///
+    /// - Extracts the command name and positional arguments
+    /// - Detects heredoc redirects in prefix and suffix
+    /// - Detects command substitutions in arguments structurally
+    /// - Parses inner substitution commands recursively, one level only
+    /// - Returns the outer command first, followed by any inner commands
+    fn contexts_from_simple_command(
+        &mut self,
+        simple: &SimpleCommand,
+    ) -> Result<Vec<SimpleContext>, Report<ParseError>> {
         let word = simple
             .word_or_name
             .as_ref()
-            .ok_or(SkipReason::BareAssignment)?;
+            .ok_or_else(|| ParseError::skip(SkipReason::BareAssignment))?;
+        let name_subs = extract_substitutions(&word.value)?;
+        if !name_subs.is_empty() {
+            return Err(ParseError::skip(SkipReason::CommandNameSubstitution));
+        }
         let name = unquote_str(&word.value);
         let all_items = simple
             .suffix
@@ -146,28 +173,106 @@ impl SimpleContext {
             .chain(simple.prefix.iter().flat_map(|p| &p.0));
         let mut args = Vec::new();
         let mut has_heredoc = false;
+        let mut contains_substitution = false;
+        let mut inner_commands = Vec::new();
         for item in all_items {
             match item {
-                CommandPrefixOrSuffixItem::Word(w) => args.push(w.value.clone()),
+                CommandPrefixOrSuffixItem::Word(w) => {
+                    let subs = extract_substitutions(&w.value)?;
+                    if !subs.is_empty() {
+                        contains_substitution = true;
+                        for sub in &subs {
+                            inner_commands.extend(self.parse_substitution(sub)?);
+                        }
+                    }
+                    args.push(w.value.clone());
+                }
                 CommandPrefixOrSuffixItem::IoRedirect(IoRedirect::HereDocument(..)) => {
                     has_heredoc = true;
                 }
                 CommandPrefixOrSuffixItem::IoRedirect(r) if is_safe_redirect(r) => {}
                 CommandPrefixOrSuffixItem::IoRedirect(_) => {
-                    return Err(SkipReason::UnsafeRedirect);
+                    return Err(ParseError::skip(SkipReason::UnsafeRedirect));
                 }
-                _ => {}
+                CommandPrefixOrSuffixItem::ProcessSubstitution(..) => {
+                    return Err(ParseError::skip(SkipReason::ProcessSubstitution));
+                }
+                CommandPrefixOrSuffixItem::AssignmentWord(..) => {}
             }
         }
-        Ok(Self {
+        let mut result = vec![SimpleContext {
             name,
             args,
             has_heredoc,
-        })
+            contains_substitution,
+            nesting: self.nesting.clone(),
+        }];
+        result.extend(inner_commands);
+        Ok(result)
+    }
+
+    /// Parse a command substitution string one level deep.
+    ///
+    /// - Clones the parser and pushes [`Nesting::Substitution`]
+    /// - Returns `Err(NestedSubstitution)` if already inside a substitution
+    /// - Bubbles up any inner failure since unparseable substitutions cannot
+    ///   be reasoned about
+    fn parse_substitution(&self, command: &str) -> Result<Vec<SimpleContext>, Report<ParseError>> {
+        if self.nesting.contains(&Nesting::Substitution) {
+            return Err(ParseError::skip(SkipReason::NestedSubstitution));
+        }
+        let mut inner = self.clone();
+        inner.nesting.push(Nesting::Substitution);
+        let ctx = inner.parse(command)?;
+        Ok(ctx.children.into_iter().flat_map(|p| p.children).collect())
     }
 }
 
-/// Errors from shell command parsing.
+/// Extract command substitution strings from a shell word.
+fn extract_substitutions(word: &str) -> Result<Vec<String>, Report<ParseError>> {
+    let pieces = word::parse(word, &ParserOptions::default()).change_context(ParseError::Word)?;
+    let mut subs = Vec::new();
+    collect_substitutions(&pieces, &mut subs)?;
+    Ok(subs)
+}
+
+/// Recursively collect command substitution strings from parsed word pieces.
+///
+/// Returns `Err(ParameterSubstitution)` if a parameter expansion could
+/// contain substitutions in its opaque string fields.
+fn collect_substitutions(
+    pieces: &[WordPieceWithSource],
+    out: &mut Vec<String>,
+) -> Result<(), Report<ParseError>> {
+    for piece in pieces {
+        match &piece.piece {
+            WordPiece::CommandSubstitution(s) | WordPiece::BackquotedCommandSubstitution(s) => {
+                out.push(s.clone());
+            }
+            WordPiece::DoubleQuotedSequence(inner)
+            | WordPiece::GettextDoubleQuotedSequence(inner) => {
+                collect_substitutions(inner, out)?;
+            }
+            WordPiece::ArithmeticExpression(_) => {
+                return Err(ParseError::skip(SkipReason::ArithmeticSubstitution));
+            }
+            WordPiece::ParameterExpansion(
+                word::ParameterExpr::Parameter { .. } | word::ParameterExpr::ParameterLength { .. },
+            )
+            | WordPiece::Text(_)
+            | WordPiece::SingleQuotedText(_)
+            | WordPiece::AnsiCQuotedText(_)
+            | WordPiece::TildePrefix(_)
+            | WordPiece::EscapeSequence(_) => {}
+            WordPiece::ParameterExpansion(_) => {
+                return Err(ParseError::skip(SkipReason::ParameterSubstitution));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Errors returned by [`Parser`].
 #[derive(Clone, Copy, Debug, Eq, PartialEq, thiserror::Error)]
 pub enum ParseError {
     /// Shell tokenization failed, such as unmatched quotes.
@@ -176,6 +281,18 @@ pub enum ParseError {
     /// Token stream could not be parsed into a shell AST.
     #[error("parse tokens")]
     ParseTokens,
+    /// Word-level parse failed for substitution extraction.
+    #[error("parse word")]
+    Word,
+    /// Command was parsed successfully but skipped for policy reasons.
+    #[error("skip: {0:?}")]
+    Skip(SkipReason),
+}
+
+impl ParseError {
+    pub(crate) fn skip(reason: SkipReason) -> Report<Self> {
+        Report::new(Self::Skip(reason))
+    }
 }
 
 /// A redirect is safe if it's an fd dup (`2>&1`) or targets `/dev/null`.
@@ -194,19 +311,35 @@ fn is_safe_redirect(r: &IoRedirect) -> bool {
 #[cfg(test)]
 /// Parse `command`, expecting a successful [`CompleteContext`].
 pub(crate) fn parse_expect_context(command: &str) -> CompleteContext {
-    Parser::new()
-        .parse_str(command)
-        .expect("command should be parseable")
-        .expect("command should not be skipped")
+    Parser::new().parse(command).expect("command should parse")
 }
 
 #[cfg(test)]
 /// Parse `command`, expecting a [`SkipReason`].
+#[expect(clippy::panic, reason = "test helper")]
 pub(crate) fn parse_expect_skip(command: &str) -> SkipReason {
-    Parser::new()
-        .parse_str(command)
-        .expect("command should be parseable")
-        .expect_err("command should be skipped")
+    match Parser::new()
+        .parse(command)
+        .expect_err("command should not succeed")
+        .current_context()
+    {
+        ParseError::Skip(reason) => *reason,
+        other => panic!("expected Skip, got {other:?}"),
+    }
+}
+
+#[cfg(test)]
+/// Parse `command`, expecting a [`ParseError`] that is not a skip.
+pub(crate) fn parse_expect_error(command: &str) -> ParseError {
+    let error = *Parser::new()
+        .parse(command)
+        .expect_err("command should fail to parse")
+        .current_context();
+    assert!(
+        !matches!(error, ParseError::Skip(_)),
+        "expected a real error, got {error:?}"
+    );
+    error
 }
 
 #[cfg(test)]
@@ -286,7 +419,6 @@ mod tests {
     #[test]
     fn for_loop() {
         let context = parse_expect_context("for f in *.tmp; do echo $f; done");
-        assert!(context.has_for);
         assert_yaml_snapshot!(context);
     }
 
@@ -303,21 +435,51 @@ mod tests {
     }
 
     #[test]
+    fn for_loop_substitution() {
+        let reason = parse_expect_skip("for f in $(find . -name '*.rs'); do echo $f; done");
+        assert_eq!(reason, SkipReason::ForLoopSubstitution);
+    }
+
+    #[test]
+    fn for_loop_backtick_substitution() {
+        let reason = parse_expect_skip("for f in `ls`; do echo $f; done");
+        assert_eq!(reason, SkipReason::ForLoopSubstitution);
+    }
+
+    #[test]
     fn command_substitution_dollar() {
-        let reason = parse_expect_skip("echo $(whoami)");
-        assert_eq!(reason, SkipReason::CommandSubstitution);
+        let context = parse_expect_context("echo $(whoami)");
+        assert_yaml_snapshot!(context);
     }
 
     #[test]
     fn command_substitution_backtick() {
-        let reason = parse_expect_skip("echo `whoami`");
-        assert_eq!(reason, SkipReason::CommandSubstitution);
+        let context = parse_expect_context("echo `whoami`");
+        assert_yaml_snapshot!(context);
     }
 
     #[test]
     fn command_substitution_in_arg() {
-        let reason = parse_expect_skip("git commit -m \"$(date)\"");
-        assert_eq!(reason, SkipReason::CommandSubstitution);
+        let context = parse_expect_context("git commit -m \"$(date)\"");
+        assert_yaml_snapshot!(context);
+    }
+
+    #[test]
+    fn command_substitution_as_name() {
+        let reason = parse_expect_skip("$(whoami)");
+        assert_eq!(reason, SkipReason::CommandNameSubstitution);
+    }
+
+    #[test]
+    fn command_substitution_backtick_as_name() {
+        let reason = parse_expect_skip("`whoami`");
+        assert_eq!(reason, SkipReason::CommandNameSubstitution);
+    }
+
+    #[test]
+    fn nested_command_substitution() {
+        let reason = parse_expect_skip("echo $(echo $(whoami))");
+        assert_eq!(reason, SkipReason::NestedSubstitution);
     }
 
     #[test]
@@ -390,5 +552,177 @@ mod tests {
     fn redirect_clobber() {
         let reason = parse_expect_skip("echo hi >| /tmp/file");
         assert_eq!(reason, SkipReason::UnsafeRedirect);
+    }
+
+    #[test]
+    fn substitution_inner_parse_error() {
+        let error = parse_expect_error("echo $(;;)");
+        assert_eq!(error, ParseError::ParseTokens);
+    }
+
+    #[test]
+    fn substitution_inner_bare_semicolon() {
+        let error = parse_expect_error("echo $(;)");
+        assert_eq!(error, ParseError::ParseTokens);
+    }
+
+    #[test]
+    fn substitution_inner_if() {
+        let reason = parse_expect_skip("echo $(if true; then echo x; fi)");
+        assert_eq!(reason, SkipReason::UnsupportedCompound);
+    }
+
+    #[test]
+    fn substitution_inner_while() {
+        let reason = parse_expect_skip("echo $(while true; do echo x; done)");
+        assert_eq!(reason, SkipReason::UnsupportedCompound);
+    }
+
+    #[test]
+    fn substitution_inner_empty() {
+        let reason = parse_expect_skip("echo $()");
+        assert_eq!(reason, SkipReason::ZeroCommands);
+    }
+
+    #[test]
+    fn substitution_inner_bare_redirect() {
+        let reason = parse_expect_skip("echo $(>&2)");
+        assert_eq!(reason, SkipReason::BareAssignment);
+    }
+
+    #[test]
+    fn substitution_inner_for_loop() {
+        let context = parse_expect_context("echo $(for x in a b; do echo $x; done)");
+        assert_yaml_snapshot!(context);
+    }
+
+    #[test]
+    fn multiple_substitutions_in_one_command() {
+        let context = parse_expect_context("echo $(whoami) $(date)");
+        assert_yaml_snapshot!(context);
+    }
+
+    #[test]
+    fn single_quoted_substitution_not_expanded() {
+        let context = parse_expect_context("echo '$(whoami)'");
+        assert_yaml_snapshot!(context);
+    }
+
+    #[test]
+    fn substitution_in_for_loop_body() {
+        let context = parse_expect_context("for f in a b; do echo $(whoami); done");
+        assert_yaml_snapshot!(context);
+    }
+
+    #[test]
+    fn substitution_in_piped_command() {
+        let context = parse_expect_context("echo $(whoami) | head -1");
+        assert_yaml_snapshot!(context);
+    }
+
+    #[test]
+    fn substitution_in_chained_command() {
+        let context = parse_expect_context("echo $(whoami) && git status");
+        assert_yaml_snapshot!(context);
+    }
+
+    #[test]
+    fn inner_command_with_args() {
+        let context = parse_expect_context("git commit -m \"$(date +%Y)\"");
+        assert_yaml_snapshot!(context);
+    }
+
+    #[test]
+    fn substitution_embedded_in_word() {
+        let context = parse_expect_context("echo file-$(date).txt");
+        assert_yaml_snapshot!(context);
+    }
+
+    #[test]
+    fn backtick_inside_dollar_substitution() {
+        let reason = parse_expect_skip("echo $(echo `whoami`)");
+        assert_eq!(reason, SkipReason::NestedSubstitution);
+    }
+
+    #[test]
+    fn parameter_expansion_with_default_substitution() {
+        let reason = parse_expect_skip("echo ${var:-$(whoami)}");
+        assert_eq!(reason, SkipReason::ParameterSubstitution);
+    }
+
+    #[test]
+    fn parameter_expansion_simple() {
+        let context = parse_expect_context("echo $var");
+        assert_yaml_snapshot!(context);
+    }
+
+    #[test]
+    fn parameter_expansion_braced() {
+        let context = parse_expect_context("echo ${var}");
+        assert_yaml_snapshot!(context);
+    }
+
+    #[test]
+    fn parameter_expansion_length() {
+        let context = parse_expect_context("echo ${#var}");
+        assert_yaml_snapshot!(context);
+    }
+
+    #[test]
+    fn parameter_expansion_alternative() {
+        let reason = parse_expect_skip("echo ${var:+replacement}");
+        assert_eq!(reason, SkipReason::ParameterSubstitution);
+    }
+
+    #[test]
+    fn parameter_expansion_suffix_removal() {
+        let reason = parse_expect_skip("echo ${var%%.tmp}");
+        assert_eq!(reason, SkipReason::ParameterSubstitution);
+    }
+
+    #[test]
+    fn process_substitution_input() {
+        let reason = parse_expect_skip("diff <(echo a) <(echo b)");
+        assert_eq!(reason, SkipReason::ProcessSubstitution);
+    }
+
+    #[test]
+    fn process_substitution_output() {
+        let reason = parse_expect_skip("tee >(grep error)");
+        assert_eq!(reason, SkipReason::ProcessSubstitution);
+    }
+
+    #[test]
+    fn arithmetic_expression() {
+        let reason = parse_expect_skip("echo $((1 + 2))");
+        assert_eq!(reason, SkipReason::ArithmeticSubstitution);
+    }
+
+    #[test]
+    fn text_pieces_never_contain_substitutions() {
+        let inputs = [
+            "hello$(whoami)world",
+            "$(a)$(b)",
+            "prefix$(cmd)",
+            "$(cmd)suffix",
+            "`cmd`rest",
+            "a`b`c$(d)e",
+        ];
+        for input in inputs {
+            let pieces = word::parse(input, &ParserOptions::default()).expect("word should parse");
+
+            for p in &pieces {
+                if let WordPiece::Text(s)
+                | WordPiece::SingleQuotedText(s)
+                | WordPiece::AnsiCQuotedText(s)
+                | WordPiece::EscapeSequence(s) = &p.piece
+                {
+                    assert!(
+                        !s.contains("$(") && !s.contains('`'),
+                        "leaf piece {s:?} in {input:?} contains substitution syntax"
+                    );
+                }
+            }
+        }
     }
 }

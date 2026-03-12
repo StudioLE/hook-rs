@@ -1,8 +1,6 @@
 //! Rule evaluation: matches parsed commands against registered rules.
 
-use crate::logic::parse::ParseError;
 use crate::prelude::*;
-use std::collections::HashMap;
 
 /// Rule engine that evaluates parsed shell commands against registered security rules.
 pub struct Evaluator {
@@ -13,18 +11,12 @@ pub struct Evaluator {
 
 impl Evaluator {
     /// Parse and evaluate a shell command string against all registered rules.
-    pub fn evaluate_str(
-        &self,
-        command: &str,
-    ) -> Result<Result<Outcome, SkipReason>, Report<ParseError>> {
-        let context = match Parser::new().parse_str(command)? {
-            Ok(context) => context,
-            Err(skip) => return Ok(Err(skip)),
-        };
-        Ok(self.evaluate_all(&context))
+    pub fn evaluate_str(&self, command: &str) -> Result<Outcome, Report<ParseError>> {
+        let context = Parser::new().parse(command)?;
+        self.evaluate_all(&context)
     }
 
-    fn evaluate_all(&self, context: &CompleteContext) -> Result<Outcome, SkipReason> {
+    fn evaluate_all(&self, context: &CompleteContext) -> Result<Outcome, Report<ParseError>> {
         let mut outcomes = self.evaluate_complete(context);
         if outcomes.is_empty() {
             outcomes = self.evaluate_simple(context)?;
@@ -40,7 +32,7 @@ impl Evaluator {
     fn evaluate_simple(
         &self,
         complete_context: &CompleteContext,
-    ) -> Result<Vec<Outcome>, SkipReason> {
+    ) -> Result<Vec<Outcome>, Report<ParseError>> {
         let mut all_outcomes = Vec::new();
         let mut has_unmatched = false;
         for simple_context in complete_context.all_commands() {
@@ -59,7 +51,7 @@ impl Evaluator {
             && !all_outcomes.is_empty()
             && all_outcomes.iter().all(|o| o.decision == Decision::Allow)
         {
-            return Err(SkipReason::OnlyAllowAll);
+            return Err(ParseError::skip(SkipReason::OnlyAllowAll));
         }
         Ok(all_outcomes)
     }
@@ -76,9 +68,9 @@ impl Evaluator {
 }
 
 /// Merge an outcome into the accumulated result using Deny > Ask > Allow precedence.
-fn apply_precedence(outcomes: Vec<Outcome>) -> Result<Outcome, SkipReason> {
+fn apply_precedence(outcomes: Vec<Outcome>) -> Result<Outcome, Report<ParseError>> {
     if outcomes.is_empty() {
-        return Err(SkipReason::NoMatches);
+        return Err(ParseError::skip(SkipReason::NoMatches));
     }
     let outcomes = sort_outcomes(outcomes);
     if let Some(reasons) = outcomes.get(&Decision::Deny) {
@@ -133,17 +125,21 @@ impl Evaluator {
 pub(crate) fn evaluate_expect_outcome(command: &str) -> Outcome {
     Evaluator::new(Settings::mock())
         .evaluate_str(command)
-        .expect("command should be parseable")
-        .expect("command should not be skipped")
+        .expect("command should produce an outcome")
 }
 
 #[cfg(test)]
 /// Parse and evaluate `command`, expecting a [`SkipReason`].
+#[expect(clippy::panic, reason = "test helper")]
 pub(crate) fn evaluate_expect_skip(command: &str) -> SkipReason {
-    Evaluator::new(Settings::mock())
+    match Evaluator::new(Settings::mock())
         .evaluate_str(command)
-        .expect("command should be parseable")
-        .expect_err("command should be skipped")
+        .expect_err("command should not succeed")
+        .current_context()
+    {
+        ParseError::Skip(reason) => *reason,
+        other => panic!("expected Skip, got {other:?}"),
+    }
 }
 
 #[cfg(test)]

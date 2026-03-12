@@ -2,20 +2,19 @@
 source: src/logic/parse.rs
 expression: context
 ---
-raw: ls && git status
+raw: echo file-$(date).txt
 children:
   - connector: ~
     children:
-      - name: ls
+      - name: echo
+        args:
+          - file-$(date).txt
+        has_heredoc: false
+        contains_substitution: true
+        nesting: []
+      - name: date
         args: []
         has_heredoc: false
         contains_substitution: false
-        nesting: []
-  - connector: And
-    children:
-      - name: git
-        args:
-          - status
-        has_heredoc: false
-        contains_substitution: false
-        nesting: []
+        nesting:
+          - Substitution

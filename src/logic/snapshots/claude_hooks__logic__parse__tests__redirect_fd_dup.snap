@@ -10,4 +10,5 @@ children:
         args:
           - test
         has_heredoc: false
-has_for: false
+        contains_substitution: false
+        nesting: []

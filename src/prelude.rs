@@ -8,4 +8,5 @@ pub(crate) use crate::schema::*;
 pub(crate) use brush_parser::unquote_str;
 pub(crate) use error_stack::{Report, ResultExt};
 pub(crate) use serde::{Deserialize, Serialize};
+pub(crate) use std::collections::HashMap;
 pub(crate) use std::fmt::{Debug, Display, Formatter, Result as FmtResult};

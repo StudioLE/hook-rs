@@ -14,13 +14,18 @@ pub struct CompleteContext {
     pub raw: String,
     /// Command pipelines split by `&&`, `||`, or `;`.
     pub children: Vec<PipelineContext>,
-    /// Whether the command contains a `for` loop.
-    pub has_for: bool,
 }
 
 /// Multiple [`SimpleCommand`] in a `|` pipeline.
 ///
 /// Example: `git diff --stat HEAD~3 | head -5`
+///
+/// Commands extracted from `for` loop bodies and command substitutions
+/// are flattened into `children` alongside the outer commands. Use
+/// [`SimpleContext::nesting`] to distinguish them: top-level commands
+/// have an empty `nesting`, while inner commands carry
+/// [`Nesting::Substitution`] or [`Nesting::For`]. Inner commands
+/// follow the outer command they were extracted from.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PipelineContext {
     /// Logical connector (`&&` or `||`) linking to the previous item.
@@ -28,6 +33,9 @@ pub struct PipelineContext {
     /// `None` for the first.
     pub connector: Option<Connector>,
     /// Individual commands piped together with `|`.
+    ///
+    /// Includes both top-level commands and commands extracted from
+    /// substitutions or `for` loop bodies. See [`SimpleContext::nesting`].
     pub children: Vec<SimpleContext>,
 }
 
@@ -44,6 +52,19 @@ pub struct SimpleContext {
     pub args: Vec<String>,
     /// Whether the command has a heredoc redirect.
     pub has_heredoc: bool,
+    /// Whether any argument contains a command substitution.
+    pub contains_substitution: bool,
+    /// Compound structures this command is nested inside, outermost first.
+    pub nesting: Vec<Nesting>,
+}
+
+/// Compound structure that a command can be nested inside.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub enum Nesting {
+    /// Inside a `for` loop body.
+    For,
+    /// Inside a command substitution.
+    Substitution,
 }
 
 /// Logical connector between pipeline items.
@@ -58,15 +79,5 @@ impl CompleteContext {
     /// Iterate over all [`SimpleContext`] in the parsed command.
     pub fn all_commands(&self) -> impl Iterator<Item = &SimpleContext> {
         self.children.iter().flat_map(|pi| &pi.children)
-    }
-
-    /// True if the command is a single simple command with no chaining or piping.
-    #[must_use]
-    pub fn is_standalone(&self) -> bool {
-        self.children.len() == 1
-            && self
-                .children
-                .first()
-                .is_some_and(|pi| pi.children.len() == 1)
     }
 }
