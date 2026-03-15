@@ -1,0 +1,20 @@
+---
+source: src/bash/bash_parser.rs
+expression: context
+---
+raw: "echo `whoami`"
+children:
+  - connector: ~
+    children:
+      - name: echo
+        args:
+          - "`whoami`"
+        has_heredoc: false
+        contains_substitution: true
+        nesting: []
+      - name: whoami
+        args: []
+        has_heredoc: false
+        contains_substitution: false
+        nesting:
+          - Substitution

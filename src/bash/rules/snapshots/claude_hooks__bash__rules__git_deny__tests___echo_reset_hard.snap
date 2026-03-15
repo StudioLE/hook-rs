@@ -1,0 +1,6 @@
+---
+source: src/bash/rules/git_deny.rs
+expression: outcome
+---
+decision: allow
+reason: "Safe command: echo"

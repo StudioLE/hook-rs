@@ -1,6 +1,6 @@
 //! Claude Code hook system for evaluating shell command safety.
 
-mod logic;
+mod bash;
 pub mod prelude;
-mod rules;
+mod read;
 mod schema;

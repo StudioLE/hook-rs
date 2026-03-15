@@ -1,6 +1,0 @@
----
-source: src/rules/cd_git.rs
-expression: outcome
----
-decision: deny
-reason: "Do not chain cd and git. Use 'git -C <path> <command>' instead."

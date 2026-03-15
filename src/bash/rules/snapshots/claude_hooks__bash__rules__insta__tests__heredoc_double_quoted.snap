@@ -1,0 +1,6 @@
+---
+source: src/bash/rules/insta.rs
+expression: outcome
+---
+decision: deny
+reason: Do not fake interactive input to cargo insta review.

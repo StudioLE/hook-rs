@@ -1,0 +1,22 @@
+---
+source: src/bash/bash_parser.rs
+expression: context
+---
+raw: git status ; echo hi
+children:
+  - connector: ~
+    children:
+      - name: git
+        args:
+          - status
+        has_heredoc: false
+        contains_substitution: false
+        nesting: []
+  - connector: Semi
+    children:
+      - name: echo
+        args:
+          - hi
+        has_heredoc: false
+        contains_substitution: false
+        nesting: []

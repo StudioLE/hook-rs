@@ -1,30 +1,32 @@
 //! I/O types for the Claude Code hook protocol.
 
 use crate::prelude::*;
+use serde::de::DeserializeOwned;
 use std::io;
 use std::io::Read;
 
-/// Top-level JSON input from Claude Code.
+/// Top-level JSON wrapper from Claude Code, generic over the tool input type.
 #[derive(Debug, Deserialize)]
-pub struct HookInput {
-    /// Name of the tool being invoked (e.g. "Bash", "Read").
-    pub tool_name: String,
+pub struct HookInput<T> {
     /// Tool-specific input fields.
-    pub tool_input: ToolInput,
+    pub tool_input: T,
 }
 
-/// Tool input payload.
-///
-/// Fields are optional to support multiple tool shapes.
+/// Bash tool input payload.
 #[derive(Debug, Deserialize)]
-pub struct ToolInput {
-    /// Shell command, present for Bash tool calls.
-    pub command: Option<String>,
-    /// File path, present for Read tool calls.
-    pub file_path: Option<String>,
+pub struct BashInput {
+    /// Shell command to execute.
+    pub command: String,
 }
 
-impl HookInput {
+/// Read tool input payload.
+#[derive(Debug, Deserialize)]
+pub struct ReadInput {
+    /// File path to read.
+    pub file_path: String,
+}
+
+impl<T: DeserializeOwned> HookInput<T> {
     /// Read and deserialize hook input JSON from stdin.
     pub fn from_stdin() -> Result<Self, Report<HookError>> {
         let mut input = String::new();
@@ -37,6 +39,16 @@ impl HookInput {
     /// Deserialize hook input from a JSON string.
     pub(crate) fn from_json(json: &str) -> Result<Self, Report<HookError>> {
         serde_json::from_str(json).change_context(HookError::DeserializeInput)
+    }
+}
+
+impl ReadInput {
+    /// Create a new [`ReadInput`] for testing.
+    #[cfg(test)]
+    pub fn new(file_path: impl Into<String>) -> Self {
+        Self {
+            file_path: file_path.into(),
+        }
     }
 }
 
@@ -58,26 +70,21 @@ mod tests {
     #[test]
     fn deserialize_bash_input() {
         let json = r#"{"tool_name":"Bash","tool_input":{"command":"git status"}}"#;
-        let input = HookInput::from_json(json).expect("should deserialize");
-        assert_eq!(input.tool_name, "Bash");
-        assert_eq!(input.tool_input.command.as_deref(), Some("git status"));
-        assert!(input.tool_input.file_path.is_none());
+        let input = HookInput::<BashInput>::from_json(json).expect("should deserialize");
+        assert_eq!(input.tool_input.command, "git status");
     }
 
     #[test]
     fn deserialize_read_input() {
         let json = r#"{"tool_name":"Read","tool_input":{"file_path":"/tmp/foo.rs"}}"#;
-        let input = HookInput::from_json(json).expect("should deserialize");
-        assert_eq!(input.tool_name, "Read");
-        assert_eq!(input.tool_input.file_path.as_deref(), Some("/tmp/foo.rs"));
-        assert!(input.tool_input.command.is_none());
+        let input = HookInput::<ReadInput>::from_json(json).expect("should deserialize");
+        assert_eq!(input.tool_input.file_path, "/tmp/foo.rs");
     }
 
     #[test]
-    fn deserialize_unknown_tool() {
-        let json =
-            r#"{"tool_name":"Write","tool_input":{"file_path":"/tmp/foo.rs","content":"hi"}}"#;
-        let input = HookInput::from_json(json).expect("should deserialize");
-        assert_eq!(input.tool_name, "Write");
+    fn bash_json_fails_as_read_input() {
+        let json = r#"{"tool_name":"Bash","tool_input":{"command":"git status"}}"#;
+        let result = HookInput::<ReadInput>::from_json(json);
+        assert!(result.is_err());
     }
 }

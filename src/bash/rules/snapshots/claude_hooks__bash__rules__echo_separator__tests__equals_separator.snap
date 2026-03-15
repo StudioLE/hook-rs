@@ -1,0 +1,6 @@
+---
+source: src/bash/rules/echo_separator.rs
+expression: outcome
+---
+decision: deny
+reason: Chained echo separators are blocked. Run each command separately.

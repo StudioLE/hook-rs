@@ -1,0 +1,6 @@
+---
+source: src/bash/rules/find.rs
+expression: outcome
+---
+decision: deny
+reason: "find -exec rm is blocked. Use 'find ... -print' to preview matches first, then delete with targeted commands."

@@ -7,6 +7,7 @@ edition = "2024"
 strip = true
 
 [dependencies]
+argh = "0.1"
 brush-parser = "0.3"
 dirs = "6"
 error-stack = "0.5"
