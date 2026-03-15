@@ -58,17 +58,18 @@ pub fn git_allow_rules() -> Vec<SimpleRule> {
     }
 
     rules.push(git_tag__bare());
-    for flag in ["-l", "--list", "--contains", "--merged", "--no-merged"] {
-        let flag_id = flag.trim_start_matches('-').replace('-', "_");
-        rules.push(SimpleRule {
-            id: format!("git_tag_{flag_id}"),
-            prefix: "git tag".to_owned(),
-            with_any: Some(vec![Arg::new(flag)]),
-            condition: Some(|cmd, _, _| !has_positional_after_tag(cmd)),
-            outcome: Outcome::allow("Safe git subcommand: tag"),
-            ..Default::default()
-        });
-    }
+    rules.push(SimpleRule {
+        id: "git_tag__read_only".to_owned(),
+        prefix: "git tag".to_owned(),
+        with_any: Some(
+            ["-l", "--list", "--contains", "--merged", "--no-merged"]
+                .into_iter()
+                .map(Arg::new)
+                .collect(),
+        ),
+        outcome: Outcome::allow("Safe git subcommand: tag"),
+        ..Default::default()
+    });
 
     for sub in ["-v", "--verbose", "show", "get-url"] {
         let sub_id = sub.trim_start_matches('-').replace('-', "_");
@@ -114,12 +115,6 @@ fn git_remote__bare() -> SimpleRule {
         outcome: Outcome::allow("Safe git subcommand: remote"),
         ..Default::default()
     }
-}
-
-/// Check if any non-flag argument follows `tag` in the args.
-fn has_positional_after_tag(cmd: &SimpleContext) -> bool {
-    // args: ["tag", ...rest]
-    cmd.args.iter().skip(1).any(|a| !a.starts_with('-'))
 }
 
 #[cfg(test)]
@@ -482,15 +477,39 @@ mod tests {
     }
 
     #[test]
+    fn _git_tag_contains_commit() {
+        let outcome = evaluate_expect_outcome("git tag --contains f4ce32b");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
     fn _git_tag_merged() {
         let outcome = evaluate_expect_outcome("git tag --merged");
         assert_yaml_snapshot!(outcome);
     }
 
     #[test]
+    fn _git_tag_merged_commit() {
+        let outcome = evaluate_expect_outcome("git tag --merged main");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
     fn _git_tag_no_merged() {
         let outcome = evaluate_expect_outcome("git tag --no-merged");
         assert_yaml_snapshot!(outcome);
+    }
+
+    #[test]
+    fn _git_tag_no_merged_commit() {
+        let outcome = evaluate_expect_outcome("git tag --no-merged main");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn _git_tag_list_pattern() {
+        let outcome = evaluate_expect_outcome("git tag -l 'v1.*'");
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
