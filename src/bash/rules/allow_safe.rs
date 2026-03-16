@@ -3,8 +3,9 @@
 use crate::prelude::*;
 
 const SAFE_COMMANDS: &[&str] = &[
-    "base64", "cat", "column", "cut", "echo", "fmt", "grep", "head", "jq", "less", "ls", "rg",
-    "tail", "tr", "tree", "uniq", "wc", "xxd",
+    "base64", "basename", "cat", "column", "command", "cut", "dirname", "echo", "file", "fmt",
+    "grep", "head", "jq", "less", "ls", "readlink", "realpath", "rg", "stat", "tail", "tr", "tree",
+    "type", "uniq", "wc", "which", "xxd",
 ];
 
 /// Rules for safe read-only commands, with denials for commands that can write or execute.
@@ -66,5 +67,17 @@ fn yq() -> BashRule {
         without_any: Some(vec![Arg::new("-i"), Arg::new("--in-place")]),
         outcome: Outcome::allow("Safe command: yq (no in-place edit)"),
         ..Default::default()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::prelude::*;
+
+    #[test]
+    fn for_loop_grep_basename() {
+        let cmd = r#"for f in src/bash/rules/snapshots/*git_deny*.snap; do echo "=== $(basename $f) ==="; grep "decision:" "$f"; done"#;
+        let outcome = evaluate_expect_outcome(cmd);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 }
