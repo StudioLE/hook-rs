@@ -1,8 +1,7 @@
 //! User-specific settings loaded from `~/.config/claude-hooks/settings.yaml`.
 
-use serde::Deserialize;
+use crate::prelude::*;
 use std::fs;
-use std::path::PathBuf;
 
 /// User-specific settings for rule evaluation.
 #[derive(Clone, Debug, Default, Deserialize)]
@@ -39,20 +38,27 @@ pub struct GitSettings {
 }
 
 impl Settings {
-    /// Load settings from `~/.config/claude-hooks/settings.yaml`.
+    /// Load settings from file.
     ///
-    /// Returns `Settings::default()` on any failure (missing file, parse error, etc.).
-    #[must_use]
-    pub fn load() -> Self {
-        Self::path()
-            .and_then(|path| fs::read_to_string(path).ok())
-            .and_then(|contents| serde_yaml::from_str(&contents).ok())
-            .unwrap_or_default()
-    }
-
-    /// Path to the settings file.
-    fn path() -> Option<PathBuf> {
-        dirs::config_dir().map(|d| d.join("claude-hooks").join("settings.yaml"))
+    /// Returns `Settings::default()` if the file is missing.
+    pub fn load() -> Result<Self, Report<SettingsError>> {
+        let path = config_path();
+        if !path.exists() {
+            warn!(path = %path.display(), "Settings file not found");
+            debug!("Using default settings");
+            return Ok(Self::default());
+        }
+        let yaml = fs::read_to_string(&path).change_context(SettingsError::Read)?;
+        let settings: Settings =
+            serde_yaml::from_str(&yaml).change_context(SettingsError::Deserialize)?;
+        trace!(
+            path = %path.display(),
+            git_trusted = settings.git.trusted_dirs.len(),
+            git_untrusted = settings.git.untrusted_dirs.len(),
+            read_paths = settings.read.paths.len(),
+            "Loaded settings",
+        );
+        Ok(settings)
     }
 
     /// Mock settings for use in tests.
@@ -72,4 +78,23 @@ impl Settings {
             },
         }
     }
+}
+
+/// Errors returned by [`Settings::load`].
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Error)]
+pub enum SettingsError {
+    /// Failed to read the settings file from disk.
+    #[error("Failed to read settings file")]
+    Read,
+    /// Settings file could not be deserialized from YAML.
+    #[error("Failed to deserialize settings YAML")]
+    Deserialize,
+}
+
+/// Path to the settings file.
+fn config_path() -> PathBuf {
+    dirs::config_dir()
+        .expect("config_dir should be valid")
+        .join("claude-hooks")
+        .join("settings.yaml")
 }

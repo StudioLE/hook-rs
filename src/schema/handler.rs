@@ -14,13 +14,18 @@ pub trait Handler {
 /// Deserialize stdin as `T::Input` and dispatch to the handler.
 pub fn run<T: Handler>() -> Option<Outcome> {
     let input = match HookInput::<T::Input>::from_stdin() {
-        Ok(i) => i,
-        Err(e) => {
-            return Some(Outcome::ask(format!(
-                "An error occurred while evaluating the hook error: {e:?}"
-            )));
+        Ok(input) => input,
+        Err(report) => {
+            error!("{report:?}");
+            return Some(Outcome::error(report));
         }
     };
-    let settings = Settings::load();
+    let settings = match Settings::load() {
+        Ok(settings) => settings,
+        Err(report) => {
+            error!("{report:?}");
+            return Some(Outcome::error(report));
+        }
+    };
     T::run(input.tool_input, settings)
 }

@@ -12,12 +12,15 @@ pub struct Outcome {
 }
 
 /// Permission decision for a hook rule.
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Error, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Decision {
+    #[error("Allow")]
     Allow,
     #[default]
+    #[error("Ask")]
     Ask,
+    #[error("Deny")]
     Deny,
 }
 
@@ -46,6 +49,14 @@ impl Outcome {
         }
     }
 
+    /// Create an ask result from an error.
+    pub fn error<T: Error>(error: Report<T>) -> Self {
+        Self {
+            decision: Decision::Ask,
+            reason: format!("ERROR: {error:?}"),
+        }
+    }
+
     /// Create an outcome by joining multiple reason strings with newlines.
     pub(crate) fn combined(decision: Decision, reasons: &[String]) -> Self {
         if reasons.is_empty() {
@@ -63,12 +74,8 @@ impl Outcome {
     }
 }
 
-impl Display for Decision {
+impl Display for Outcome {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        match self {
-            Self::Allow => write!(f, "allow"),
-            Self::Deny => write!(f, "deny"),
-            Self::Ask => write!(f, "ask"),
-        }
+        write!(f, "{}: {}", self.decision, self.reason)
     }
 }

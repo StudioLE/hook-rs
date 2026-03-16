@@ -5,3 +5,4 @@ mod grep;
 pub mod prelude;
 mod read;
 mod schema;
+mod utils;

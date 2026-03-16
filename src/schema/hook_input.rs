@@ -80,7 +80,7 @@ impl GrepInput {
 }
 
 /// Errors returned by [`HookInput`] deserialization.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, thiserror::Error)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Error)]
 pub enum HookError {
     /// Failed to read from stdin.
     #[error("read stdin")]

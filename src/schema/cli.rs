@@ -2,12 +2,17 @@
 
 use crate::prelude::*;
 use argh::FromArgs;
+use tracing::Level;
 
 /// Claude Code hook evaluator.
 #[derive(FromArgs)]
 pub struct Cli {
     #[argh(subcommand)]
     subcommand: Subcommand,
+
+    /// log level
+    #[argh(option)]
+    log_level: Option<Level>,
 }
 
 /// Tool-specific subcommand.
@@ -42,13 +47,17 @@ impl Cli {
     /// - Print the result
     pub fn run() {
         let cli: Cli = argh::from_env();
+        let _logger = init_logger(cli.log_level);
         let outcome = match cli.subcommand {
             Subcommand::Bash(_) => run::<BashHandler>(),
             Subcommand::Grep(_) => run::<GrepHandler>(),
             Subcommand::Read(_) => run::<ReadHandler>(),
         };
         if let Some(outcome) = outcome {
+            info!("{outcome}");
             outcome.print_hook_output();
+        } else {
+            info!("No outcome");
         }
     }
 }

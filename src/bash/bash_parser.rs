@@ -24,13 +24,16 @@ impl BashParser {
     ///   caller can fall through to the default approval flow
     /// - Returns `Err` for genuine parse failures (malformed syntax)
     pub fn parse(&mut self, command: &str) -> Result<CompleteContext, Report<ParseError>> {
+        trace!(command, "Parsing");
         let tokens = tokenize_str(command).change_context(ParseError::Tokenize)?;
         let program = parse_tokens(&tokens, &ParserOptions::default(), &SourceInfo::default())
-            .change_context(ParseError::ParseTokens)?;
-        Ok(CompleteContext {
+            .change_context(ParseError::Tokens)?;
+        let context = CompleteContext {
             raw: command.to_owned(),
             children: self.pipelines_from_program(&program)?,
-        })
+        };
+        trace!(pipelines = context.children.len(), "Parsed");
+        Ok(context)
     }
 
     /// Extract pipelines from a parsed shell program.
@@ -143,6 +146,7 @@ impl BashParser {
             }
         }
         self.nesting.pop();
+        trace!(body_commands = contexts.len(), "Parsed for loop");
         Ok(contexts)
     }
 
@@ -200,6 +204,14 @@ impl BashParser {
                 CommandPrefixOrSuffixItem::AssignmentWord(..) => {}
             }
         }
+        trace!(
+            %name,
+            args = args.len(),
+            has_heredoc,
+            contains_substitution,
+            inner_commands = inner_commands.len(),
+            "Parsed simple command",
+        );
         let mut result = vec![SimpleContext {
             name,
             args,
@@ -218,6 +230,7 @@ impl BashParser {
     /// - Bubbles up any inner failure since unparseable substitutions cannot
     ///   be reasoned about
     fn parse_substitution(&self, command: &str) -> Result<Vec<SimpleContext>, Report<ParseError>> {
+        trace!(command, "Parsing substitution");
         if self.nesting.contains(&Nesting::Substitution) {
             return Err(ParseError::skip(SkipReason::NestedSubstitution));
         }
@@ -273,23 +286,27 @@ fn collect_substitutions(
 }
 
 /// Errors returned by [`BashParser`].
-#[derive(Clone, Copy, Debug, Eq, PartialEq, thiserror::Error)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Error)]
 pub enum ParseError {
     /// Shell tokenization failed, such as unmatched quotes.
-    #[error("tokenize command")]
+    #[error("Failed to tokenize the command")]
     Tokenize,
     /// Token stream could not be parsed into a shell AST.
-    #[error("parse tokens")]
-    ParseTokens,
+    #[error("Failed to parse tokens")]
+    Tokens,
     /// Word-level parse failed for substitution extraction.
-    #[error("parse word")]
+    #[error("Failed to parse a word")]
     Word,
-    /// Command was parsed successfully but skipped for policy reasons.
-    #[error("skip: {0:?}")]
+    /// `CompleteRule` must never be allow
+    #[error("CompleteRule must never allow")]
+    CompleteAllow,
+    /// Command was parsed successfully but skipped.
+    #[error("Skipped: {0}")]
     Skip(SkipReason),
 }
 
 impl ParseError {
+    /// Wrap a [`SkipReason`] in a [`Report`] for early return.
     pub(crate) fn skip(reason: SkipReason) -> Report<Self> {
         Report::new(Self::Skip(reason))
     }
@@ -559,13 +576,13 @@ mod tests {
     #[test]
     fn substitution_inner_parse_error() {
         let error = parse_expect_error("echo $(;;)");
-        assert_eq!(error, ParseError::ParseTokens);
+        assert_eq!(error, ParseError::Tokens);
     }
 
     #[test]
     fn substitution_inner_bare_semicolon() {
         let error = parse_expect_error("echo $(;)");
-        assert_eq!(error, ParseError::ParseTokens);
+        assert_eq!(error, ParseError::Tokens);
     }
 
     #[test]

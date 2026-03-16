@@ -4,8 +4,11 @@ use crate::prelude::*;
 
 /// Rule engine that evaluates parsed shell commands against registered security rules.
 pub struct BashEvaluator {
+    /// User settings for path classification and trusted directories.
     settings: Settings,
+    /// Rules that match individual simple commands by prefix and arguments.
     simple_rules: Vec<SimpleRule>,
+    /// Rules that match the entire parsed command structure.
     complete_rules: Vec<CompleteRule>,
 }
 
@@ -19,12 +22,10 @@ impl BashEvaluator {
     fn evaluate_all(&self, context: &CompleteContext) -> Result<Outcome, Report<ParseError>> {
         let mut outcomes = self.evaluate_complete(context);
         if outcomes.is_empty() {
+            debug!("No complete rules matched");
             outcomes = self.evaluate_simple(context)?;
         } else if outcomes.iter().all(|o| o.decision == Decision::Allow) {
-            // TODO: This is a temporary workaround until we revise CompleteRule
-            return Ok(Outcome::ask(
-                "INVALID RULE: CompleteRule should NEVER allow",
-            ));
+            return Err(Report::new(ParseError::CompleteAllow));
         }
         apply_precedence(outcomes)
     }
@@ -68,11 +69,20 @@ impl BashEvaluator {
 }
 
 /// Merge an outcome into the accumulated result using Deny > Ask > Allow precedence.
-fn apply_precedence(outcomes: Vec<Outcome>) -> Result<Outcome, Report<ParseError>> {
+fn apply_precedence(mut outcomes: Vec<Outcome>) -> Result<Outcome, Report<ParseError>> {
     if outcomes.is_empty() {
         return Err(ParseError::skip(SkipReason::NoMatches));
     }
+    if outcomes.len() == 1 {
+        return Ok(outcomes.pop().expect("should be 1 outcome"));
+    }
     let outcomes = sort_outcomes(outcomes);
+    debug!(
+        deny = outcomes.get(&Decision::Deny).unwrap_or(&Vec::new()).len(),
+        ask = outcomes.get(&Decision::Ask).unwrap_or(&Vec::new()).len(),
+        allow = outcomes.get(&Decision::Allow).unwrap_or(&Vec::new()).len(),
+        "Applying precedence"
+    );
     if let Some(reasons) = outcomes.get(&Decision::Deny) {
         return Ok(Outcome::combined(Decision::Deny, reasons));
     }
@@ -123,6 +133,7 @@ impl BashEvaluator {
 #[cfg(test)]
 /// Parse and evaluate `command`, expecting a successful [`Outcome`].
 pub(crate) fn evaluate_expect_outcome(command: &str) -> Outcome {
+    let _logger = init_test_logger();
     BashEvaluator::new(Settings::mock())
         .evaluate_str(command)
         .expect("command should produce an outcome")
@@ -132,6 +143,7 @@ pub(crate) fn evaluate_expect_outcome(command: &str) -> Outcome {
 /// Parse and evaluate `command`, expecting a [`SkipReason`].
 #[expect(clippy::panic, reason = "test helper")]
 pub(crate) fn evaluate_expect_skip(command: &str) -> SkipReason {
+    let _logger = init_test_logger();
     match BashEvaluator::new(Settings::mock())
         .evaluate_str(command)
         .expect_err("command should not succeed")

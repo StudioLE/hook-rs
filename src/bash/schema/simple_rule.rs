@@ -6,7 +6,6 @@ use crate::prelude::*;
 #[derive(Default)]
 pub struct SimpleRule {
     /// Unique identifier for this rule.
-    #[expect(dead_code, reason = "id for planned matching")]
     pub id: String,
     /// Match commands that start with prefix.
     ///
@@ -103,6 +102,7 @@ impl SimpleRule {
         {
             return false;
         }
+        debug!(id = %self.id, decision = %self.outcome.decision, command = %cmd.name, "Matched simple rule");
         true
     }
 }

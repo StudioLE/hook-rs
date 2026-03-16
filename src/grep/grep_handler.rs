@@ -9,6 +9,7 @@ impl Handler for GrepHandler {
     type Input = GrepInput;
 
     fn run(input: Self::Input, settings: Settings) -> Option<Outcome> {
+        trace!(path = %input.path, "Handling grep path");
         let home =
             dirs::home_dir().expect("home directory should be resolvable via $HOME or passwd");
         let rules: Vec<GrepRule> = RuleFactory::new(settings.read.paths.clone(), home).create();
