@@ -50,7 +50,7 @@ impl Outcome {
     }
 
     /// Create an ask result from an error.
-    pub fn error<T: Error>(error: Report<T>) -> Self {
+    pub fn error<T: Error + Send + Sync + 'static>(error: Report<T>) -> Self {
         Self {
             decision: Decision::Ask,
             reason: format!("ERROR: {error:?}"),

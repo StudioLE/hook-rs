@@ -8,7 +8,6 @@ pub(crate) use crate::schema::*;
 pub(crate) use crate::utils::*;
 
 pub(crate) use brush_parser::unquote_str;
-pub(crate) use error_stack::{Report, ResultExt};
 pub(crate) use globset::GlobMatcher;
 pub(crate) use serde::de::DeserializeOwned;
 pub(crate) use serde::{Deserialize, Serialize};
