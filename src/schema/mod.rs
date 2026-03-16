@@ -6,7 +6,6 @@ mod handler;
 mod hook_input;
 mod hook_output;
 mod outcome;
-mod path_rule;
 mod settings;
 mod skip_reason;
 
@@ -16,6 +15,5 @@ pub use handler::*;
 pub use hook_input::*;
 pub use hook_output::*;
 pub use outcome::*;
-pub use path_rule::*;
 pub use settings::*;
 pub use skip_reason::*;

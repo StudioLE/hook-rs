@@ -2,10 +2,8 @@
 
 mod glob;
 mod logging;
-mod path_rule_factory;
 mod report;
 
 pub use glob::*;
 pub use logging::*;
-pub use path_rule_factory::*;
 pub use report::*;

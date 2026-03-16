@@ -4,7 +4,7 @@ A tool to check and enforce permissions for Claude Code.
 
 - Bash syntax aware command analysis
 - Glob based git path trust classification
-- Tilde aware Read and Grep path auto-allowing
+- Tilde aware Read, Grep, and Glob path auto-allowing
 
 ## How it Works
 
@@ -14,7 +14,7 @@ A tool to check and enforce permissions for Claude Code.
 - Returns the highest-priority decision: Deny > Ask > Allow
 - Or, passes through to the default permission system.
 
-## Read and Grep Search Rules
+## Read, Grep, and Glob Rules
 
 Allowed and excluded paths are defined in `settings.yaml` using `.gitignore` style glob patterns.
 
@@ -209,6 +209,10 @@ Enable the `PreToolUse` hooks in `~/.claude/settings.json`
       {
         "matcher": "Bash",
         "hooks": [{ "type": "command", "command": "hook-rs bash" }]
+      },
+      {
+        "matcher": "Glob",
+        "hooks": [{ "type": "command", "command": "hook-rs glob" }]
       },
       {
         "matcher": "Grep",

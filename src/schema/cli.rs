@@ -20,6 +20,7 @@ pub struct Cli {
 #[argh(subcommand)]
 enum Subcommand {
     Bash(BashCmd),
+    Glob(GlobCmd),
     Grep(GrepCmd),
     Read(ReadCmd),
 }
@@ -28,6 +29,11 @@ enum Subcommand {
 #[derive(FromArgs)]
 #[argh(subcommand, name = "bash")]
 struct BashCmd {}
+
+/// Evaluate a Glob tool call
+#[derive(FromArgs)]
+#[argh(subcommand, name = "glob")]
+struct GlobCmd {}
 
 /// Evaluate a Grep tool call
 #[derive(FromArgs)]
@@ -50,6 +56,7 @@ impl Cli {
         let _logger = init_logger(cli.log_level);
         let outcome = match cli.subcommand {
             Subcommand::Bash(_) => run::<BashHandler>(),
+            Subcommand::Glob(_) => run::<GlobHandler>(),
             Subcommand::Grep(_) => run::<GrepHandler>(),
             Subcommand::Read(_) => run::<ReadHandler>(),
         };

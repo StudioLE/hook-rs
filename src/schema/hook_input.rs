@@ -26,6 +26,22 @@ pub struct ReadInput {
     pub file_path: String,
 }
 
+/// Glob tool input payload.
+#[derive(Debug, Deserialize)]
+pub struct GlobInput {
+    /// Glob pattern to match files against.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "deserialized from JSON but only path is used for rule matching"
+        )
+    )]
+    pub pattern: String,
+    /// Directory to search in.
+    pub path: Option<String>,
+}
+
 /// Grep tool input payload.
 #[derive(Debug, Deserialize)]
 pub struct GrepInput {
@@ -68,6 +84,17 @@ impl ReadInput {
     }
 }
 
+impl GlobInput {
+    /// Create a new [`GlobInput`] for testing.
+    #[cfg(test)]
+    pub fn new(pattern: impl Into<String>, path: Option<String>) -> Self {
+        Self {
+            pattern: pattern.into(),
+            path,
+        }
+    }
+}
+
 impl GrepInput {
     /// Create a new [`GrepInput`] for testing.
     #[cfg(test)]
@@ -106,6 +133,23 @@ mod tests {
         let json = r#"{"tool_name":"Read","tool_input":{"file_path":"/tmp/foo.rs"}}"#;
         let input = HookInput::<ReadInput>::from_json(json).expect("should deserialize");
         assert_eq!(input.tool_input.file_path, "/tmp/foo.rs");
+    }
+
+    #[test]
+    fn deserialize_glob_input() {
+        let json =
+            r#"{"tool_name":"Glob","tool_input":{"pattern":"**/*.rs","path":"/opt/readonly/src"}}"#;
+        let input = HookInput::<GlobInput>::from_json(json).expect("should deserialize");
+        assert_eq!(input.tool_input.pattern, "**/*.rs");
+        assert_eq!(input.tool_input.path.as_deref(), Some("/opt/readonly/src"));
+    }
+
+    #[test]
+    fn deserialize_glob_input_without_path() {
+        let json = r#"{"tool_name":"Glob","tool_input":{"pattern":"**/*.rs"}}"#;
+        let input = HookInput::<GlobInput>::from_json(json).expect("should deserialize");
+        assert_eq!(input.tool_input.pattern, "**/*.rs");
+        assert!(input.tool_input.path.is_none());
     }
 
     #[test]
