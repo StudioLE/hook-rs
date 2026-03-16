@@ -23,6 +23,40 @@ impl PathRuleFactory {
         let exact = strip_recursive_glob(&pattern);
         PathRule::new(exact, Some(matcher))
     }
+
+    /// Check if a path is allowed using last-match-wins semantics.
+    ///
+    /// - Patterns are evaluated bottom-to-top (last match wins)
+    /// - `!` prefix negates (untrusts)
+    /// - No match returns `None`
+    pub fn is_match(&self, path: &str, patterns: &[String]) -> Option<bool> {
+        for pattern in patterns.iter().rev() {
+            let (negated, glob) = match pattern.strip_prefix('!') {
+                Some(rest) => (true, rest),
+                None => (false, pattern.as_str()),
+            };
+            if self.create(glob).is_match(path) {
+                return Some(!negated);
+            }
+        }
+        None
+    }
+
+    /// Check if a path is allowed and return an [`Outcome`] for allowed paths.
+    ///
+    /// - Returns `Some(Outcome::allow(...))` if the path matches a non-negated pattern
+    /// - Returns `None` if no match or negated (passthrough to default permissions)
+    pub fn is_match_outcome(&self, path: &str, patterns: &[String]) -> Option<Outcome> {
+        if let Some(is_allowed) = self.is_match(path, patterns) {
+            trace!(is_allowed, "Matched");
+            if is_allowed {
+                return Some(Outcome::allow("Path is allowed"));
+            }
+        } else {
+            trace!("No match");
+        }
+        None
+    }
 }
 
 impl Default for PathRuleFactory {
@@ -169,5 +203,53 @@ mod tests {
     fn tilde_other_user_no_glob_match() {
         let rule = factory().create("~other/file");
         assert!(!rule.is_match("/home/other/file"));
+    }
+
+    // is_match with patterns
+
+    #[test]
+    fn patterns_simple_match() {
+        let patterns = vec!["/a/**".to_owned()];
+        assert_eq!(factory().is_match("/a/file.txt", &patterns), Some(true));
+    }
+
+    #[test]
+    fn patterns_no_match() {
+        let patterns = vec!["/a/**".to_owned()];
+        assert_eq!(factory().is_match("/b/file.txt", &patterns), None);
+    }
+
+    #[test]
+    fn patterns_negation_excludes() {
+        let patterns = vec!["/a/**".to_owned(), "!/a/secret/**".to_owned()];
+        assert_eq!(
+            factory().is_match("/a/secret/key.pem", &patterns),
+            Some(false)
+        );
+    }
+
+    #[test]
+    fn patterns_re_include_after_negation() {
+        let patterns = vec![
+            "/a/**".to_owned(),
+            "!/a/secret/**".to_owned(),
+            "/a/secret/public.txt".to_owned(),
+        ];
+        assert_eq!(
+            factory().is_match("/a/secret/public.txt", &patterns),
+            Some(true)
+        );
+    }
+
+    #[test]
+    fn patterns_last_match_wins() {
+        let patterns = vec!["!/a/**".to_owned(), "/a/**".to_owned()];
+        assert_eq!(factory().is_match("/a/file.txt", &patterns), Some(true));
+    }
+
+    #[test]
+    fn patterns_empty() {
+        let patterns: Vec<String> = vec![];
+        assert_eq!(factory().is_match("/a/file.txt", &patterns), None);
     }
 }

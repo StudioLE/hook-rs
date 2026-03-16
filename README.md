@@ -1,35 +1,192 @@
 # claude-hooks
 
-A single Rust binary that replaces 12 bash [Claude Code hooks](https://docs.anthropic.com/en/docs/claude-code/hooks). Reads JSON from stdin, runs checks in order, outputs the first matching decision. No output = passthrough.
+A tool to check and enforce permissions for Claude Code.
 
-## Checks
+- Bash syntax aware command analysis
+- Glob based git path trust classification
+- Tilde aware Read and Grep path auto-allowing
 
-| # | Module | Decision | What it does |
-|---|--------|----------|--------------|
-| 1 | `gh_cli` | allow / ask | Auto-allow read-only gh commands; ask for writes, mutations, PR comments |
-| 2 | `rm` | deny | Block `rm` and `git clean -d` (allow `/tmp/` without traversal) |
-| 3 | `git_approval` | allow / ask | Safe subcommands + `-C` path classification + branch/tag/remote flag validation |
-| 4 | `cd_git` | deny | Block `cd && git` compounds |
-| 5 | `git_stash` | deny | Block `stash pop`, `drop`, `clear` |
-| 6 | `git_reset` | deny | Block `reset --hard` |
-| 7 | `git_checkout` | deny | Block `checkout HEAD --` and `checkout --` (discard changes) |
-| 8 | `find_delete` | deny | Block `find -delete` and `find -exec rm` |
-| 9 | `chained_push` | deny | Block non-standalone `git push` |
-| 10 | `echo_separator` | deny | Block chained echo separators (`&& echo "---"`) |
-| 11 | `insta_review` | deny | Block `cargo insta review` with heredoc input |
-| 12 | `long_python` | deny | Block inline Python >1000 chars or >20 lines |
+## How it Works
+
+- Implemented as a [PreToolUse hook](https://docs.anthropic.com/en/docs/claude-code/hooks) for Claude Code
+- Reads JSON from stdin
+- Evaluates all matching rules
+- Returns the highest-priority decision: Deny > Ask > Allow
+- Or, passes through to the default permission system.
+
+## Read and Grep Search Rules
+
+Allowed and excluded paths are defined in `settings.yaml` using `.gitignore` style glob patterns.
+
+Refer to the [glob syntax guide](#glob-syntax).
+
+## Bash Rules
+
+<details>
+<summary>Allow Read-Only Commands</summary>
+
+Allow read-only commands:
+- `base64`
+- `basename`
+- `cat`
+- `column`
+- `command`
+- `cut`
+- `dirname`
+- `echo`
+- `file`
+- `fmt`
+- `grep`
+- `head`
+- `jq`
+- `less`
+- `ls`
+- `readlink`
+- `realpath`
+- `rg`
+- `stat`
+- `tail`
+- `tr`
+- `tree`
+- `type`
+- `uniq`
+- `wc`
+- `which`
+- `xxd`
+
+Allow without in-place flags (`-i`, `--in-place`, `-o`):
+- `sed`
+- `sort`
+- `yq`
+
+[source: `allow_safe.rs`](src/bash/rules/allow_safe.rs)
+
+Allow read-only git subcommands:
+- `git check-ignore`
+- `git describe`
+- `git diff`
+- `git fetch`
+- `git log`
+- `git ls-tree`
+- `git merge-base`
+- `git mv`
+- `git rev-parse`
+- `git rm`
+- `git show`
+- `git status`
+
+Allow bare or with read-only flags only (e.g. `-a`, `--list`, `-v`, `--contains`, `--merged`):
+- `git branch`
+- `git tag`
+- `git remote`
+
+[source: `git_allow.rs`](src/bash/rules/git_allow.rs)
+
+</details>
+
+<details>
+<summary>Deny Unnecessary Destructive Commands</summary>
+
+Deny all forms of `rm`. Suggests `git rm -f` or `git clean -f <file>` instead.
+
+[source: `rm.rs`](src/bash/rules/rm.rs)
+
+Deny `find -delete` and `find -exec rm` / `find -execdir rm`.
+
+[source: `find.rs`](src/bash/rules/find.rs)
+
+</details>
+
+<details>
+<summary>Deny Destructive Git Operations</summary>
+
+Deny destructive git operations:
+- `git reset --hard`
+- `git stash pop`
+- `git stash drop`
+- `git stash clear`
+- `git clean -d` (any flag combo containing `-d`)
+- `git checkout --` (discarding changes)
+
+[source: `git_deny.rs`](src/bash/rules/git_deny.rs)
+
+</details>
+
+<details>
+<summary>Trusted Git Paths</summary>
+
+Handle `git -C <path>` by combining path trust classification with subcommand analysis.
+
+- Destructive subcommands are denied regardless of path trust.
+- Safe subcommands are allowed only in trusted paths.
+
+[source: `git_c.rs`](src/bash/rules/git_c.rs)
+
+- Deny `cd <path>` chained with `git` via any operator (`&&`, `||`, `;`).
+- Suggests using `git -C <path>` instead.
+
+[source: `cd_git.rs`](src/bash/rules/cd_git.rs)
+
+</details>
+
+<details>
+<summary>Chained push</summary>
+
+Deny `git push` when part of a compound command. Requires it to be run standalone.
+
+[source: `chained_push.rs`](src/bash/rules/chained_push.rs)
+
+</details>
+
+<details>
+<summary>GitHub CLI</summary>
+
+Allow read-only `gh` commands:
+- `gh run list`
+- `gh run view`
+- `gh release list`
+- `gh api` (without data flags or write methods)
+
+Ask for approval on write operations:
+- `gh pr comment`
+- `gh api` with data flags (`-d`, `-f`, `-F`, `--input`)
+- `gh api` with write methods (`-X POST/PUT/PATCH/DELETE`)
+- `gh api graphql` with mutations
+
+[source: `gh.rs`](src/bash/rules/gh.rs)
+
+</details>
+
+<details>
+<summary>Python</summary>
+
+Deny inline Python (`-c` or heredoc) exceeding 1000 characters or 20 lines.
+
+[source: `long_python.rs`](src/bash/rules/long_python.rs)
+
+</details>
+
+<details>
+<summary>Insta review</summary>
+
+Deny `cargo insta review` with heredoc input to prevent faking interactive input.
+
+[source: `insta.rs`](src/bash/rules/insta.rs)
+
+</details>
+
 
 ## Install
 
-```sh
+```bash
 cargo install --path .
 ```
 
-This installs `claude-hooks` to `~/.cargo/bin/`.
-
 ## Configuration
 
-In `~/.claude/settings.json`:
+### Setup Hooks
+
+Enable the `PreToolUse` hooks in `~/.claude/settings.json`
 
 ```json
 {
@@ -37,40 +194,94 @@ In `~/.claude/settings.json`:
     "PreToolUse": [
       {
         "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.cargo/bin/claude-hooks"
-          }
-        ]
+        "hooks": [{ "type": "command", "command": "~/.cargo/bin/claude-hooks bash" }]
+      },
+      {
+        "matcher": "Grep",
+        "hooks": [{ "type": "command", "command": "~/.cargo/bin/claude-hooks grep" }]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [{ "type": "command", "command": "~/.cargo/bin/claude-hooks read" }]
       }
     ]
   }
 }
 ```
 
-## Testing
+### Settings
 
-```sh
-cargo test
+Refer to the [glob syntax guide](#glob-syntax).
+
+Settings are optional. If missing, defaults to empty.
+
+Create a `~/.config/claude-hooks/settings.yaml` file with your settings:
+
+```yaml
+git:
+  paths:
+  # Trust all repos in ~/repos
+  - ~/repos/**
+  # Exclude all repos in ~/repos/forked
+  #
+  - !~/repos/forked/**
+  # Trust all repos in ~/repos/forked/my-fork
+  - ~/repos/forked/my-fork/**
+
+read:
+  paths:
+  # Allow reading the cargo registry
+  - ~/.cargo/registry/src/**
+  # Allow reading the rustup toolchain
+  - ~/.rustup/toolchains/**
+  # Allow reading any file in /path/to/repos
+  - /path/to/repos/**
+  # Allow reading any README.md
+  - README.md
+  # Exclude .env
+  - !.env
+  - !.env.*
 ```
 
-Tests use [insta](https://insta.rs) yaml snapshots. After adding new test cases:
+> [!NOTE]
+>
+> While technically this is YAML tag syntax:
+>
+> ```yaml
+>   - !.env
+> ```
+>
+> A pre-processor automatically converts it to a YAML string:
+>
+> ```yaml
+>   - "!.env"
+> ```
 
-```sh
-cargo insta test
-cargo insta review
-```
+### Glob Syntax
 
-## Manual testing
+- Last match wins
+- `!` prefix excludes
+- `*` matches zero or more characters except `/`
+- `?` matches any single character except `/`
+- `**` recursively matches directories
+- `{a,b}` matches `a` or `b` where `a` and `b` are arbitrary glob patterns (Nesting `{...}` is not currently allowed)
+- `[ab]` matches `a` or `b` where `a` and `b` are characters. Use [!ab] to match any character except for a and b.
+- Metacharacters such as `*` and `?` can be escaped with character class notation. e.g., `[*]` matches `*`.
 
-```sh
-echo '{"tool_input":{"command":"git status"}}' | claude-hooks
-# → {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow",...}}
-
-echo '{"tool_input":{"command":"rm -rf /"}}' | claude-hooks
-# → {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny",...}}
-
-echo '{"tool_input":{"command":"ls -la"}}' | claude-hooks
-# → (no output = passthrough)
-```
+> [!NOTE]
+>
+> `**` recursively matches directories but are only legal in three situations:
+>
+> 1. If the glob starts with `**/`, then it matches all directories.
+>
+> For example, `**/foo` matches `foo` and `bar/foo` but not `foo/bar`.
+>
+> 2. If the glob ends with `/**`, then it matches all sub-entries.
+>
+> For example, `foo/**` matches `foo/a` and `foo/a/b`, but not `foo`.
+>
+> 3. If the glob contains `/**/` anywhere within the pattern, then it matches zero or more directories.
+>
+> Using `**` anywhere else is illegal
+>
+> The glob `**` is allowed and means "match everything".

@@ -15,21 +15,10 @@ pub fn safe_rules() -> Vec<BashRule> {
         .iter()
         .map(|cmd| BashRule::new(*cmd, *cmd, Outcome::allow(format!("Safe command: {cmd}"))))
         .collect();
-    rules.push(awk());
     rules.push(sed());
     rules.push(sort__cmd());
-    rules.push(tee());
     rules.push(yq());
     rules
-}
-
-/// Deny `awk` (can execute via `system()`).
-fn awk() -> BashRule {
-    BashRule::new(
-        "awk",
-        "awk",
-        Outcome::deny("awk can execute commands via system()"),
-    )
 }
 
 /// Allow `sed` without `-i`/`--in-place`.
@@ -52,11 +41,6 @@ fn sort__cmd() -> BashRule {
         outcome: Outcome::allow("Safe command: sort (no output file)"),
         ..Default::default()
     }
-}
-
-/// Deny `tee` (writes to files).
-fn tee() -> BashRule {
-    BashRule::new("tee", "tee", Outcome::deny("tee writes to files"))
 }
 
 /// Allow `yq` without `-i`/`--in-place`.

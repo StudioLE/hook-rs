@@ -11,13 +11,7 @@ impl Handler for GrepHandler {
     fn run(input: Self::Input, settings: Settings) -> Option<Outcome> {
         trace!(path = %input.path, "Handling grep");
         let factory = PathRuleFactory::default();
-        for pattern in &settings.read.paths {
-            let rule = factory.create(pattern);
-            if rule.is_match(&input.path) {
-                return Some(Outcome::allow("Path is allowed"));
-            }
-        }
-        None
+        factory.is_match_outcome(&input.path, &settings.read.paths)
     }
 }
 
@@ -69,6 +63,27 @@ mod tests {
         // Arrange
         let input = GrepInput::new("needle", "/opt/readonly");
         let settings = Settings::default();
+
+        // Act
+        let outcome = GrepHandler::run(input, settings);
+
+        // Assert
+        assert!(outcome.is_none());
+    }
+
+    #[test]
+    fn negation_excludes_path() {
+        // Arrange
+        let input = GrepInput::new("needle", "/opt/readonly/secret");
+        let settings = Settings {
+            read: ReadSettings {
+                paths: vec![
+                    "/opt/readonly/**".to_owned(),
+                    "!/opt/readonly/secret/**".to_owned(),
+                ],
+            },
+            ..Settings::default()
+        };
 
         // Act
         let outcome = GrepHandler::run(input, settings);

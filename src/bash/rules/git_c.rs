@@ -54,16 +54,13 @@ fn get_context_without_c(context: &SimpleContext) -> SimpleContext {
 fn is_c_path_trusted(context: &SimpleContext, settings: &Settings) -> bool {
     let path = unquote_str(&context.args[1]);
     let factory = PathRuleFactory::default();
-    for pattern in settings.git.paths.iter().rev() {
-        let (negated, glob) = match pattern.strip_prefix('!') {
-            Some(rest) => (true, rest),
-            None => (false, pattern.as_str()),
-        };
-        if factory.create(glob).is_match(&path) {
-            return !negated;
-        }
+    if let Some(is_allowed) = factory.is_match(&path, &settings.git.paths) {
+        trace!(is_allowed, "Matched");
+        is_allowed
+    } else {
+        trace!("No match");
+        false
     }
-    false
 }
 
 fn deny_git_c(context: &SimpleContext, complete: &CompleteContext, settings: &Settings) -> bool {

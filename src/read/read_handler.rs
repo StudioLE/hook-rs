@@ -11,13 +11,7 @@ impl Handler for ReadHandler {
     fn run(input: Self::Input, settings: Settings) -> Option<Outcome> {
         trace!(path = %input.file_path, "Handling read");
         let factory = PathRuleFactory::default();
-        for pattern in &settings.read.paths {
-            let rule = factory.create(pattern);
-            if rule.is_match(&input.file_path) {
-                return Some(Outcome::allow("Path is allowed"));
-            }
-        }
-        None
+        factory.is_match_outcome(&input.file_path, &settings.read.paths)
     }
 }
 
@@ -88,6 +82,49 @@ mod tests {
         let settings = Settings {
             read: ReadSettings {
                 paths: vec!["~/.cargo/registry/src/**".to_owned()],
+            },
+            ..Settings::default()
+        };
+
+        // Act
+        let outcome = ReadHandler::run(input, settings);
+
+        // Assert
+        assert_eq!(outcome.expect("should match").decision, Decision::Allow);
+    }
+
+    #[test]
+    fn negation_excludes_path() {
+        // Arrange
+        let input = ReadInput::new("/opt/readonly/secret/key.pem");
+        let settings = Settings {
+            read: ReadSettings {
+                paths: vec![
+                    "/opt/readonly/**".to_owned(),
+                    "!/opt/readonly/secret/**".to_owned(),
+                ],
+            },
+            ..Settings::default()
+        };
+
+        // Act
+        let outcome = ReadHandler::run(input, settings);
+
+        // Assert
+        assert!(outcome.is_none());
+    }
+
+    #[test]
+    fn re_include_after_negation() {
+        // Arrange
+        let input = ReadInput::new("/opt/readonly/secret/public.txt");
+        let settings = Settings {
+            read: ReadSettings {
+                paths: vec![
+                    "/opt/readonly/**".to_owned(),
+                    "!/opt/readonly/secret/**".to_owned(),
+                    "/opt/readonly/secret/public.txt".to_owned(),
+                ],
             },
             ..Settings::default()
         };
