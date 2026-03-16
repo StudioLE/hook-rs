@@ -38,8 +38,12 @@ fn python3__long_inline() -> BashRule {
     }
 }
 
-fn is_long_inline(cmd: &SimpleContext, complete: &CompleteContext, _settings: &Settings) -> bool {
-    let has_inline = cmd.args.iter().any(|a| a == "-c") || cmd.has_heredoc;
+fn is_long_inline(
+    simple: &SimpleContext,
+    complete: &CompleteContext,
+    _settings: &Settings,
+) -> bool {
+    let has_inline = simple.args.iter().any(|a| a == "-c") || simple.has_heredoc;
     has_inline && (complete.raw.len() > MAX_CHARS || complete.raw.lines().count() > MAX_LINES)
 }
 

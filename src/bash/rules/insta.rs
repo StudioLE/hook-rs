@@ -12,7 +12,7 @@ fn cargo_insta_review__heredoc() -> BashRule {
     BashRule {
         id: "cargo_insta_review__heredoc".to_owned(),
         command: "cargo insta review".to_owned(),
-        condition: Some(|cmd, _, _| cmd.has_heredoc),
+        condition: Some(|simple, _, _| simple.has_heredoc),
         outcome: Outcome::deny("Do not fake interactive input to cargo insta review."),
         ..Default::default()
     }

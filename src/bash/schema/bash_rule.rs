@@ -54,7 +54,7 @@ impl BashRule {
     /// Single-char short flags (e.g. `-d`) also match inside bundled args (e.g. `-fd`).
     pub fn matches(
         &self,
-        cmd: &SimpleContext,
+        simple: &SimpleContext,
         complete: &CompleteContext,
         settings: &Settings,
     ) -> bool {
@@ -62,20 +62,20 @@ impl BashRule {
         let Some(name) = parts.next() else {
             return false;
         };
-        if cmd.name != name {
+        if simple.name != name {
             return false;
         }
         let leading_args: Vec<&str> = parts.collect();
-        if !cmd
+        if !simple
             .args
             .iter()
             .zip(&leading_args)
             .all(|(actual, expected)| actual == expected)
-            || cmd.args.len() < leading_args.len()
+            || simple.args.len() < leading_args.len()
         {
             return false;
         }
-        let remaining_args: Vec<&str> = cmd
+        let remaining_args: Vec<&str> = simple
             .args
             .get(leading_args.len()..)
             .unwrap_or_default()
@@ -98,11 +98,11 @@ impl BashRule {
             return false;
         }
         if let Some(condition) = &self.condition
-            && !condition(cmd, complete, settings)
+            && !condition(simple, complete, settings)
         {
             return false;
         }
-        debug!(id = %self.id, decision = %self.outcome.decision, command = %cmd.name, "Matched bash rule");
+        debug!(id = %self.id, decision = %self.outcome.decision, command = %simple.name, "Matched bash rule");
         true
     }
 }

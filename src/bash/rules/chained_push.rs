@@ -21,7 +21,7 @@ fn git_push__chained() -> BashRule {
     }
 }
 
-fn is_chained(_cmd: &SimpleContext, complete: &CompleteContext, _settings: &Settings) -> bool {
+fn is_chained(_simple: &SimpleContext, complete: &CompleteContext, _settings: &Settings) -> bool {
     complete.children.len() > 1
 }
 

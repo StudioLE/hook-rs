@@ -89,7 +89,7 @@ fn git_branch__bare() -> BashRule {
     BashRule {
         id: "git_branch__bare".to_owned(),
         command: "git branch".to_owned(),
-        condition: Some(|cmd, _, _| cmd.args.len() == 1),
+        condition: Some(|simple, _, _| simple.args.len() == 1),
         outcome: Outcome::allow("Safe git subcommand: branch"),
         ..Default::default()
     }
@@ -100,7 +100,7 @@ fn git_tag__bare() -> BashRule {
     BashRule {
         id: "git_tag__bare".to_owned(),
         command: "git tag".to_owned(),
-        condition: Some(|cmd, _, _| cmd.args.len() == 1),
+        condition: Some(|simple, _, _| simple.args.len() == 1),
         outcome: Outcome::allow("Safe git subcommand: tag"),
         ..Default::default()
     }
@@ -111,7 +111,7 @@ fn git_remote__bare() -> BashRule {
     BashRule {
         id: "git_remote__bare".to_owned(),
         command: "git remote".to_owned(),
-        condition: Some(|cmd, _, _| cmd.args.len() == 1),
+        condition: Some(|simple, _, _| simple.args.len() == 1),
         outcome: Outcome::allow("Safe git subcommand: remote"),
         ..Default::default()
     }
