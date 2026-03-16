@@ -15,6 +15,7 @@ pub struct Cli {
 #[argh(subcommand)]
 enum Subcommand {
     Bash(BashCmd),
+    Grep(GrepCmd),
     Read(ReadCmd),
 }
 
@@ -22,6 +23,11 @@ enum Subcommand {
 #[derive(FromArgs)]
 #[argh(subcommand, name = "bash")]
 struct BashCmd {}
+
+/// Evaluate a Grep tool call
+#[derive(FromArgs)]
+#[argh(subcommand, name = "grep")]
+struct GrepCmd {}
 
 /// Evaluate a Read tool call
 #[derive(FromArgs)]
@@ -38,6 +44,7 @@ impl Cli {
         let cli: Cli = argh::from_env();
         let outcome = match cli.subcommand {
             Subcommand::Bash(_) => run::<BashHandler>(),
+            Subcommand::Grep(_) => run::<GrepHandler>(),
             Subcommand::Read(_) => run::<ReadHandler>(),
         };
         if let Some(outcome) = outcome {

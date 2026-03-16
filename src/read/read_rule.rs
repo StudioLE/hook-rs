@@ -12,12 +12,13 @@ pub struct ReadRule {
     pub outcome: Outcome,
 }
 
-impl ReadRule {
-    /// Create a rule from a pre-compiled matcher and outcome.
-    pub fn new(matcher: GlobMatcher, outcome: Outcome) -> Self {
+impl FromGlob for ReadRule {
+    fn from_glob(matcher: GlobMatcher, _pattern: String, outcome: Outcome) -> Self {
         Self { matcher, outcome }
     }
+}
 
+impl ReadRule {
     /// Test whether the given file path matches this rule.
     pub fn matches(&self, file_path: &str) -> bool {
         self.matcher.is_match(file_path)
@@ -35,7 +36,7 @@ mod tests {
             .build()
             .expect("pattern should be valid")
             .compile_matcher();
-        ReadRule::new(matcher, Outcome::allow("test"))
+        ReadRule::from_glob(matcher, pattern.to_owned(), Outcome::allow("test"))
     }
 
     // ** recursive matching

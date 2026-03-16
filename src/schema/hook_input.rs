@@ -26,6 +26,22 @@ pub struct ReadInput {
     pub file_path: String,
 }
 
+/// Grep tool input payload.
+#[derive(Debug, Deserialize)]
+pub struct GrepInput {
+    /// Regex pattern to search for.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "deserialized from JSON but only path is used for rule matching"
+        )
+    )]
+    pub pattern: String,
+    /// Directory or file path to search in.
+    pub path: String,
+}
+
 impl<T: DeserializeOwned> HookInput<T> {
     /// Read and deserialize hook input JSON from stdin.
     pub fn from_stdin() -> Result<Self, Report<HookError>> {
@@ -48,6 +64,17 @@ impl ReadInput {
     pub fn new(file_path: impl Into<String>) -> Self {
         Self {
             file_path: file_path.into(),
+        }
+    }
+}
+
+impl GrepInput {
+    /// Create a new [`GrepInput`] for testing.
+    #[cfg(test)]
+    pub fn new(pattern: impl Into<String>, path: impl Into<String>) -> Self {
+        Self {
+            pattern: pattern.into(),
+            path: path.into(),
         }
     }
 }
@@ -79,6 +106,15 @@ mod tests {
         let json = r#"{"tool_name":"Read","tool_input":{"file_path":"/tmp/foo.rs"}}"#;
         let input = HookInput::<ReadInput>::from_json(json).expect("should deserialize");
         assert_eq!(input.tool_input.file_path, "/tmp/foo.rs");
+    }
+
+    #[test]
+    fn deserialize_grep_input() {
+        let json =
+            r#"{"tool_name":"Grep","tool_input":{"pattern":"needle","path":"/tmp/project"}}"#;
+        let input = HookInput::<GrepInput>::from_json(json).expect("should deserialize");
+        assert_eq!(input.tool_input.pattern, "needle");
+        assert_eq!(input.tool_input.path, "/tmp/project");
     }
 
     #[test]

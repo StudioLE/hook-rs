@@ -11,8 +11,8 @@ impl Handler for ReadHandler {
     fn run(input: Self::Input, settings: Settings) -> Option<Outcome> {
         let home =
             dirs::home_dir().expect("home directory should be resolvable via $HOME or passwd");
-        ReadRuleFactory::new(settings.read.paths.clone(), home)
-            .create()
+        let rules: Vec<ReadRule> = RuleFactory::new(settings.read.paths.clone(), home).create();
+        rules
             .iter()
             .find(|rule| rule.matches(&input.file_path))
             .map(|rule| rule.outcome.clone())
