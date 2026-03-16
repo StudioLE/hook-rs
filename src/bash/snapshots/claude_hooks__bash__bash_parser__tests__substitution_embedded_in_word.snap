@@ -4,17 +4,11 @@ expression: context
 ---
 raw: echo file-$(date).txt
 children:
-  - connector: ~
-    children:
+  - children:
       - name: echo
         args:
           - file-$(date).txt
-        has_heredoc: false
         contains_substitution: true
-        nesting: []
       - name: date
-        args: []
-        has_heredoc: false
-        contains_substitution: false
         nesting:
           - Substitution

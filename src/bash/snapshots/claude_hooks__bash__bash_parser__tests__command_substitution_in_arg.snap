@@ -4,19 +4,13 @@ expression: context
 ---
 raw: "git commit -m \"$(date)\""
 children:
-  - connector: ~
-    children:
+  - children:
       - name: git
         args:
           - commit
           - "-m"
           - "\"$(date)\""
-        has_heredoc: false
         contains_substitution: true
-        nesting: []
       - name: date
-        args: []
-        has_heredoc: false
-        contains_substitution: false
         nesting:
           - Substitution

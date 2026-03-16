@@ -4,19 +4,11 @@ expression: context
 ---
 raw: false || git stash clear
 children:
-  - connector: ~
-    children:
+  - children:
       - name: "false"
-        args: []
-        has_heredoc: false
-        contains_substitution: false
-        nesting: []
   - connector: Or
     children:
       - name: git
         args:
           - stash
           - clear
-        has_heredoc: false
-        contains_substitution: false
-        nesting: []

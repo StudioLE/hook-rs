@@ -4,12 +4,9 @@ expression: context
 ---
 raw: for f in *.tmp; do echo $f; done
 children:
-  - connector: ~
-    children:
+  - children:
       - name: echo
         args:
           - $f
-        has_heredoc: false
-        contains_substitution: false
         nesting:
           - For

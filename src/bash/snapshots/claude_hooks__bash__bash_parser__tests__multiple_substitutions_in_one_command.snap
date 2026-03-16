@@ -4,24 +4,15 @@ expression: context
 ---
 raw: echo $(whoami) $(date)
 children:
-  - connector: ~
-    children:
+  - children:
       - name: echo
         args:
           - $(whoami)
           - $(date)
-        has_heredoc: false
         contains_substitution: true
-        nesting: []
       - name: whoami
-        args: []
-        has_heredoc: false
-        contains_substitution: false
         nesting:
           - Substitution
       - name: date
-        args: []
-        has_heredoc: false
-        contains_substitution: false
         nesting:
           - Substitution

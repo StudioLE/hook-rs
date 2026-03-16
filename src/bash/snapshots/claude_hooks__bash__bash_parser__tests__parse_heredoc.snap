@@ -4,12 +4,9 @@ expression: context
 ---
 raw: "cargo insta review <<EOF\na\nEOF"
 children:
-  - connector: ~
-    children:
+  - children:
       - name: cargo
         args:
           - insta
           - review
         has_heredoc: true
-        contains_substitution: false
-        nesting: []

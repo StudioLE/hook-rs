@@ -20,6 +20,7 @@ pub struct Settings {
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct ReadSettings {
     /// Glob patterns for paths that are safe to read without prompting.
+    #[serde(default)]
     pub paths: Vec<String>,
 }
 
@@ -32,8 +33,10 @@ pub struct ReadSettings {
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct GitSettings {
     /// Directories where read-only `git -C` operations are auto-allowed.
+    #[serde(default)]
     pub trusted_dirs: Vec<String>,
     /// Subdirectories of trusted dirs that should be excluded (e.g. forks).
+    #[serde(default)]
     pub untrusted_dirs: Vec<String>,
 }
 

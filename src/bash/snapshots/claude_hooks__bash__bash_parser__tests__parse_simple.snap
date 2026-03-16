@@ -4,11 +4,7 @@ expression: context
 ---
 raw: git status
 children:
-  - connector: ~
-    children:
+  - children:
       - name: git
         args:
           - status
-        has_heredoc: false
-        contains_substitution: false
-        nesting: []

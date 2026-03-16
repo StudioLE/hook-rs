@@ -4,23 +4,16 @@ expression: context
 ---
 raw: "cargo doc --document-private-items -p globset 2>&1 | tail -5; grep -r \"impl.*Debug\" $(find target/doc -name \"struct.GlobMatcher.html\" 2>/dev/null) 2>/dev/null || echo \"checking source instead\"; grep \"derive\" $(find . -path \"*/globset/src/*.rs\" -not -path \"./target/*\" 2>/dev/null) 2>/dev/null || echo \"not in local source\""
 children:
-  - connector: ~
-    children:
+  - children:
       - name: cargo
         args:
           - doc
           - "--document-private-items"
           - "-p"
           - globset
-        has_heredoc: false
-        contains_substitution: false
-        nesting: []
       - name: tail
         args:
           - "-5"
-        has_heredoc: false
-        contains_substitution: false
-        nesting: []
   - connector: Semi
     children:
       - name: grep
@@ -28,16 +21,12 @@ children:
           - "-r"
           - "\"impl.*Debug\""
           - "$(find target/doc -name \"struct.GlobMatcher.html\" 2>/dev/null)"
-        has_heredoc: false
         contains_substitution: true
-        nesting: []
       - name: find
         args:
           - target/doc
           - "-name"
           - "\"struct.GlobMatcher.html\""
-        has_heredoc: false
-        contains_substitution: false
         nesting:
           - Substitution
   - connector: Or
@@ -45,18 +34,13 @@ children:
       - name: echo
         args:
           - "\"checking source instead\""
-        has_heredoc: false
-        contains_substitution: false
-        nesting: []
   - connector: Semi
     children:
       - name: grep
         args:
           - "\"derive\""
           - "$(find . -path \"*/globset/src/*.rs\" -not -path \"./target/*\" 2>/dev/null)"
-        has_heredoc: false
         contains_substitution: true
-        nesting: []
       - name: find
         args:
           - "."
@@ -65,8 +49,6 @@ children:
           - "-not"
           - "-path"
           - "\"./target/*\""
-        has_heredoc: false
-        contains_substitution: false
         nesting:
           - Substitution
   - connector: Or
@@ -74,6 +56,3 @@ children:
       - name: echo
         args:
           - "\"not in local source\""
-        has_heredoc: false
-        contains_substitution: false
-        nesting: []

@@ -4,11 +4,7 @@ expression: context
 ---
 raw: echo $var
 children:
-  - connector: ~
-    children:
+  - children:
       - name: echo
         args:
           - $var
-        has_heredoc: false
-        contains_substitution: false
-        nesting: []

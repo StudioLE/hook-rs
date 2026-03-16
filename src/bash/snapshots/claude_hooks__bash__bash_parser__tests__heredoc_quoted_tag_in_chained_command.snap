@@ -4,15 +4,11 @@ expression: context
 ---
 raw: "git add file.md && git commit -m \"$(cat <<'EOF'\nfeat(scope): Add feature\nEOF\n)\""
 children:
-  - connector: ~
-    children:
+  - children:
       - name: git
         args:
           - add
           - file.md
-        has_heredoc: false
-        contains_substitution: false
-        nesting: []
   - connector: And
     children:
       - name: git
@@ -20,12 +16,8 @@ children:
           - commit
           - "-m"
           - "\"$(cat <<'EOF'\nfeat(scope): Add feature\nEOF\n)\""
-        has_heredoc: false
         contains_substitution: true
-        nesting: []
       - name: cat
-        args: []
         has_heredoc: true
-        contains_substitution: false
         nesting:
           - Substitution

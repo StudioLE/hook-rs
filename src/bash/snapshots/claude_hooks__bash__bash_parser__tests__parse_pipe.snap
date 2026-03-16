@@ -4,17 +4,10 @@ expression: context
 ---
 raw: git log | head -5
 children:
-  - connector: ~
-    children:
+  - children:
       - name: git
         args:
           - log
-        has_heredoc: false
-        contains_substitution: false
-        nesting: []
       - name: head
         args:
           - "-5"
-        has_heredoc: false
-        contains_substitution: false
-        nesting: []

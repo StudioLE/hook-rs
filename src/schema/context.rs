@@ -31,6 +31,7 @@ pub struct PipelineContext {
     /// Logical connector (`&&` or `||`) linking to the previous item.
     ///
     /// `None` for the first.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub connector: Option<Connector>,
     /// Individual commands piped together with `|`.
     ///
@@ -49,12 +50,16 @@ pub struct SimpleContext {
     /// Examples: `git`, `head`
     pub name: String,
     /// Positional arguments and flags.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub args: Vec<String>,
     /// Whether the command has a heredoc redirect.
+    #[serde(skip_serializing_if = "is_false")]
     pub has_heredoc: bool,
     /// Whether any argument contains a command substitution.
+    #[serde(skip_serializing_if = "is_false")]
     pub contains_substitution: bool,
     /// Compound structures this command is nested inside, outermost first.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub nesting: Vec<Nesting>,
 }
 
@@ -80,4 +85,13 @@ impl CompleteContext {
     pub fn all_commands(&self) -> impl Iterator<Item = &SimpleContext> {
         self.children.iter().flat_map(|pi| &pi.children)
     }
+}
+
+/// Serde predicate to skip serializing `false` fields.
+#[expect(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "serde skip_serializing_if requires &T"
+)]
+const fn is_false(value: &bool) -> bool {
+    !*value
 }

@@ -4,21 +4,14 @@ expression: context
 ---
 raw: "git commit -m 'msg'&& git push"
 children:
-  - connector: ~
-    children:
+  - children:
       - name: git
         args:
           - commit
           - "-m"
           - "'msg'"
-        has_heredoc: false
-        contains_substitution: false
-        nesting: []
   - connector: And
     children:
       - name: git
         args:
           - push
-        has_heredoc: false
-        contains_substitution: false
-        nesting: []

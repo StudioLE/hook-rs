@@ -4,19 +4,14 @@ expression: context
 ---
 raw: echo $(for x in a b; do echo $x; done)
 children:
-  - connector: ~
-    children:
+  - children:
       - name: echo
         args:
           - $(for x in a b; do echo $x; done)
-        has_heredoc: false
         contains_substitution: true
-        nesting: []
       - name: echo
         args:
           - $x
-        has_heredoc: false
-        contains_substitution: false
         nesting:
           - Substitution
           - For
