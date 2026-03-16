@@ -53,16 +53,17 @@ fn get_context_without_c(context: &SimpleContext) -> SimpleContext {
 )]
 fn is_c_path_trusted(context: &SimpleContext, settings: &Settings) -> bool {
     let path = unquote_str(&context.args[1]);
-    !settings
-        .git
-        .untrusted_dirs
-        .iter()
-        .any(|d| path.starts_with(d.as_str()))
-        && settings
-            .git
-            .trusted_dirs
-            .iter()
-            .any(|d| path.starts_with(d.as_str()))
+    let factory = PathRuleFactory::default();
+    for pattern in settings.git.paths.iter().rev() {
+        let (negated, glob) = match pattern.strip_prefix('!') {
+            Some(rest) => (true, rest),
+            None => (false, pattern.as_str()),
+        };
+        if factory.create(glob).is_match(&path) {
+            return !negated;
+        }
+    }
+    false
 }
 
 fn deny_git_c(context: &SimpleContext, complete: &CompleteContext, settings: &Settings) -> bool {
@@ -88,6 +89,151 @@ fn allow_git_c(context: &SimpleContext, complete: &CompleteContext, settings: &S
 #[cfg(test)]
 mod tests {
     use crate::prelude::*;
+
+    // === last-match-wins: trust classification ===
+
+    #[test]
+    fn negation_overrides_earlier_trust() {
+        let settings = git_settings(&["/a/b/**", "!/a/b/forked/**"]);
+        let reason = eval_skip("git -C /a/b/forked/repo status", settings);
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn re_include_after_negation() {
+        let settings = git_settings(&[
+            "/home/user/repos/**",
+            "!/home/user/repos/forked/**",
+            "/home/user/repos/forked/this",
+        ]);
+        let outcome = eval_outcome("git -C /home/user/repos/forked/this status", settings);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn re_include_does_not_affect_other_forked() {
+        let settings = git_settings(&[
+            "/home/user/repos/**",
+            "!/home/user/repos/forked/**",
+            "/home/user/repos/forked/this",
+        ]);
+        let reason = eval_skip("git -C /home/user/repos/forked/other status", settings);
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn no_patterns() {
+        let settings = git_settings(&[]);
+        let reason = eval_skip("git -C /home/user/repos/foo status", settings);
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn single_trust_pattern() {
+        let settings = git_settings(&["/home/user/repos/**"]);
+        let outcome = eval_outcome("git -C /home/user/repos/foo status", settings);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn single_negation_only() {
+        let settings = git_settings(&["!/home/user/repos/**"]);
+        let reason = eval_skip("git -C /home/user/repos/foo status", settings);
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn path_matches_no_pattern() {
+        let settings = git_settings(&["/home/user/repos/**"]);
+        let reason = eval_skip("git -C /tmp/other status", settings);
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn last_match_wins_trust_after_negate() {
+        let settings = git_settings(&["!/a/**", "/a/b/**"]);
+        let outcome = eval_outcome("git -C /a/b/repo status", settings);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn last_match_wins_negate_after_trust() {
+        let settings = git_settings(&["/a/**", "!/a/**"]);
+        let reason = eval_skip("git -C /a/repo status", settings);
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn later_trust_overrides_earlier_negation() {
+        let settings = git_settings(&["!/a/**", "/a/**"]);
+        let outcome = eval_outcome("git -C /a/repo status", settings);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn three_layer_nesting() {
+        let settings = git_settings(&["/a/**", "!/a/b/**", "/a/b/c/**"]);
+        let outcome = eval_outcome("git -C /a/b/c/repo status", settings);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn three_layer_middle_excluded() {
+        let settings = git_settings(&["/a/**", "!/a/b/**", "/a/b/c/**"]);
+        let reason = eval_skip("git -C /a/b/other status", settings);
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn three_layer_top_still_trusted() {
+        let settings = git_settings(&["/a/**", "!/a/b/**", "/a/b/c/**"]);
+        let outcome = eval_outcome("git -C /a/other status", settings);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn exact_path_trust() {
+        let settings = git_settings(&["/home/user/repos/exact"]);
+        let outcome = eval_outcome("git -C /home/user/repos/exact status", settings);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn exact_path_negation() {
+        let settings = git_settings(&["/home/user/repos/**", "!/home/user/repos/banned"]);
+        let reason = eval_skip("git -C /home/user/repos/banned status", settings);
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn non_matching_negation_is_harmless() {
+        let settings = git_settings(&["/a/**", "!/b/**"]);
+        let outcome = eval_outcome("git -C /a/repo status", settings);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn duplicate_trust_patterns() {
+        let settings = git_settings(&["/a/**", "/a/**"]);
+        let outcome = eval_outcome("git -C /a/repo status", settings);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn four_layer_alternating() {
+        let settings = git_settings(&["/a/**", "!/a/b/**", "/a/b/c/**", "!/a/b/c/d/**"]);
+        let reason = eval_skip("git -C /a/b/c/d/repo status", settings);
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn four_layer_third_level_trusted() {
+        let settings = git_settings(&["/a/**", "!/a/b/**", "/a/b/c/**", "!/a/b/c/d/**"]);
+        let outcome = eval_outcome("git -C /a/b/c/other status", settings);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    // === allow: trusted path (mock settings) ===
 
     #[test]
     fn trusted_path_status() {
@@ -368,5 +514,34 @@ mod tests {
     fn echo_git_c_quoted_passthrough() {
         let outcome = evaluate_expect_outcome("echo 'git -C /path status'");
         assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    fn git_settings(paths: &[&str]) -> Settings {
+        Settings {
+            git: GitSettings {
+                paths: paths.iter().map(|s| String::from(*s)).collect(),
+            },
+            ..Default::default()
+        }
+    }
+
+    fn eval_outcome(command: &str, settings: Settings) -> Outcome {
+        let _logger = init_test_logger();
+        BashEvaluator::new(settings)
+            .evaluate_str(command)
+            .expect("command should produce an outcome")
+    }
+
+    #[expect(clippy::panic, reason = "test helper")]
+    fn eval_skip(command: &str, settings: Settings) -> SkipReason {
+        let _logger = init_test_logger();
+        match BashEvaluator::new(settings)
+            .evaluate_str(command)
+            .expect_err("command should not succeed")
+            .current_context()
+        {
+            ParseError::Skip(reason) => *reason,
+            other => panic!("expected Skip, got {other:?}"),
+        }
     }
 }

@@ -26,18 +26,31 @@ pub struct ReadSettings {
 
 /// Git path classification for `git -C` operations.
 ///
-/// Read-only `git -C <path>` commands are auto-allowed when the path is under
-/// a trusted directory and not under an untrusted subdirectory.
+/// Ordered glob patterns following `.gitignore` semantics:
+///
+/// - Evaluated top-to-bottom, last match wins
+/// - Prefix with `!` to negate (untrust)
+/// - Paths matching no pattern are untrusted
+/// - Supports tilde expansion (`~/repos/**`)
+///
+/// ```yaml
+/// git:
+///   paths:
+///     - /home/user/repos/**
+///     - !/home/user/repos/forked/**
+///     - /home/user/repos/forked/this
+/// ```
 ///
 /// See CVE-2025-59536 and CVE-2026-21852.
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct GitSettings {
-    /// Directories where read-only `git -C` operations are auto-allowed.
+    /// Glob patterns for `git -C` trust classification.
+    ///
+    /// - Last matching pattern wins
+    /// - Prefix with `!` to negate
+    /// - Supports tilde expansion (`~/repos/**`)
     #[serde(default)]
-    pub trusted_dirs: Vec<String>,
-    /// Subdirectories of trusted dirs that should be excluded (e.g. forks).
-    #[serde(default)]
-    pub untrusted_dirs: Vec<String>,
+    pub paths: Vec<String>,
 }
 
 impl Settings {
@@ -51,13 +64,13 @@ impl Settings {
             debug!("Using default settings");
             return Ok(Self::default());
         }
-        let yaml = fs::read_to_string(&path).change_context(SettingsError::Read)?;
+        let raw = fs::read_to_string(&path).change_context(SettingsError::Read)?;
+        let yaml = quote_yaml_tags(&raw);
         let settings: Settings =
             serde_yaml::from_str(&yaml).change_context(SettingsError::Deserialize)?;
         trace!(
             path = %path.display(),
-            git_trusted = settings.git.trusted_dirs.len(),
-            git_untrusted = settings.git.untrusted_dirs.len(),
+            git_paths = settings.git.paths.len(),
             read_paths = settings.read.paths.len(),
             "Loaded settings",
         );
@@ -70,8 +83,10 @@ impl Settings {
     pub fn mock() -> Self {
         Self {
             git: GitSettings {
-                trusted_dirs: vec!["/home/user/repos/".to_owned()],
-                untrusted_dirs: vec!["/home/user/repos/forked/".to_owned()],
+                paths: vec![
+                    "/home/user/repos/**".to_owned(),
+                    "!/home/user/repos/forked/**".to_owned(),
+                ],
             },
             read: ReadSettings {
                 paths: vec![
@@ -94,10 +109,111 @@ pub enum SettingsError {
     Deserialize,
 }
 
+/// Quote unquoted YAML list items starting with `!` so the YAML parser
+/// treats them as strings rather than tags.
+///
+/// Transforms:
+///
+/// ```yaml
+///  - !/foo/**
+/// ````
+///
+/// Into:
+///
+/// ```yaml
+///  - "!/foo/**"
+/// ```
+fn quote_yaml_tags(yaml: &str) -> String {
+    let mut out = String::with_capacity(yaml.len());
+    for line in yaml.lines() {
+        let trimmed = line.trim_start();
+        if let Some(rest) = trimmed.strip_prefix("- !")
+            && !rest.starts_with('"')
+            && !rest.starts_with('\'')
+        {
+            let indent = &line[..line.len() - trimmed.len()];
+            out.push_str(indent);
+            out.push_str("- \"!");
+            out.push_str(&rest.replace('"', "\\\""));
+            out.push('"');
+            out.push('\n');
+            continue;
+        }
+        out.push_str(line);
+        out.push('\n');
+    }
+    out
+}
+
 /// Path to the settings file.
 fn config_path() -> PathBuf {
     dirs::config_dir()
         .expect("config_dir should be valid")
         .join("claude-hooks")
         .join("settings.yaml")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn yaml_negation_unquoted() {
+        let yaml = "git:\n  paths:\n    - !/home/user/repos/forked/**\n";
+        let settings: Settings =
+            serde_yaml::from_str(&quote_yaml_tags(yaml)).expect("should parse");
+        assert_eq!(settings.git.paths, vec!["!/home/user/repos/forked/**"]);
+    }
+
+    #[test]
+    fn yaml_negation_already_quoted() {
+        let yaml = "git:\n  paths:\n    - \"!/home/user/repos/forked/**\"\n";
+        let settings: Settings =
+            serde_yaml::from_str(&quote_yaml_tags(yaml)).expect("should parse");
+        assert_eq!(settings.git.paths, vec!["!/home/user/repos/forked/**"]);
+    }
+
+    #[test]
+    fn yaml_negation_single_quoted() {
+        let yaml = "git:\n  paths:\n    - '!/home/user/repos/forked/**'\n";
+        let settings: Settings =
+            serde_yaml::from_str(&quote_yaml_tags(yaml)).expect("should parse");
+        assert_eq!(settings.git.paths, vec!["!/home/user/repos/forked/**"]);
+    }
+
+    #[test]
+    fn yaml_non_negated_unchanged() {
+        let yaml = "git:\n  paths:\n    - /home/user/repos/**\n";
+        let settings: Settings =
+            serde_yaml::from_str(&quote_yaml_tags(yaml)).expect("should parse");
+        assert_eq!(settings.git.paths, vec!["/home/user/repos/**"]);
+    }
+
+    #[test]
+    fn yaml_mixed_patterns() {
+        let yaml = "git:\n  paths:\n    - /home/user/repos/**\n    - !/home/user/repos/forked/**\n    - /home/user/repos/forked/this\n";
+        let settings: Settings =
+            serde_yaml::from_str(&quote_yaml_tags(yaml)).expect("should parse");
+        assert_eq!(
+            settings.git.paths,
+            vec![
+                "/home/user/repos/**",
+                "!/home/user/repos/forked/**",
+                "/home/user/repos/forked/this",
+            ]
+        );
+    }
+
+    #[test]
+    fn quote_yaml_tags_preserves_indentation() {
+        assert_eq!(quote_yaml_tags("    - !/foo\n"), "    - \"!/foo\"\n");
+    }
+
+    #[test]
+    fn quote_yaml_tags_escapes_inner_quotes() {
+        assert_eq!(
+            quote_yaml_tags("    - !/foo/\"bar\"\n"),
+            "    - \"!/foo/\\\"bar\\\"\"\n",
+        );
+    }
 }
