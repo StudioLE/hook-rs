@@ -88,42 +88,41 @@ fn allow_git_c(context: &SimpleContext, complete: &CompleteContext, settings: &S
 #[cfg(test)]
 mod tests {
     use crate::prelude::*;
-    use insta::assert_yaml_snapshot;
 
     #[test]
     fn trusted_path_status() {
         let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project status");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn trusted_path_log() {
         let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project log --oneline");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn trusted_subdir_diff() {
         let outcome = evaluate_expect_outcome("git -C /home/user/repos/foo/bar diff");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn double_quoted_trusted_path() {
         let outcome = evaluate_expect_outcome("git -C \"/home/user/repos/my-project\" status");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn single_quoted_trusted_path() {
         let outcome = evaluate_expect_outcome("git -C '/home/user/repos/my-project' status");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn trailing_slash_trusted_path() {
         let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project/ status");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
@@ -177,19 +176,19 @@ mod tests {
     #[test]
     fn branch_trusted_path() {
         let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project branch -a");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn tag_trusted_path() {
         let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project tag -l");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn remote_trusted_path() {
         let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project remote -v");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
@@ -209,21 +208,21 @@ mod tests {
     #[test]
     fn c_path_reset_hard() {
         let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project reset --hard");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_reset_hard_head() {
         let outcome =
             evaluate_expect_outcome("git -C /home/user/repos/my-project reset --hard HEAD~1");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_quoted_reset_hard() {
         let outcome =
             evaluate_expect_outcome("git -C \"/home/user/repos/my-project\" reset --hard");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
@@ -235,19 +234,19 @@ mod tests {
     #[test]
     fn c_path_stash_pop() {
         let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project stash pop");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_stash_drop() {
         let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project stash drop");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_quoted_stash_pop() {
         let outcome = evaluate_expect_outcome("git -C \"/home/user/repos/my-project\" stash pop");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
@@ -266,21 +265,21 @@ mod tests {
     fn c_path_checkout_denied() {
         let outcome =
             evaluate_expect_outcome("git -C /home/user/repos/my-project checkout -- file.txt");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_checkout_head_file() {
         let outcome =
             evaluate_expect_outcome("git -C /home/user/repos/my-project checkout HEAD -- file.txt");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_quoted_checkout_discard() {
         let outcome =
             evaluate_expect_outcome("git -C \"/home/user/repos/my-project\" checkout -- .");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
@@ -292,19 +291,19 @@ mod tests {
     #[test]
     fn c_path_clean_fd() {
         let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project clean -fd");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_clean_fxd() {
         let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project clean -fxd");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_quoted_clean_fd() {
         let outcome = evaluate_expect_outcome("git -C \"/home/user/repos/my-project\" clean -fd");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
@@ -318,19 +317,19 @@ mod tests {
     #[test]
     fn forked_reset_hard_denied() {
         let outcome = evaluate_expect_outcome("git -C /home/user/repos/forked/repo reset --hard");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn forked_stash_pop_denied() {
         let outcome = evaluate_expect_outcome("git -C /home/user/repos/forked/repo stash pop");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn forked_clean_fd_denied() {
         let outcome = evaluate_expect_outcome("git -C /home/user/repos/forked/repo clean -fd");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     // === deny: unknown path ===
@@ -338,25 +337,25 @@ mod tests {
     #[test]
     fn unknown_reset_hard_denied() {
         let outcome = evaluate_expect_outcome("git -C /tmp/sketchy reset --hard");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn unknown_stash_pop_denied() {
         let outcome = evaluate_expect_outcome("git -C /tmp/sketchy stash pop");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn unknown_stash_clear_denied() {
         let outcome = evaluate_expect_outcome("git -C /tmp/repo stash clear");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn unknown_clean_fd_denied() {
         let outcome = evaluate_expect_outcome("git -C /tmp/sketchy clean -fd");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]

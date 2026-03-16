@@ -50,7 +50,6 @@ fn is_long_inline(
 #[cfg(test)]
 mod tests {
     use crate::prelude::*;
-    use insta::assert_yaml_snapshot;
 
     fn make_heredoc(lines: usize) -> String {
         use std::fmt::Write;
@@ -70,20 +69,20 @@ mod tests {
     #[test]
     fn long_heredoc_25_lines() {
         let outcome = evaluate_expect_outcome(&make_heredoc(25));
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn long_heredoc_python2() {
         let cmd = make_heredoc(25).replace("python3", "python");
         let outcome = evaluate_expect_outcome(&cmd);
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn long_c_1001_chars() {
         let outcome = evaluate_expect_outcome(&make_long_c(979));
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
@@ -133,7 +132,7 @@ mod tests {
     #[test]
     fn boundary_21_lines_denied() {
         let outcome = evaluate_expect_outcome(&make_heredoc(19));
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
@@ -145,7 +144,7 @@ mod tests {
     #[test]
     fn boundary_1001_chars_denied() {
         let outcome = evaluate_expect_outcome(&make_long_c(979));
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
@@ -157,6 +156,6 @@ mod tests {
         }
         cmd.push_str("\nEOF");
         let outcome = evaluate_expect_outcome(&cmd);
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 }

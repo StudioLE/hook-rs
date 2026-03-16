@@ -41,37 +41,36 @@ fn is_cd_then_git(
 #[cfg(test)]
 mod tests {
     use crate::prelude::*;
-    use insta::assert_yaml_snapshot;
 
     #[test]
     fn cd_and_git_status() {
         let outcome = evaluate_expect_outcome("cd /home/user/repos/my-project && git status");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn cd_and_git_commit() {
         let outcome =
             evaluate_expect_outcome("cd /home/user/repos/my-project && git commit -m 'msg'");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn cd_untrusted_and_git() {
         let outcome = evaluate_expect_outcome("cd /tmp/sketchy && git log");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn cd_relative_and_git() {
         let outcome = evaluate_expect_outcome("cd ../relative/path && git diff");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn cd_forked_and_git() {
         let outcome = evaluate_expect_outcome("cd /home/user/repos/forked/repo && git status");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]

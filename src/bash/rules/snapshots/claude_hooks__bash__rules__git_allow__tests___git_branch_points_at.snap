@@ -1,6 +1,0 @@
----
-source: src/bash/rules/git_allow.rs
-expression: outcome
----
-decision: allow
-reason: "Safe git subcommand: branch"

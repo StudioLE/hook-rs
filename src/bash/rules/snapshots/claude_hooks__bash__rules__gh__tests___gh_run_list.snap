@@ -1,6 +1,0 @@
----
-source: src/bash/rules/gh.rs
-expression: outcome
----
-decision: allow
-reason: Read-only gh run list

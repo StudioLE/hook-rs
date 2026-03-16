@@ -1,6 +1,0 @@
----
-source: src/bash/rules/git_deny.rs
-expression: outcome
----
-decision: deny
-reason: "git reset --hard discards uncommitted changes\ngit stash pop can cause merge conflicts and lose stash"

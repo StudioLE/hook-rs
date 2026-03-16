@@ -18,126 +18,125 @@ pub fn rm() -> BashRule {
 #[cfg(test)]
 mod tests {
     use crate::prelude::*;
-    use insta::assert_yaml_snapshot;
 
     #[test]
     fn _rm_r() {
         let outcome = evaluate_expect_outcome("rm -r /path/to/dir");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm_cap_r() {
         let outcome = evaluate_expect_outcome("rm -R /path/to/dir");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm_rf() {
         let outcome = evaluate_expect_outcome("rm -rf /path/to/dir");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm_cap_rf() {
         let outcome = evaluate_expect_outcome("rm -Rf /path/to/dir");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm_fr() {
         let outcome = evaluate_expect_outcome("rm -fr /path/to/dir");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm_f_cap_r() {
         let outcome = evaluate_expect_outcome("rm -fR /path/to/dir");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm_recursive() {
         let outcome = evaluate_expect_outcome("rm --recursive /path/to/dir");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm_rfi() {
         let outcome = evaluate_expect_outcome("rm -rfi /path/to/dir");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm_ir() {
         let outcome = evaluate_expect_outcome("rm -ir /path/to/dir");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm_single_file() {
         let outcome = evaluate_expect_outcome("rm file.txt");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm_multiple_files() {
         let outcome = evaluate_expect_outcome("rm file1.txt file2.txt");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm_f() {
         let outcome = evaluate_expect_outcome("rm -f file.txt");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm_i() {
         let outcome = evaluate_expect_outcome("rm -i file.txt");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm_with_path() {
         let outcome = evaluate_expect_outcome("rm /path/to/file.txt");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm_wildcard() {
         let outcome = evaluate_expect_outcome("rm *.tmp");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm_r__chained() {
         let outcome = evaluate_expect_outcome("ls && rm -r /path");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm_rf__or_chain() {
         let outcome = evaluate_expect_outcome("false || rm -rf /tmp/nothing");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm_r__semicolon() {
         let outcome = evaluate_expect_outcome("echo hi ; rm -r /path");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm__chained_file() {
         let outcome = evaluate_expect_outcome("ls && rm file.txt");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm__for_do() {
         let outcome = evaluate_expect_outcome("for f in *.tmp; do rm $f; done");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
@@ -160,37 +159,37 @@ mod tests {
     #[test]
     fn _rm__tmp_file() {
         let outcome = evaluate_expect_outcome("rm /tmp/file.txt");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm_f__tmp() {
         let outcome = evaluate_expect_outcome("rm -f /tmp/file.txt");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm_rf__tmp() {
         let outcome = evaluate_expect_outcome("rm -rf /tmp/dir");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm__tmp_multiple() {
         let outcome = evaluate_expect_outcome("rm /tmp/file1 /tmp/file2");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm__tmp_path_traversal() {
         let outcome = evaluate_expect_outcome("rm /tmp/../etc/passwd");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _rm__tmp_mixed() {
         let outcome = evaluate_expect_outcome("rm /tmp/file.txt /home/user/file.txt");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]

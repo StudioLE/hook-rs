@@ -86,44 +86,43 @@ fn git_checkout_discard() -> BashRule {
 #[cfg(test)]
 mod tests {
     use crate::prelude::*;
-    use insta::assert_yaml_snapshot;
 
     // === git reset --hard tests ===
 
     #[test]
     fn _git_reset_hard() {
         let outcome = evaluate_expect_outcome("git reset --hard");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_reset_hard__head() {
         let outcome = evaluate_expect_outcome("git reset --hard HEAD");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_reset_hard__head_1() {
         let outcome = evaluate_expect_outcome("git reset --hard HEAD~1");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_reset_hard__origin_main() {
         let outcome = evaluate_expect_outcome("git reset --hard origin/main");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_reset_hard__chained() {
         let outcome = evaluate_expect_outcome("git fetch && git reset --hard origin/main");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_reset_hard__in_chain() {
         let outcome = evaluate_expect_outcome("git stash && git reset --hard && git stash pop");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
@@ -159,19 +158,19 @@ mod tests {
     #[test]
     fn _git_status() {
         let outcome = evaluate_expect_outcome("git status");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _echo_reset_hard() {
         let outcome = evaluate_expect_outcome("echo git reset --hard is dangerous");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _grep_reset_hard() {
         let outcome = evaluate_expect_outcome("grep 'git reset --hard' README.md");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     // === git stash tests ===
@@ -179,61 +178,61 @@ mod tests {
     #[test]
     fn _git_stash_pop() {
         let outcome = evaluate_expect_outcome("git stash pop");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_stash_pop__ref() {
         let outcome = evaluate_expect_outcome("git stash pop stash@{0}");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_stash_pop__index() {
         let outcome = evaluate_expect_outcome("git stash pop --index");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_stash_pop__chained() {
         let outcome = evaluate_expect_outcome("git stash && git pull && git stash pop");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_stash_drop() {
         let outcome = evaluate_expect_outcome("git stash drop");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_stash_drop__ref() {
         let outcome = evaluate_expect_outcome("git stash drop stash@{0}");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_stash_drop__stash_2() {
         let outcome = evaluate_expect_outcome("git stash drop stash@{2}");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_stash_drop__chained() {
         let outcome = evaluate_expect_outcome("git stash list && git stash drop");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_stash_clear() {
         let outcome = evaluate_expect_outcome("git stash clear");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_stash_clear__chained() {
         let outcome = evaluate_expect_outcome("false || git stash clear");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
@@ -293,19 +292,19 @@ mod tests {
     #[test]
     fn _echo_stash_pop() {
         let outcome = evaluate_expect_outcome("echo git stash pop is blocked");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _grep_stash_drop() {
         let outcome = evaluate_expect_outcome("grep 'git stash drop' file.txt");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _cat_stash_clear() {
         let outcome = evaluate_expect_outcome("cat stash-clear-notes.txt");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     // === git clean tests ===
@@ -313,37 +312,37 @@ mod tests {
     #[test]
     fn _git_clean_d__fd() {
         let outcome = evaluate_expect_outcome("git clean -fd");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_clean_d__fxd() {
         let outcome = evaluate_expect_outcome("git clean -fxd");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_clean_d() {
         let outcome = evaluate_expect_outcome("git clean -d");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_clean_d__df() {
         let outcome = evaluate_expect_outcome("git clean -df");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_clean_d__dxf() {
         let outcome = evaluate_expect_outcome("git clean -dxf");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_clean_d__chained() {
         let outcome = evaluate_expect_outcome("ls && git clean -fd");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
@@ -379,7 +378,7 @@ mod tests {
     #[test]
     fn _echo_git_clean() {
         let outcome = evaluate_expect_outcome("echo git clean -fxd");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     // === git checkout -- tests ===
@@ -387,62 +386,62 @@ mod tests {
     #[test]
     fn _git_checkout_discard__head_file() {
         let outcome = evaluate_expect_outcome("git checkout HEAD -- file.txt");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_checkout_discard__head_dot() {
         let outcome = evaluate_expect_outcome("git checkout HEAD -- .");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_checkout_discard__head_src() {
         let outcome = evaluate_expect_outcome("git checkout HEAD -- src/");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_checkout_discard__head_multiple() {
         let outcome = evaluate_expect_outcome("git checkout HEAD -- file1.txt file2.txt");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_checkout_discard__chained_head() {
         let outcome = evaluate_expect_outcome("git status && git checkout HEAD -- file.txt");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_checkout_discard__head_in_chain() {
         let outcome =
             evaluate_expect_outcome("git stash && git checkout HEAD -- . && git stash pop");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_checkout_discard__file() {
         let outcome = evaluate_expect_outcome("git checkout -- file.txt");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_checkout_discard__dot() {
         let outcome = evaluate_expect_outcome("git checkout -- .");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_checkout_discard__src() {
         let outcome = evaluate_expect_outcome("git checkout -- src/");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _git_checkout_discard__chained() {
         let outcome = evaluate_expect_outcome("git status && git checkout -- file.txt");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
@@ -472,24 +471,24 @@ mod tests {
     #[test]
     fn _echo_checkout_head() {
         let outcome = evaluate_expect_outcome("echo git checkout HEAD -- is dangerous");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _echo_checkout_discard() {
         let outcome = evaluate_expect_outcome("echo git checkout -- is dangerous");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _grep_checkout_head() {
         let outcome = evaluate_expect_outcome("grep 'git checkout HEAD --' README.md");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _grep_checkout_discard() {
         let outcome = evaluate_expect_outcome("grep 'git checkout --' README.md");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 }

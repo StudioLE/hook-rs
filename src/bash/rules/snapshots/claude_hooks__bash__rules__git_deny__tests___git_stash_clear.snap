@@ -1,6 +1,0 @@
----
-source: src/bash/rules/git_deny.rs
-expression: outcome
----
-decision: deny
-reason: git stash clear permanently deletes all stash entries

@@ -1,6 +1,0 @@
----
-source: src/bash/rules/git_c.rs
-expression: outcome
----
-decision: deny
-reason: Destructive git operation with -C

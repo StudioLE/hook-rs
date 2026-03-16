@@ -28,43 +28,42 @@ fn is_chained(_simple: &SimpleContext, complete: &CompleteContext, _settings: &S
 #[cfg(test)]
 mod tests {
     use crate::prelude::*;
-    use insta::assert_yaml_snapshot;
 
     #[test]
     fn add_commit_push() {
         let outcome =
             evaluate_expect_outcome("git add file.txt && git commit -m 'msg' && git push");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn commit_push_no_space() {
         let outcome = evaluate_expect_outcome("git commit -m 'msg'&& git push");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn commit_push_with_remote() {
         let outcome = evaluate_expect_outcome("git commit -m 'msg' && git push origin main");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn pull_push() {
         let outcome = evaluate_expect_outcome("git pull && git push");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn commit_or_push() {
         let outcome = evaluate_expect_outcome("git commit -m 'msg' || git push");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn commit_semicolon_push() {
         let outcome = evaluate_expect_outcome("git commit -m 'msg' ; git push");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]

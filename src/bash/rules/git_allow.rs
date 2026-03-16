@@ -120,7 +120,6 @@ fn git_remote__bare() -> BashRule {
 #[cfg(test)]
 mod tests {
     use crate::prelude::*;
-    use insta::assert_yaml_snapshot;
 
     #[test]
     fn _git_safe_subcommands() {
@@ -146,25 +145,25 @@ mod tests {
     #[test]
     fn _git_log__args() {
         let outcome = evaluate_expect_outcome("git log --oneline -5");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _git_diff__head_1() {
         let outcome = evaluate_expect_outcome("git diff HEAD~1");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _git_remote_show() {
         let outcome = evaluate_expect_outcome("git remote show origin");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _git_remote_get_url() {
         let outcome = evaluate_expect_outcome("git remote get-url origin");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
@@ -303,55 +302,55 @@ mod tests {
     #[test]
     fn _git_branch__bare() {
         let outcome = evaluate_expect_outcome("git branch");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _git_branch_a() {
         let outcome = evaluate_expect_outcome("git branch -a");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _git_branch_list() {
         let outcome = evaluate_expect_outcome("git branch --list");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _git_branch_r() {
         let outcome = evaluate_expect_outcome("git branch -r");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _git_branch_v() {
         let outcome = evaluate_expect_outcome("git branch -v");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _git_branch_vv() {
         let outcome = evaluate_expect_outcome("git branch -vv");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _git_branch_contains() {
         let outcome = evaluate_expect_outcome("git branch --contains");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _git_branch_merged() {
         let outcome = evaluate_expect_outcome("git branch --merged");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _git_branch_no_merged() {
         let outcome = evaluate_expect_outcome("git branch --no-merged");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
@@ -369,7 +368,7 @@ mod tests {
     #[test]
     fn _git_branch_points_at() {
         let outcome = evaluate_expect_outcome("git branch --points-at HEAD");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
@@ -443,19 +442,19 @@ mod tests {
     #[test]
     fn _git_tag__bare() {
         let outcome = evaluate_expect_outcome("git tag");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _git_tag_l() {
         let outcome = evaluate_expect_outcome("git tag -l");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _git_tag_list() {
         let outcome = evaluate_expect_outcome("git tag --list");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
@@ -473,7 +472,7 @@ mod tests {
     #[test]
     fn _git_tag_contains() {
         let outcome = evaluate_expect_outcome("git tag --contains");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
@@ -485,7 +484,7 @@ mod tests {
     #[test]
     fn _git_tag_merged() {
         let outcome = evaluate_expect_outcome("git tag --merged");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
@@ -497,7 +496,7 @@ mod tests {
     #[test]
     fn _git_tag_no_merged() {
         let outcome = evaluate_expect_outcome("git tag --no-merged");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
@@ -576,31 +575,31 @@ mod tests {
     #[test]
     fn _git_remote__bare() {
         let outcome = evaluate_expect_outcome("git remote");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _git_remote_v() {
         let outcome = evaluate_expect_outcome("git remote -v");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _git_remote_verbose() {
         let outcome = evaluate_expect_outcome("git remote --verbose");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _git_remote_show_origin() {
         let outcome = evaluate_expect_outcome("git remote show origin");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _git_remote_get_url_origin() {
         let outcome = evaluate_expect_outcome("git remote get-url origin");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]

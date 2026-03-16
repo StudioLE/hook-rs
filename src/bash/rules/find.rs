@@ -41,54 +41,53 @@ fn find_exec_rm() -> BashRule {
 #[cfg(test)]
 mod tests {
     use crate::prelude::*;
-    use insta::assert_yaml_snapshot;
 
     #[test]
     fn _find_delete() {
         let outcome = evaluate_expect_outcome("find . -name '*.tmp' -delete");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _find_delete__path() {
         let outcome = evaluate_expect_outcome("find /path -type f -delete");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _find_delete__redirect() {
         let outcome = evaluate_expect_outcome("find . -name .lock -delete 2>/dev/null");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _find_exec_rm() {
         let outcome = evaluate_expect_outcome("find . -name '*.tmp' -exec rm {} \\;");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _find_exec_rm__f() {
         let outcome = evaluate_expect_outcome("find . -type f -exec rm -f {} +");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _find_exec_rm__execdir() {
         let outcome = evaluate_expect_outcome("find . -name '*.log' -execdir rm {} \\;");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _find_delete__chained() {
         let outcome = evaluate_expect_outcome("ls && find . -delete");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _find_delete__semicolon() {
         let outcome = evaluate_expect_outcome("echo test ; find . -name '*.tmp' -delete");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]

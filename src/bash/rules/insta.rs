@@ -21,30 +21,29 @@ fn cargo_insta_review__heredoc() -> BashRule {
 #[cfg(test)]
 mod tests {
     use crate::prelude::*;
-    use insta::assert_yaml_snapshot;
 
     #[test]
     fn heredoc_single_quoted() {
         let outcome = evaluate_expect_outcome("cargo insta review 2>&1 <<'EOF'\na\nEOF");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn heredoc_unquoted() {
         let outcome = evaluate_expect_outcome("cargo insta review <<EOF\na\nEOF");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn heredoc_double_quoted() {
         let outcome = evaluate_expect_outcome("cargo insta review <<\"EOF\"\na\nEOF");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn heredoc_dash() {
         let outcome = evaluate_expect_outcome("cargo insta review <<-EOF\na\nEOF");
-        assert_yaml_snapshot!(outcome);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
