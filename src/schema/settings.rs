@@ -1,7 +1,10 @@
-//! User-specific settings loaded from `~/.config/claude-hooks/settings.yaml`.
+//! User-specific settings loaded from `~/.config/hook-rs/settings.yaml`.
 
 use crate::prelude::*;
 use std::fs;
+
+const APP_NAME: &str = "hook-rs";
+const SETTINGS_FILE_NAME: &str = "settings.yaml";
 
 /// User-specific settings for rule evaluation.
 #[derive(Clone, Debug, Default, Deserialize)]
@@ -149,8 +152,8 @@ fn quote_yaml_tags(yaml: &str) -> String {
 fn config_path() -> PathBuf {
     dirs::config_dir()
         .expect("config_dir should be valid")
-        .join("claude-hooks")
-        .join("settings.yaml")
+        .join(APP_NAME)
+        .join(SETTINGS_FILE_NAME)
 }
 
 #[cfg(test)]

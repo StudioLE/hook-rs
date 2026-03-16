@@ -1,4 +1,4 @@
-# claude-hooks
+# hook-rs
 
 A tool to check and enforce permissions for Claude Code.
 
@@ -194,15 +194,15 @@ Enable the `PreToolUse` hooks in `~/.claude/settings.json`
     "PreToolUse": [
       {
         "matcher": "Bash",
-        "hooks": [{ "type": "command", "command": "~/.cargo/bin/claude-hooks bash" }]
+        "hooks": [{ "type": "command", "command": "~/.cargo/bin/hook-rs bash" }]
       },
       {
         "matcher": "Grep",
-        "hooks": [{ "type": "command", "command": "~/.cargo/bin/claude-hooks grep" }]
+        "hooks": [{ "type": "command", "command": "~/.cargo/bin/hook-rs grep" }]
       },
       {
         "matcher": "Read",
-        "hooks": [{ "type": "command", "command": "~/.cargo/bin/claude-hooks read" }]
+        "hooks": [{ "type": "command", "command": "~/.cargo/bin/hook-rs read" }]
       }
     ]
   }
@@ -215,7 +215,7 @@ Refer to the [glob syntax guide](#glob-syntax).
 
 Settings are optional. If missing, defaults to empty.
 
-Create a `~/.config/claude-hooks/settings.yaml` file with your settings:
+Create a `~/.config/hook-rs/settings.yaml` file with your settings:
 
 ```yaml
 git:
