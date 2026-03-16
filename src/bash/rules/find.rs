@@ -11,7 +11,7 @@ pub fn find_rules() -> Vec<BashRule> {
 fn find_delete() -> BashRule {
     BashRule {
         id: "find_delete".to_owned(),
-        prefix: "find".to_owned(),
+        command: "find".to_owned(),
         with_any: Some(vec![Arg::new("-delete")]),
         outcome: Outcome::deny(
             "find -delete is blocked. Use 'find ... -print' to preview matches first, \
@@ -25,7 +25,7 @@ fn find_delete() -> BashRule {
 fn find_exec_rm() -> BashRule {
     BashRule {
         id: "find_exec_rm".to_owned(),
-        prefix: "find".to_owned(),
+        command: "find".to_owned(),
         with_any: Some(vec![
             Arg::new("-exec").value("rm"),
             Arg::new("-execdir").value("rm"),

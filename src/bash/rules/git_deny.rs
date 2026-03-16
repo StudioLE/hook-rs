@@ -18,7 +18,7 @@ pub fn git_deny_rules() -> Vec<BashRule> {
 fn git_reset_hard() -> BashRule {
     BashRule {
         id: "git_reset_hard".to_owned(),
-        prefix: "git reset".to_owned(),
+        command: "git reset".to_owned(),
         with_any: Some(vec![Arg::new("--hard")]),
         outcome: Outcome::deny("git reset --hard discards uncommitted changes"),
         ..Default::default()
@@ -29,7 +29,7 @@ fn git_reset_hard() -> BashRule {
 fn git_stash_pop() -> BashRule {
     BashRule {
         id: "git_stash_pop".to_owned(),
-        prefix: "git stash pop".to_owned(),
+        command: "git stash pop".to_owned(),
         outcome: Outcome::deny("git stash pop can cause merge conflicts and lose stash"),
         ..Default::default()
     }
@@ -39,7 +39,7 @@ fn git_stash_pop() -> BashRule {
 fn git_stash_drop() -> BashRule {
     BashRule {
         id: "git_stash_drop".to_owned(),
-        prefix: "git stash drop".to_owned(),
+        command: "git stash drop".to_owned(),
         outcome: Outcome::deny("git stash drop permanently deletes a stash entry"),
         ..Default::default()
     }
@@ -49,7 +49,7 @@ fn git_stash_drop() -> BashRule {
 fn git_stash_clear() -> BashRule {
     BashRule {
         id: "git_stash_clear".to_owned(),
-        prefix: "git stash clear".to_owned(),
+        command: "git stash clear".to_owned(),
         outcome: Outcome::deny("git stash clear permanently deletes all stash entries"),
         ..Default::default()
     }
@@ -59,7 +59,7 @@ fn git_stash_clear() -> BashRule {
 fn git_clean_d() -> BashRule {
     BashRule {
         id: "git_clean_d".to_owned(),
-        prefix: "git clean".to_owned(),
+        command: "git clean".to_owned(),
         with_any: Some(vec![Arg::new("-d")]),
         outcome: Outcome::deny(
             "git clean with -d is blocked. Use 'git clean -f <file>' for specific files \
@@ -73,7 +73,7 @@ fn git_clean_d() -> BashRule {
 fn git_checkout_discard() -> BashRule {
     BashRule {
         id: "git_checkout_discard".to_owned(),
-        prefix: "git checkout".to_owned(),
+        command: "git checkout".to_owned(),
         with_any: Some(vec![Arg::new("--")]),
         outcome: Outcome::deny(
             "git checkout -- is blocked. Do not discard changes to revert your mistakes. \

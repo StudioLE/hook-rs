@@ -50,7 +50,7 @@ pub fn git_allow_rules() -> Vec<BashRule> {
         let flag_id = flag.trim_start_matches('-').replace('-', "_");
         rules.push(BashRule {
             id: format!("git_branch_{flag_id}"),
-            prefix: "git branch".to_owned(),
+            command: "git branch".to_owned(),
             with_any: Some(vec![Arg::new(flag)]),
             outcome: Outcome::allow("Safe git subcommand: branch"),
             ..Default::default()
@@ -60,7 +60,7 @@ pub fn git_allow_rules() -> Vec<BashRule> {
     rules.push(git_tag__bare());
     rules.push(BashRule {
         id: "git_tag__read_only".to_owned(),
-        prefix: "git tag".to_owned(),
+        command: "git tag".to_owned(),
         with_any: Some(
             ["-l", "--list", "--contains", "--merged", "--no-merged"]
                 .into_iter()
@@ -88,7 +88,7 @@ pub fn git_allow_rules() -> Vec<BashRule> {
 fn git_branch__bare() -> BashRule {
     BashRule {
         id: "git_branch__bare".to_owned(),
-        prefix: "git branch".to_owned(),
+        command: "git branch".to_owned(),
         condition: Some(|cmd, _, _| cmd.args.len() == 1),
         outcome: Outcome::allow("Safe git subcommand: branch"),
         ..Default::default()
@@ -99,7 +99,7 @@ fn git_branch__bare() -> BashRule {
 fn git_tag__bare() -> BashRule {
     BashRule {
         id: "git_tag__bare".to_owned(),
-        prefix: "git tag".to_owned(),
+        command: "git tag".to_owned(),
         condition: Some(|cmd, _, _| cmd.args.len() == 1),
         outcome: Outcome::allow("Safe git subcommand: tag"),
         ..Default::default()
@@ -110,7 +110,7 @@ fn git_tag__bare() -> BashRule {
 fn git_remote__bare() -> BashRule {
     BashRule {
         id: "git_remote__bare".to_owned(),
-        prefix: "git remote".to_owned(),
+        command: "git remote".to_owned(),
         condition: Some(|cmd, _, _| cmd.args.len() == 1),
         outcome: Outcome::allow("Safe git subcommand: remote"),
         ..Default::default()

@@ -57,7 +57,7 @@ fn gh_pr_comment() -> BashRule {
 fn gh_api_graphql__mutation() -> BashRule {
     BashRule {
         id: "gh_api_graphql__mutation".to_owned(),
-        prefix: "gh api graphql".to_owned(),
+        command: "gh api graphql".to_owned(),
         with_any: Some(vec![Arg::new("*mutation*")]),
         outcome: Outcome::ask("GitHub GraphQL mutation"),
         ..Default::default()
@@ -68,7 +68,7 @@ fn gh_api_graphql__mutation() -> BashRule {
 fn gh_api_graphql__query() -> BashRule {
     BashRule {
         id: "gh_api_graphql__query".to_owned(),
-        prefix: "gh api graphql".to_owned(),
+        command: "gh api graphql".to_owned(),
         without_any: Some(vec![Arg::new("*mutation*")]),
         outcome: Outcome::allow("Read-only GraphQL query"),
         ..Default::default()
@@ -79,7 +79,7 @@ fn gh_api_graphql__query() -> BashRule {
 fn gh_api__data_flags() -> BashRule {
     BashRule {
         id: "gh_api__data_flags".to_owned(),
-        prefix: "gh api".to_owned(),
+        command: "gh api".to_owned(),
         with_any: Some(vec![
             Arg::new("-d"),
             Arg::new("--data"),
@@ -98,7 +98,7 @@ fn gh_api__data_flags() -> BashRule {
 fn gh_api__write_method() -> BashRule {
     BashRule {
         id: "gh_api__write_method".to_owned(),
-        prefix: "gh api".to_owned(),
+        command: "gh api".to_owned(),
         with_any: Some(vec![Arg::new("-X").ivalue("{POST,PUT,PATCH,DELETE}")]),
         outcome: Outcome::ask("GitHub API write method"),
         ..Default::default()
@@ -109,7 +109,7 @@ fn gh_api__write_method() -> BashRule {
 fn gh_api__read_only() -> BashRule {
     BashRule {
         id: "gh_api__read_only".to_owned(),
-        prefix: "gh api".to_owned(),
+        command: "gh api".to_owned(),
         without_any: Some(vec![
             Arg::new("-d"),
             Arg::new("--data"),

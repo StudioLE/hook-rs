@@ -13,7 +13,7 @@ pub fn git_c_rules() -> Vec<BashRule> {
 fn git_c__deny_destructive() -> BashRule {
     BashRule {
         id: "git_c__deny_destructive".to_owned(),
-        prefix: "git -C".to_owned(),
+        command: "git -C".to_owned(),
         condition: Some(deny_git_c),
         outcome: Outcome::deny("Destructive git operation with -C"),
         ..Default::default()
@@ -24,7 +24,7 @@ fn git_c__deny_destructive() -> BashRule {
 fn git_c__allow_trusted() -> BashRule {
     BashRule {
         id: "git_c__allow_trusted".to_owned(),
-        prefix: "git -C".to_owned(),
+        command: "git -C".to_owned(),
         condition: Some(allow_git_c),
         outcome: Outcome::allow("Safe git subcommand in trusted path"),
         ..Default::default()

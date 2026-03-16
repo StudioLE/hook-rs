@@ -1,32 +1,32 @@
-//! Prefix-based rule matching individual Bash commands.
+//! Rule matching individual Bash commands by name and arguments.
 
 use crate::prelude::*;
 
-/// Rule that matches a [`SimpleContext`] by command prefix, options, and conditions.
+/// Rule that matches a [`SimpleContext`] by command name, arguments, and conditions.
 #[derive(Default)]
 pub struct BashRule {
     /// Unique identifier for this rule.
     pub id: String,
-    /// Match commands that start with prefix.
+    /// Command name and optional leading arguments to match exactly.
     ///
     /// Examples:
     /// - `head`
     /// - `tail`
     /// - `git status`
-    pub prefix: String,
-    /// Only match if any of these arguments are present after the prefix.
+    pub command: String,
+    /// Only match if any of these arguments are present after the command.
     ///
     /// Examples:
     /// - `Arg::new("-f")`
     /// - `Arg::new("--force")`
     /// - `Arg::new("-X").value("{POST,PUT}")`
     pub with_any: Option<Vec<Arg>>,
-    /// Only match if **all** of these arguments are present after the prefix.
+    /// Only match if **all** of these arguments are present after the command.
     ///
     /// Examples:
     /// - `[Arg::new("reset"), Arg::new("--hard")]`
     pub with_all: Option<Vec<Arg>>,
-    /// Do not match if any of these arguments are present after the prefix.
+    /// Do not match if any of these arguments are present after the command.
     ///
     /// Examples:
     /// - `Arg::new("-i")`
@@ -39,11 +39,11 @@ pub struct BashRule {
 }
 
 impl BashRule {
-    /// Create a new [`BashRule`] matching the given prefix.
-    pub fn new(id: impl Into<String>, prefix: impl Into<String>, outcome: Outcome) -> Self {
+    /// Create a new [`BashRule`] matching the given command.
+    pub fn new(id: impl Into<String>, command: impl Into<String>, outcome: Outcome) -> Self {
         Self {
             id: id.into(),
-            prefix: prefix.into(),
+            command: command.into(),
             outcome,
             ..Default::default()
         }
@@ -58,26 +58,26 @@ impl BashRule {
         complete: &CompleteContext,
         settings: &Settings,
     ) -> bool {
-        let mut parts = self.prefix.split_whitespace();
+        let mut parts = self.command.split_whitespace();
         let Some(name) = parts.next() else {
             return false;
         };
         if cmd.name != name {
             return false;
         }
-        let prefix_args: Vec<&str> = parts.collect();
+        let leading_args: Vec<&str> = parts.collect();
         if !cmd
             .args
             .iter()
-            .zip(&prefix_args)
+            .zip(&leading_args)
             .all(|(actual, expected)| actual == expected)
-            || cmd.args.len() < prefix_args.len()
+            || cmd.args.len() < leading_args.len()
         {
             return false;
         }
         let remaining_args: Vec<&str> = cmd
             .args
-            .get(prefix_args.len()..)
+            .get(leading_args.len()..)
             .unwrap_or_default()
             .iter()
             .map(String::as_str)

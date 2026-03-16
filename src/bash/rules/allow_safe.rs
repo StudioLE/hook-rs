@@ -35,7 +35,7 @@ fn awk() -> BashRule {
 fn sed() -> BashRule {
     BashRule {
         id: "sed".to_owned(),
-        prefix: "sed".to_owned(),
+        command: "sed".to_owned(),
         without_any: Some(vec![Arg::new("-i"), Arg::new("--in-place")]),
         outcome: Outcome::allow("Safe command: sed (no in-place edit)"),
         ..Default::default()
@@ -46,7 +46,7 @@ fn sed() -> BashRule {
 fn sort__cmd() -> BashRule {
     BashRule {
         id: "sort".to_owned(),
-        prefix: "sort".to_owned(),
+        command: "sort".to_owned(),
         without_any: Some(vec![Arg::new("-o"), Arg::new("--output")]),
         outcome: Outcome::allow("Safe command: sort (no output file)"),
         ..Default::default()
@@ -62,7 +62,7 @@ fn tee() -> BashRule {
 fn yq() -> BashRule {
     BashRule {
         id: "yq".to_owned(),
-        prefix: "yq".to_owned(),
+        command: "yq".to_owned(),
         without_any: Some(vec![Arg::new("-i"), Arg::new("--in-place")]),
         outcome: Outcome::allow("Safe command: yq (no in-place edit)"),
         ..Default::default()
