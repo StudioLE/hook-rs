@@ -5,13 +5,13 @@ use super::git_deny::git_deny_rules;
 use crate::prelude::*;
 
 /// Deny and allow rules for `git -C <trusted-path>` commands.
-pub fn git_c_rules() -> Vec<SimpleRule> {
+pub fn git_c_rules() -> Vec<BashRule> {
     vec![git_c__deny_destructive(), git_c__allow_trusted()]
 }
 
 /// Deny destructive `git -C` operations.
-fn git_c__deny_destructive() -> SimpleRule {
-    SimpleRule {
+fn git_c__deny_destructive() -> BashRule {
+    BashRule {
         id: "git_c__deny_destructive".to_owned(),
         prefix: "git -C".to_owned(),
         condition: Some(deny_git_c),
@@ -21,8 +21,8 @@ fn git_c__deny_destructive() -> SimpleRule {
 }
 
 /// Allow safe `git -C` in trusted paths.
-fn git_c__allow_trusted() -> SimpleRule {
-    SimpleRule {
+fn git_c__allow_trusted() -> BashRule {
+    BashRule {
         id: "git_c__allow_trusted".to_owned(),
         prefix: "git -C".to_owned(),
         condition: Some(allow_git_c),

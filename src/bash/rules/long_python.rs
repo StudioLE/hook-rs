@@ -6,30 +6,41 @@ const MAX_CHARS: usize = 1000;
 const MAX_LINES: usize = 20;
 
 /// Deny inline Python exceeding length or line count thresholds.
-pub fn long_python_rules() -> Vec<CompleteRule> {
-    vec![python__long_inline()]
+pub fn long_python_rules() -> Vec<BashRule> {
+    vec![python__long_inline(), python3__long_inline()]
 }
 
-/// Deny excessively long inline Python commands.
-fn python__long_inline() -> CompleteRule {
-    CompleteRule {
-        id: "python__long_inline".to_owned(),
-        condition: Some(is_long_inline_python),
-        outcome: Outcome::deny(format!(
-            "Inline Python too long (must be < {MAX_CHARS} chars and < {MAX_LINES} lines). Write a script to /tmp/ and run it instead."
-        )),
+/// Deny excessively long inline `python` commands.
+fn python__long_inline() -> BashRule {
+    BashRule {
+        condition: Some(is_long_inline),
+        ..BashRule::new(
+            "python__long_inline",
+            "python",
+            Outcome::deny(format!(
+                "Inline Python too long (must be < {MAX_CHARS} chars and < {MAX_LINES} lines). Write a script to /tmp/ and run it instead."
+            )),
+        )
     }
 }
 
-fn is_long_inline_python(parsed: &CompleteContext, _settings: &Settings) -> bool {
-    let has_inline_python = parsed.all_commands().any(|cmd| {
-        (cmd.name == "python" || cmd.name == "python3")
-            && (cmd.args.iter().any(|a| a == "-c") || cmd.has_heredoc)
-    });
-    if !has_inline_python {
-        return false;
+/// Deny excessively long inline `python3` commands.
+fn python3__long_inline() -> BashRule {
+    BashRule {
+        condition: Some(is_long_inline),
+        ..BashRule::new(
+            "python3__long_inline",
+            "python3",
+            Outcome::deny(format!(
+                "Inline Python too long (must be < {MAX_CHARS} chars and < {MAX_LINES} lines). Write a script to /tmp/ and run it instead."
+            )),
+        )
     }
-    parsed.raw.len() > MAX_CHARS || parsed.raw.lines().count() > MAX_LINES
+}
+
+fn is_long_inline(cmd: &SimpleContext, complete: &CompleteContext, _settings: &Settings) -> bool {
+    let has_inline = cmd.args.iter().any(|a| a == "-c") || cmd.has_heredoc;
+    has_inline && (complete.raw.len() > MAX_CHARS || complete.raw.lines().count() > MAX_LINES)
 }
 
 #[cfg(test)]

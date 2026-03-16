@@ -3,7 +3,7 @@
 use crate::prelude::*;
 
 /// Deny destructive git operations.
-pub fn git_deny_rules() -> Vec<SimpleRule> {
+pub fn git_deny_rules() -> Vec<BashRule> {
     vec![
         git_reset_hard(),
         git_stash_pop(),
@@ -15,8 +15,8 @@ pub fn git_deny_rules() -> Vec<SimpleRule> {
 }
 
 /// Deny `git reset --hard`.
-fn git_reset_hard() -> SimpleRule {
-    SimpleRule {
+fn git_reset_hard() -> BashRule {
+    BashRule {
         id: "git_reset_hard".to_owned(),
         prefix: "git reset".to_owned(),
         with_any: Some(vec![Arg::new("--hard")]),
@@ -26,8 +26,8 @@ fn git_reset_hard() -> SimpleRule {
 }
 
 /// Deny `git stash pop`.
-fn git_stash_pop() -> SimpleRule {
-    SimpleRule {
+fn git_stash_pop() -> BashRule {
+    BashRule {
         id: "git_stash_pop".to_owned(),
         prefix: "git stash pop".to_owned(),
         outcome: Outcome::deny("git stash pop can cause merge conflicts and lose stash"),
@@ -36,8 +36,8 @@ fn git_stash_pop() -> SimpleRule {
 }
 
 /// Deny `git stash drop`.
-fn git_stash_drop() -> SimpleRule {
-    SimpleRule {
+fn git_stash_drop() -> BashRule {
+    BashRule {
         id: "git_stash_drop".to_owned(),
         prefix: "git stash drop".to_owned(),
         outcome: Outcome::deny("git stash drop permanently deletes a stash entry"),
@@ -46,8 +46,8 @@ fn git_stash_drop() -> SimpleRule {
 }
 
 /// Deny `git stash clear`.
-fn git_stash_clear() -> SimpleRule {
-    SimpleRule {
+fn git_stash_clear() -> BashRule {
+    BashRule {
         id: "git_stash_clear".to_owned(),
         prefix: "git stash clear".to_owned(),
         outcome: Outcome::deny("git stash clear permanently deletes all stash entries"),
@@ -56,8 +56,8 @@ fn git_stash_clear() -> SimpleRule {
 }
 
 /// Deny `git clean -d`.
-fn git_clean_d() -> SimpleRule {
-    SimpleRule {
+fn git_clean_d() -> BashRule {
+    BashRule {
         id: "git_clean_d".to_owned(),
         prefix: "git clean".to_owned(),
         with_any: Some(vec![Arg::new("-d")]),
@@ -70,8 +70,8 @@ fn git_clean_d() -> SimpleRule {
 }
 
 /// Deny `git checkout --`.
-fn git_checkout_discard() -> SimpleRule {
-    SimpleRule {
+fn git_checkout_discard() -> BashRule {
+    BashRule {
         id: "git_checkout_discard".to_owned(),
         prefix: "git checkout".to_owned(),
         with_any: Some(vec![Arg::new("--")]),

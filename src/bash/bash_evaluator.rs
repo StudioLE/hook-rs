@@ -6,10 +6,8 @@ use crate::prelude::*;
 pub struct BashEvaluator {
     /// User settings for path classification and trusted directories.
     settings: Settings,
-    /// Rules that match individual simple commands by prefix and arguments.
-    simple_rules: Vec<SimpleRule>,
-    /// Rules that match the entire parsed command structure.
-    complete_rules: Vec<CompleteRule>,
+    /// Registered security rules for matching commands.
+    rules: Vec<BashRule>,
 }
 
 impl BashEvaluator {
@@ -20,17 +18,11 @@ impl BashEvaluator {
     }
 
     fn evaluate_all(&self, context: &CompleteContext) -> Result<Outcome, Report<ParseError>> {
-        let mut outcomes = self.evaluate_complete(context);
-        if outcomes.is_empty() {
-            debug!("No complete rules matched");
-            outcomes = self.evaluate_simple(context)?;
-        } else if outcomes.iter().all(|o| o.decision == Decision::Allow) {
-            return Err(Report::new(ParseError::CompleteAllow));
-        }
+        let outcomes = self.evaluate_rules(context)?;
         apply_precedence(outcomes)
     }
 
-    fn evaluate_simple(
+    fn evaluate_rules(
         &self,
         complete_context: &CompleteContext,
     ) -> Result<Vec<Outcome>, Report<ParseError>> {
@@ -38,7 +30,7 @@ impl BashEvaluator {
         let mut has_unmatched = false;
         for simple_context in complete_context.all_commands() {
             let mut outcomes = Vec::new();
-            for rule in &self.simple_rules {
+            for rule in &self.rules {
                 if rule.matches(simple_context, complete_context, &self.settings) {
                     outcomes.push(rule.outcome.clone());
                 }
@@ -55,16 +47,6 @@ impl BashEvaluator {
             return Err(ParseError::skip(SkipReason::OnlyAllowAll));
         }
         Ok(all_outcomes)
-    }
-
-    fn evaluate_complete(&self, complete_context: &CompleteContext) -> Vec<Outcome> {
-        let mut all_outcomes = Vec::new();
-        for rule in &self.complete_rules {
-            if rule.matches(complete_context, &self.settings) {
-                all_outcomes.push(rule.outcome.clone());
-            }
-        }
-        all_outcomes
     }
 }
 
@@ -108,25 +90,19 @@ fn sort_outcomes(outcomes: Vec<Outcome>) -> HashMap<Decision, Vec<String>> {
 impl BashEvaluator {
     /// Create an evaluator with the given settings.
     pub fn new(settings: Settings) -> Self {
-        let mut simple_rules = Vec::new();
-        simple_rules.push(rm());
-        simple_rules.extend(find_rules());
-        simple_rules.extend(gh_rules());
-        simple_rules.extend(git_deny_rules());
-        simple_rules.extend(git_allow_rules());
-        simple_rules.extend(git_c_rules());
-        simple_rules.extend(insta_rules());
-        simple_rules.extend(safe_rules());
-        let mut complete_rules = Vec::new();
-        complete_rules.extend(cd_git_rules());
-        complete_rules.extend(chained_push_rules());
-        complete_rules.extend(echo_separator_rules());
-        complete_rules.extend(long_python_rules());
-        Self {
-            settings,
-            simple_rules,
-            complete_rules,
-        }
+        let mut rules = Vec::new();
+        rules.push(rm());
+        rules.extend(find_rules());
+        rules.extend(gh_rules());
+        rules.extend(git_deny_rules());
+        rules.extend(git_allow_rules());
+        rules.extend(git_c_rules());
+        rules.extend(insta_rules());
+        rules.extend(cd_git_rules());
+        rules.extend(chained_push_rules());
+        rules.extend(long_python_rules());
+        rules.extend(safe_rules());
+        Self { settings, rules }
     }
 }
 
@@ -195,9 +171,9 @@ mod tests {
     }
 
     #[test]
-    fn echo_separator_denied() {
-        let outcome = evaluate_expect_outcome("cmd && echo \"---\"");
-        assert_eq!(outcome.decision, Decision::Deny);
+    fn echo_separator_passthrough() {
+        let reason = evaluate_expect_skip("cmd && echo \"---\"");
+        assert_eq!(reason, SkipReason::OnlyAllowAll);
     }
 
     #[test]

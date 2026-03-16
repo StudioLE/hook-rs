@@ -4,8 +4,8 @@ use crate::prelude::*;
 
 /// Deny all `rm` invocations, directing to `git rm` or `git clean` instead.
 #[must_use]
-pub fn rm() -> SimpleRule {
-    SimpleRule::new(
+pub fn rm() -> BashRule {
+    BashRule::new(
         "rm",
         "rm",
         Outcome::deny(

@@ -3,13 +3,13 @@
 use crate::prelude::*;
 
 /// Deny `find -delete` and `find -exec rm` to prevent bulk file deletion.
-pub fn find_rules() -> Vec<SimpleRule> {
+pub fn find_rules() -> Vec<BashRule> {
     vec![find_delete(), find_exec_rm()]
 }
 
 /// Deny `find -delete`.
-fn find_delete() -> SimpleRule {
-    SimpleRule {
+fn find_delete() -> BashRule {
+    BashRule {
         id: "find_delete".to_owned(),
         prefix: "find".to_owned(),
         with_any: Some(vec![Arg::new("-delete")]),
@@ -22,8 +22,8 @@ fn find_delete() -> SimpleRule {
 }
 
 /// Deny `find -exec rm`.
-fn find_exec_rm() -> SimpleRule {
-    SimpleRule {
+fn find_exec_rm() -> BashRule {
+    BashRule {
         id: "find_exec_rm".to_owned(),
         prefix: "find".to_owned(),
         with_any: Some(vec![

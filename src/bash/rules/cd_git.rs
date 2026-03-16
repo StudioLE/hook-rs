@@ -3,27 +3,35 @@
 use crate::prelude::*;
 
 /// Deny `cd` chained with `git`, directing to `git -C <path>` instead.
-pub fn cd_git_rules() -> Vec<CompleteRule> {
+pub fn cd_git_rules() -> Vec<BashRule> {
     vec![cd_git()]
 }
 
 /// Deny `cd` chained with `git`.
-fn cd_git() -> CompleteRule {
-    CompleteRule {
-        id: "cd_git".to_owned(),
+fn cd_git() -> BashRule {
+    BashRule {
         condition: Some(is_cd_then_git),
-        outcome: Outcome::deny("Do not chain cd and git. Use 'git -C <path> <command>' instead."),
+        ..BashRule::new(
+            "cd_git",
+            "cd",
+            Outcome::deny("Do not chain cd and git. Use 'git -C <path> <command>' instead."),
+        )
     }
 }
 
-fn is_cd_then_git(parsed: &CompleteContext, _settings: &Settings) -> bool {
-    let (Some(first), Some(second)) = (parsed.children.first(), parsed.children.get(1)) else {
-        return false;
-    };
-    first.connector.is_none()
-        && second.connector == Some(Connector::And)
-        && first.children.first().is_some_and(|c| c.name == "cd")
-        && second.children.first().is_some_and(|c| c.name == "git")
+fn is_cd_then_git(_cmd: &SimpleContext, complete: &CompleteContext, _settings: &Settings) -> bool {
+    let mut seen_cd = false;
+    for pipeline in &complete.children {
+        let Some(first) = pipeline.children.first() else {
+            continue;
+        };
+        if first.name == "cd" {
+            seen_cd = true;
+        } else if seen_cd && first.name == "git" {
+            return true;
+        }
+    }
+    false
 }
 
 #[cfg(test)]
@@ -60,6 +68,36 @@ mod tests {
     fn cd_forked_and_git() {
         let outcome = evaluate_expect_outcome("cd /home/user/repos/forked/repo && git status");
         assert_yaml_snapshot!(outcome);
+    }
+
+    #[test]
+    fn cd_semicolon_git() {
+        let outcome = evaluate_expect_outcome("cd /path ; git status");
+        assert_eq!(outcome.decision, Decision::Deny);
+    }
+
+    #[test]
+    fn cd_or_git() {
+        let outcome = evaluate_expect_outcome("cd /path || git status");
+        assert_eq!(outcome.decision, Decision::Deny);
+    }
+
+    #[test]
+    fn cd_cmd_git() {
+        let outcome = evaluate_expect_outcome("cd /path && ls && git status");
+        assert_eq!(outcome.decision, Decision::Deny);
+    }
+
+    #[test]
+    fn cd_multiple_git() {
+        let outcome = evaluate_expect_outcome("cd /path && git fetch && git rebase origin/main");
+        assert_eq!(outcome.decision, Decision::Deny);
+    }
+
+    #[test]
+    fn git_then_cd_passthrough() {
+        let reason = evaluate_expect_skip("git status && cd /path");
+        assert_eq!(reason, SkipReason::OnlyAllowAll);
     }
 
     #[test]

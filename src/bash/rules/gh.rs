@@ -3,7 +3,7 @@
 use crate::prelude::*;
 
 /// Allow read-only `gh` operations, ask for write operations, and handle bot contexts.
-pub fn gh_rules() -> Vec<SimpleRule> {
+pub fn gh_rules() -> Vec<BashRule> {
     vec![
         gh_run_list(),
         gh_run_view(),
@@ -18,8 +18,8 @@ pub fn gh_rules() -> Vec<SimpleRule> {
 }
 
 /// Allow `gh run list`.
-fn gh_run_list() -> SimpleRule {
-    SimpleRule::new(
+fn gh_run_list() -> BashRule {
+    BashRule::new(
         "gh_run_list",
         "gh run list",
         Outcome::allow("Read-only gh run list"),
@@ -27,8 +27,8 @@ fn gh_run_list() -> SimpleRule {
 }
 
 /// Allow `gh run view`.
-fn gh_run_view() -> SimpleRule {
-    SimpleRule::new(
+fn gh_run_view() -> BashRule {
+    BashRule::new(
         "gh_run_view",
         "gh run view",
         Outcome::allow("Read-only gh run view"),
@@ -36,8 +36,8 @@ fn gh_run_view() -> SimpleRule {
 }
 
 /// Allow `gh release list`.
-fn gh_release_list() -> SimpleRule {
-    SimpleRule::new(
+fn gh_release_list() -> BashRule {
+    BashRule::new(
         "gh_release_list",
         "gh release list",
         Outcome::allow("Read-only gh release list"),
@@ -45,8 +45,8 @@ fn gh_release_list() -> SimpleRule {
 }
 
 /// Ask for PR comment.
-fn gh_pr_comment() -> SimpleRule {
-    SimpleRule::new(
+fn gh_pr_comment() -> BashRule {
+    BashRule::new(
         "gh_pr_comment",
         "gh pr comment",
         Outcome::ask("PR comment requires approval"),
@@ -54,8 +54,8 @@ fn gh_pr_comment() -> SimpleRule {
 }
 
 /// Ask for GraphQL mutation.
-fn gh_api_graphql__mutation() -> SimpleRule {
-    SimpleRule {
+fn gh_api_graphql__mutation() -> BashRule {
+    BashRule {
         id: "gh_api_graphql__mutation".to_owned(),
         prefix: "gh api graphql".to_owned(),
         with_any: Some(vec![Arg::new("*mutation*")]),
@@ -65,8 +65,8 @@ fn gh_api_graphql__mutation() -> SimpleRule {
 }
 
 /// Allow GraphQL query (no mutation).
-fn gh_api_graphql__query() -> SimpleRule {
-    SimpleRule {
+fn gh_api_graphql__query() -> BashRule {
+    BashRule {
         id: "gh_api_graphql__query".to_owned(),
         prefix: "gh api graphql".to_owned(),
         without_any: Some(vec![Arg::new("*mutation*")]),
@@ -76,8 +76,8 @@ fn gh_api_graphql__query() -> SimpleRule {
 }
 
 /// Ask for API with data flags.
-fn gh_api__data_flags() -> SimpleRule {
-    SimpleRule {
+fn gh_api__data_flags() -> BashRule {
+    BashRule {
         id: "gh_api__data_flags".to_owned(),
         prefix: "gh api".to_owned(),
         with_any: Some(vec![
@@ -95,8 +95,8 @@ fn gh_api__data_flags() -> SimpleRule {
 }
 
 /// Ask for API write method.
-fn gh_api__write_method() -> SimpleRule {
-    SimpleRule {
+fn gh_api__write_method() -> BashRule {
+    BashRule {
         id: "gh_api__write_method".to_owned(),
         prefix: "gh api".to_owned(),
         with_any: Some(vec![Arg::new("-X").ivalue("{POST,PUT,PATCH,DELETE}")]),
@@ -106,8 +106,8 @@ fn gh_api__write_method() -> SimpleRule {
 }
 
 /// Allow read-only `gh api` (no data flags or write methods).
-fn gh_api__read_only() -> SimpleRule {
-    SimpleRule {
+fn gh_api__read_only() -> BashRule {
+    BashRule {
         id: "gh_api__read_only".to_owned(),
         prefix: "gh api".to_owned(),
         without_any: Some(vec![

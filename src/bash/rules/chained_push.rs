@@ -3,26 +3,26 @@
 use crate::prelude::*;
 
 /// Deny `git push` when part of a compound command.
-pub fn chained_push_rules() -> Vec<CompleteRule> {
+pub fn chained_push_rules() -> Vec<BashRule> {
     vec![git_push__chained()]
 }
 
 /// Deny `git push` chained with other commands.
-fn git_push__chained() -> CompleteRule {
-    CompleteRule {
-        id: "git_push__chained".to_owned(),
-        condition: Some(is_chained_git_push),
-        outcome: Outcome::deny(
-            "Chained git push is blocked. Run 'git push' as a separate, standalone command.",
-        ),
+fn git_push__chained() -> BashRule {
+    BashRule {
+        condition: Some(is_chained),
+        ..BashRule::new(
+            "git_push__chained",
+            "git push",
+            Outcome::deny(
+                "Chained git push is blocked. Run 'git push' as a separate, standalone command.",
+            ),
+        )
     }
 }
 
-fn is_chained_git_push(parsed: &CompleteContext, _settings: &Settings) -> bool {
-    let has_git_push = parsed
-        .all_commands()
-        .any(|cmd| cmd.name == "git" && cmd.args.first().is_some_and(|a| a == "push"));
-    has_git_push && parsed.children.len() > 1
+fn is_chained(_cmd: &SimpleContext, complete: &CompleteContext, _settings: &Settings) -> bool {
+    complete.children.len() > 1
 }
 
 #[cfg(test)]

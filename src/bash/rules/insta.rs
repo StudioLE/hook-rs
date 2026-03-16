@@ -3,13 +3,13 @@
 use crate::prelude::*;
 
 /// Deny `cargo insta review` when used with heredoc input.
-pub fn insta_rules() -> Vec<SimpleRule> {
+pub fn insta_rules() -> Vec<BashRule> {
     vec![cargo_insta_review__heredoc()]
 }
 
 /// Deny `cargo insta review` with heredoc input.
-fn cargo_insta_review__heredoc() -> SimpleRule {
-    SimpleRule {
+fn cargo_insta_review__heredoc() -> BashRule {
+    BashRule {
         id: "cargo_insta_review__heredoc".to_owned(),
         prefix: "cargo insta review".to_owned(),
         condition: Some(|cmd, _, _| cmd.has_heredoc),

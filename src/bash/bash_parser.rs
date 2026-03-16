@@ -297,9 +297,6 @@ pub enum ParseError {
     /// Word-level parse failed for substitution extraction.
     #[error("Failed to parse a word")]
     Word,
-    /// `CompleteRule` must never be allow
-    #[error("CompleteRule must never allow")]
-    CompleteAllow,
     /// Command was parsed successfully but skipped.
     #[error("Skipped: {0}")]
     Skip(SkipReason),

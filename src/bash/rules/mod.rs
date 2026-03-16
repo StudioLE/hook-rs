@@ -3,7 +3,6 @@
 mod allow_safe;
 mod cd_git;
 mod chained_push;
-mod echo_separator;
 mod find;
 mod gh;
 mod git_allow;
@@ -16,7 +15,6 @@ mod rm;
 pub use allow_safe::*;
 pub use cd_git::*;
 pub use chained_push::*;
-pub use echo_separator::*;
 pub use find::*;
 pub use gh::*;
 pub use git_allow::*;

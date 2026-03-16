@@ -19,11 +19,11 @@ pub(crate) const SAFE_SUBCOMMANDS: &[&str] = &[
 ];
 
 /// Allow read-only git subcommands, including trusted-path variants via `git -C`.
-pub fn git_allow_rules() -> Vec<SimpleRule> {
-    let mut rules: Vec<SimpleRule> = SAFE_SUBCOMMANDS
+pub fn git_allow_rules() -> Vec<BashRule> {
+    let mut rules: Vec<BashRule> = SAFE_SUBCOMMANDS
         .iter()
         .map(|sub| {
-            SimpleRule::new(
+            BashRule::new(
                 format!("git_{sub}").replace('-', "_"),
                 format!("git {sub}"),
                 Outcome::allow(format!("Safe git subcommand: {sub}")),
@@ -48,7 +48,7 @@ pub fn git_allow_rules() -> Vec<SimpleRule> {
         "--points-at",
     ] {
         let flag_id = flag.trim_start_matches('-').replace('-', "_");
-        rules.push(SimpleRule {
+        rules.push(BashRule {
             id: format!("git_branch_{flag_id}"),
             prefix: "git branch".to_owned(),
             with_any: Some(vec![Arg::new(flag)]),
@@ -58,7 +58,7 @@ pub fn git_allow_rules() -> Vec<SimpleRule> {
     }
 
     rules.push(git_tag__bare());
-    rules.push(SimpleRule {
+    rules.push(BashRule {
         id: "git_tag__read_only".to_owned(),
         prefix: "git tag".to_owned(),
         with_any: Some(
@@ -73,7 +73,7 @@ pub fn git_allow_rules() -> Vec<SimpleRule> {
 
     for sub in ["-v", "--verbose", "show", "get-url"] {
         let sub_id = sub.trim_start_matches('-').replace('-', "_");
-        rules.push(SimpleRule::new(
+        rules.push(BashRule::new(
             format!("git_remote_{sub_id}"),
             format!("git remote {sub}"),
             Outcome::allow("Safe git subcommand: remote"),
@@ -85,8 +85,8 @@ pub fn git_allow_rules() -> Vec<SimpleRule> {
 }
 
 /// Allow bare `git branch` (no arguments).
-fn git_branch__bare() -> SimpleRule {
-    SimpleRule {
+fn git_branch__bare() -> BashRule {
+    BashRule {
         id: "git_branch__bare".to_owned(),
         prefix: "git branch".to_owned(),
         condition: Some(|cmd, _, _| cmd.args.len() == 1),
@@ -96,8 +96,8 @@ fn git_branch__bare() -> SimpleRule {
 }
 
 /// Allow bare `git tag` (no arguments).
-fn git_tag__bare() -> SimpleRule {
-    SimpleRule {
+fn git_tag__bare() -> BashRule {
+    BashRule {
         id: "git_tag__bare".to_owned(),
         prefix: "git tag".to_owned(),
         condition: Some(|cmd, _, _| cmd.args.len() == 1),
@@ -107,8 +107,8 @@ fn git_tag__bare() -> SimpleRule {
 }
 
 /// Allow bare `git remote` (no arguments).
-fn git_remote__bare() -> SimpleRule {
-    SimpleRule {
+fn git_remote__bare() -> BashRule {
+    BashRule {
         id: "git_remote__bare".to_owned(),
         prefix: "git remote".to_owned(),
         condition: Some(|cmd, _, _| cmd.args.len() == 1),

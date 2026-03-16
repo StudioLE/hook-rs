@@ -1,10 +1,10 @@
-//! Prefix-based rule matching individual simple commands.
+//! Prefix-based rule matching individual Bash commands.
 
 use crate::prelude::*;
 
 /// Rule that matches a [`SimpleContext`] by command prefix, options, and conditions.
 #[derive(Default)]
-pub struct SimpleRule {
+pub struct BashRule {
     /// Unique identifier for this rule.
     pub id: String,
     /// Match commands that start with prefix.
@@ -38,8 +38,8 @@ pub struct SimpleRule {
     pub outcome: Outcome,
 }
 
-impl SimpleRule {
-    /// Create a new [`SimpleRule`] matching the given prefix.
+impl BashRule {
+    /// Create a new [`BashRule`] matching the given prefix.
     pub fn new(id: impl Into<String>, prefix: impl Into<String>, outcome: Outcome) -> Self {
         Self {
             id: id.into(),
@@ -102,7 +102,7 @@ impl SimpleRule {
         {
             return false;
         }
-        debug!(id = %self.id, decision = %self.outcome.decision, command = %cmd.name, "Matched simple rule");
+        debug!(id = %self.id, decision = %self.outcome.decision, command = %cmd.name, "Matched bash rule");
         true
     }
 }

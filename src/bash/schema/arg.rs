@@ -1,8 +1,8 @@
-//! Argument matcher for [`SimpleRule`] fields.
+//! Argument matcher for [`BashRule`] fields.
 
 use globset::{GlobBuilder, GlobMatcher};
 
-/// Argument matcher for [`SimpleRule`] fields.
+/// Argument matcher for [`BashRule`] fields.
 ///
 /// Matches a command-line argument by pattern, optionally checking its
 /// option-argument (the value that follows the flag).
