@@ -1,7 +1,9 @@
 //! Shared utilities for logging and rule construction.
 
+mod glob;
 mod logging;
-mod rule_factory;
+mod path_rule_factory;
 
+pub use glob::*;
 pub use logging::*;
-pub use rule_factory::*;
+pub use path_rule_factory::*;

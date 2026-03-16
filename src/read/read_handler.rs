@@ -9,14 +9,15 @@ impl Handler for ReadHandler {
     type Input = ReadInput;
 
     fn run(input: Self::Input, settings: Settings) -> Option<Outcome> {
-        trace!(file_path = %input.file_path, "Handling read path");
-        let home =
-            dirs::home_dir().expect("home directory should be resolvable via $HOME or passwd");
-        let rules: Vec<ReadRule> = RuleFactory::new(settings.read.paths.clone(), home).create();
-        rules
-            .iter()
-            .find(|rule| rule.matches(&input.file_path))
-            .map(|rule| rule.outcome.clone())
+        trace!(path = %input.file_path, "Handling read");
+        let factory = PathRuleFactory::default();
+        for pattern in &settings.read.paths {
+            let rule = factory.create(pattern);
+            if rule.is_match(&input.file_path) {
+                return Some(Outcome::allow("Path is allowed"));
+            }
+        }
+        None
     }
 }
 

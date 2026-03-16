@@ -1,6 +1,6 @@
 //! Argument matcher for [`BashRule`] fields.
 
-use globset::{GlobBuilder, GlobMatcher};
+use crate::prelude::*;
 
 /// Argument matcher for [`BashRule`] fields.
 ///
@@ -31,7 +31,7 @@ impl Arg {
     /// Create a new [`Arg`] matching the given option pattern.
     pub fn new(option: impl Into<String>) -> Self {
         let option = option.into();
-        let option_glob = compile_glob(&option, false);
+        let option_glob = compile_arg_glob(&option, false);
         Self {
             option,
             option_glob,
@@ -46,7 +46,7 @@ impl Arg {
     /// Matching is case-sensitive.
     pub fn value(mut self, value: impl Into<String>) -> Self {
         let value = value.into();
-        self.value_glob = compile_glob(&value, false);
+        self.value_glob = compile_arg_glob(&value, false);
         self.value = Some(value);
         self.case_insensitive = false;
         self
@@ -57,7 +57,7 @@ impl Arg {
     /// Matching is case-insensitive.
     pub fn ivalue(mut self, value: impl Into<String>) -> Self {
         let value = value.into();
-        self.value_glob = compile_glob(&value, true);
+        self.value_glob = compile_arg_glob(&value, true);
         self.value = Some(value);
         self.case_insensitive = true;
         self
@@ -213,23 +213,6 @@ impl Arg {
         };
         self.is_value_match(value)
     }
-}
-
-/// Compile a glob pattern if the string contains glob metacharacters.
-fn compile_glob(pattern: &str, case_insensitive: bool) -> Option<GlobMatcher> {
-    let is_glob = pattern.contains('*')
-        || pattern.contains('?')
-        || pattern.contains('{')
-        || pattern.contains('[');
-    if !is_glob {
-        return None;
-    }
-    GlobBuilder::new(pattern)
-        .literal_separator(false)
-        .case_insensitive(case_insensitive)
-        .build()
-        .ok()
-        .map(|g| g.compile_matcher())
 }
 
 #[cfg(test)]

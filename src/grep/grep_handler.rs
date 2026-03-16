@@ -9,14 +9,15 @@ impl Handler for GrepHandler {
     type Input = GrepInput;
 
     fn run(input: Self::Input, settings: Settings) -> Option<Outcome> {
-        trace!(path = %input.path, "Handling grep path");
-        let home =
-            dirs::home_dir().expect("home directory should be resolvable via $HOME or passwd");
-        let rules: Vec<GrepRule> = RuleFactory::new(settings.read.paths.clone(), home).create();
-        rules
-            .iter()
-            .find(|rule| rule.matches(&input.path))
-            .map(|rule| rule.outcome.clone())
+        trace!(path = %input.path, "Handling grep");
+        let factory = PathRuleFactory::default();
+        for pattern in &settings.read.paths {
+            let rule = factory.create(pattern);
+            if rule.is_match(&input.path) {
+                return Some(Outcome::allow("Path is allowed"));
+            }
+        }
+        None
     }
 }
 
