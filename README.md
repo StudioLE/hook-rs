@@ -178,6 +178,20 @@ Deny `cargo insta review` with heredoc input to prevent faking interactive input
 
 ## Install
 
+### Homebrew
+
+```bash
+brew install StudioLE/tap/hook-rs
+```
+
+### Cargo
+
+```bash
+cargo install hook-rs
+```
+
+### From Source
+
 ```bash
 cargo install --path .
 ```
@@ -194,15 +208,15 @@ Enable the `PreToolUse` hooks in `~/.claude/settings.json`
     "PreToolUse": [
       {
         "matcher": "Bash",
-        "hooks": [{ "type": "command", "command": "~/.cargo/bin/hook-rs bash" }]
+        "hooks": [{ "type": "command", "command": "hook-rs bash" }]
       },
       {
         "matcher": "Grep",
-        "hooks": [{ "type": "command", "command": "~/.cargo/bin/hook-rs grep" }]
+        "hooks": [{ "type": "command", "command": "hook-rs grep" }]
       },
       {
         "matcher": "Read",
-        "hooks": [{ "type": "command", "command": "~/.cargo/bin/hook-rs read" }]
+        "hooks": [{ "type": "command", "command": "hook-rs read" }]
       }
     ]
   }

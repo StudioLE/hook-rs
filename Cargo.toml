@@ -1,14 +1,17 @@
 [package]
 name = "hook-rs"
-version = "0.1.0"
+version = "0.0.0"
 edition = "2024"
+description = "Permission hooks for Claude Code with bash-aware command analysis"
+license = "AGPL-3.0-only"
+repository = "https://github.com/StudioLE/hook-rs"
 
 [profile.release]
 strip = true
 
 [dependencies]
 argh = "0.1.18"
-brush-parser = { git = "https://github.com/reubeno/brush", rev = "1916516" }
+brush-parser = "0.3.0"
 dirs = "6.0.0"
 globset = "0.4.18"
 miette = { version = "7.6.0", features = ["fancy"] }
