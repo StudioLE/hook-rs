@@ -4,29 +4,48 @@ use crate::prelude::*;
 
 /// Rule that matches paths against an exact string and/or a compiled glob pattern.
 ///
-/// Supports both exact file matching via the glob and directory prefix matching
-/// for patterns ending in `/**` or `/**/*`.
+/// - Literal paths match via exact string comparison
+/// - Directory prefixes match for patterns ending in `/**` or `/**/*`
+/// - Patterns without `/` match against the filename component only
 #[derive(Debug)]
 pub struct PathRule {
     /// Exact string for literal or directory-prefix matching.
     exact: Option<String>,
     /// Compiled glob pattern for file-level matching.
     matcher: Option<GlobMatcher>,
+    /// Match against only the filename component of the path.
+    is_filename: bool,
 }
 
 impl PathRule {
     /// Create a new [`PathRule`] from optional exact and glob components.
-    pub(crate) fn new(exact: Option<String>, matcher: Option<GlobMatcher>) -> Self {
-        Self { exact, matcher }
+    pub(crate) fn new(
+        exact: Option<String>,
+        matcher: Option<GlobMatcher>,
+        is_filename: bool,
+    ) -> Self {
+        Self {
+            exact,
+            matcher,
+            is_filename,
+        }
     }
 
     /// Test whether the given path matches this rule's exact string or glob.
     pub fn is_match(&self, path: &str) -> bool {
-        self.is_exact_match(path) || self.is_glob_match(path)
+        let target = if self.is_filename {
+            let Some(name) = Path::new(path).file_name() else {
+                return false;
+            };
+            &name.to_string_lossy()
+        } else {
+            path
+        };
+        self.is_exact_match(target) || self.is_glob_match(target)
     }
 
     /// Test whether the given path matches this rule's exact string.
-    pub fn is_exact_match(&self, path: &str) -> bool {
+    fn is_exact_match(&self, path: &str) -> bool {
         let is_match = self.exact.as_ref().is_some_and(|exact| exact == path);
         if is_match {
             trace!(path = %path, "Exact match");
@@ -35,7 +54,7 @@ impl PathRule {
     }
 
     /// Test whether the given path matches this rule's glob pattern.
-    pub fn is_glob_match(&self, path: &str) -> bool {
+    fn is_glob_match(&self, path: &str) -> bool {
         let is_match = self
             .matcher
             .as_ref()
@@ -183,5 +202,52 @@ mod tests {
     fn exact_path_no_match_nested() {
         let r = rule("/etc/hosts");
         assert!(!r.is_match("/etc/hosts/extra"));
+    }
+
+    // basename matching (patterns without /)
+
+    #[test]
+    fn bare_filename_matches_anywhere() {
+        let r = rule("CLAUDE.md");
+        assert!(r.is_match("/home/user/project/.claude/CLAUDE.md"));
+        assert!(r.is_match("/tmp/CLAUDE.md"));
+    }
+
+    #[test]
+    fn bare_filename_no_match_different_name() {
+        let r = rule("CLAUDE.md");
+        assert!(!r.is_match("/home/user/README.md"));
+    }
+
+    #[test]
+    fn bare_glob_matches_basename() {
+        let r = rule("*.md");
+        assert!(r.is_match("/home/user/project/README.md"));
+        assert!(r.is_match("/tmp/CLAUDE.md"));
+    }
+
+    #[test]
+    fn bare_glob_no_match_wrong_extension() {
+        let r = rule("*.md");
+        assert!(!r.is_match("/home/user/project/lib.rs"));
+    }
+
+    #[test]
+    fn bare_dotfile_pattern() {
+        let r = rule(".env");
+        assert!(r.is_match("/home/user/project/.env"));
+    }
+
+    #[test]
+    fn bare_dotfile_glob() {
+        let r = rule(".env.*");
+        assert!(r.is_match("/home/user/project/.env.local"));
+        assert!(r.is_match("/tmp/.env.production"));
+    }
+
+    #[test]
+    fn bare_dotfile_glob_no_match_bare_env() {
+        let r = rule(".env.*");
+        assert!(!r.is_match("/home/user/project/.env"));
     }
 }

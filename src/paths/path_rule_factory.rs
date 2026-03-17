@@ -14,14 +14,18 @@ impl PathRuleFactory {
         Self { home }
     }
 
-    /// Compile a pattern into a [`PathRule`] with tilde expansion.
+    /// Compile a pattern into a [`PathRule`].
+    ///
+    /// - Expands a leading `~/` to the home directory
+    /// - Patterns without `/` match against the filename component only
     pub fn create(&self, pattern: impl Into<String>) -> PathRule {
         let pattern = expand_tilde(pattern, &self.home);
+        let is_filename = !pattern.contains('/');
         let Some(matcher) = compile_path_glob(&pattern) else {
-            return PathRule::new(Some(pattern), None);
+            return PathRule::new(Some(pattern), None, is_filename);
         };
         let exact = strip_recursive_glob(&pattern);
-        PathRule::new(exact, Some(matcher))
+        PathRule::new(exact, Some(matcher), is_filename)
     }
 
     /// Check if a path is allowed using last-match-wins semantics.
@@ -251,5 +255,34 @@ mod tests {
     fn patterns_empty() {
         let patterns: Vec<String> = vec![];
         assert_eq!(factory().is_match("/a/file.txt", &patterns), None);
+    }
+
+    // basename patterns
+
+    #[test]
+    fn patterns_bare_filename_matches() {
+        let patterns = vec!["CLAUDE.md".to_owned()];
+        assert_eq!(
+            factory().is_match("/home/user/project/.claude/CLAUDE.md", &patterns),
+            Some(true)
+        );
+    }
+
+    #[test]
+    fn patterns_bare_filename_negation() {
+        let patterns = vec!["CLAUDE.md".to_owned(), "!.env".to_owned()];
+        assert_eq!(
+            factory().is_match("/home/user/project/.env", &patterns),
+            Some(false)
+        );
+    }
+
+    #[test]
+    fn patterns_bare_glob_matches() {
+        let patterns = vec![".env.*".to_owned()];
+        assert_eq!(
+            factory().is_match("/home/user/project/.env.local", &patterns),
+            Some(true)
+        );
     }
 }
