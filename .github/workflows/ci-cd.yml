@@ -16,7 +16,6 @@ jobs:
     with:
       package_name: hook-rs
       binary_name: hook-rs
-      cargo_publish: true
       brew_repo: StudioLE/homebrew-tap
       brew_formula: |
         class HookRs < Formula

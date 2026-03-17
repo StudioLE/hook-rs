@@ -184,12 +184,6 @@ Deny `cargo insta review` with heredoc input to prevent faking interactive input
 brew install StudioLE/tap/hook-rs
 ```
 
-### Cargo
-
-```bash
-cargo install hook-rs
-```
-
 ### From Source
 
 ```bash

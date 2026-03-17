@@ -26,8 +26,8 @@ impl BashParser {
     pub fn parse(&mut self, command: &str) -> Result<CompleteContext, Report<ParseError>> {
         trace!(command, "Parsing");
         let tokens = tokenize_str(command).change_context(ParseError::Tokenize)?;
-        let program = parse_tokens(&tokens, &ParserOptions::default(), &SourceInfo::default())
-            .change_context(ParseError::Tokens)?;
+        let program =
+            parse_tokens(&tokens, &ParserOptions::default()).change_context(ParseError::Tokens)?;
         let context = CompleteContext {
             raw: command.to_owned(),
             children: self.pipelines_from_program(&program)?,
@@ -275,7 +275,7 @@ fn collect_substitutions(
             | WordPiece::Text(_)
             | WordPiece::SingleQuotedText(_)
             | WordPiece::AnsiCQuotedText(_)
-            | WordPiece::TildePrefix(_)
+            | WordPiece::TildeExpansion(_)
             | WordPiece::EscapeSequence(_) => {}
             WordPiece::ParameterExpansion(_) => {
                 return Err(ParseError::skip(SkipReason::ParameterSubstitution));
@@ -347,10 +347,11 @@ pub(crate) fn parse_expect_skip(command: &str) -> SkipReason {
 #[cfg(test)]
 /// Parse `command`, expecting a [`ParseError`] that is not a skip.
 pub(crate) fn parse_expect_error(command: &str) -> ParseError {
-    let error = *BashParser::new()
+    let report = BashParser::new()
         .parse(command)
-        .expect_err("command should fail to parse")
-        .current_context();
+        .expect_err("command should fail to parse");
+    eprintln!("{report:?}");
+    let error = *report.current_context();
     assert!(
         !matches!(error, ParseError::Skip(_)),
         "expected a real error, got {error:?}"
@@ -721,13 +722,27 @@ mod tests {
         assert_eq!(reason, SkipReason::ArithmeticSubstitution);
     }
 
-    /// brush-parser 0.3.0 cannot tokenize heredocs inside command substitutions
+    /// Known issue: <https://github.com/reubeno/brush/pull/420>
+    /// Resolved in: <https://github.com/reubeno/brush/pull/1067>
+    #[test]
+    fn command_sub_heredoc_unbalanced_single_quote() {
+        let context = parse_expect_context("echo \"$(cat <<'EOF'\nit's\nEOF\n)\"");
+        assert_yaml_snapshot!(context);
+    }
+
+    /// Known issue: <https://github.com/reubeno/brush/issues/1066>
+    #[test]
+    fn command_sub_heredoc_unbalanced_double_quote() {
+        let error = parse_expect_error("echo \"$(cat <<'EOF'\nit\"s\nEOF\n)\"");
+        assert_eq!(error, ParseError::Word);
+    }
+
     #[test]
     fn heredoc_quoted_tag_in_chained_command() {
         let cmd =
             "git add file.md && git commit -m \"$(cat <<'EOF'\nfeat(scope): Add feature\nEOF\n)\"";
-        let error = parse_expect_error(cmd);
-        assert_eq!(error, ParseError::Tokenize);
+        let context = parse_expect_context(cmd);
+        assert_yaml_snapshot!(context);
     }
 
     #[test]
