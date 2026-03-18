@@ -55,7 +55,7 @@ pub struct GrepInput {
     )]
     pub pattern: String,
     /// Directory or file path to search in.
-    pub path: String,
+    pub path: Option<String>,
 }
 
 impl<T: DeserializeOwned> HookInput<T> {
@@ -101,7 +101,7 @@ impl GrepInput {
     pub fn new(pattern: impl Into<String>, path: impl Into<String>) -> Self {
         Self {
             pattern: pattern.into(),
-            path: path.into(),
+            path: Some(path.into()),
         }
     }
 }
@@ -158,7 +158,15 @@ mod tests {
             r#"{"tool_name":"Grep","tool_input":{"pattern":"needle","path":"/tmp/project"}}"#;
         let input = HookInput::<GrepInput>::from_json(json).expect("should deserialize");
         assert_eq!(input.tool_input.pattern, "needle");
-        assert_eq!(input.tool_input.path, "/tmp/project");
+        assert_eq!(input.tool_input.path.as_deref(), Some("/tmp/project"));
+    }
+
+    #[test]
+    fn deserialize_grep_input_without_path() {
+        let json = r#"{"tool_name":"Grep","tool_input":{"pattern":"needle"}}"#;
+        let input = HookInput::<GrepInput>::from_json(json).expect("should deserialize");
+        assert_eq!(input.tool_input.pattern, "needle");
+        assert!(input.tool_input.path.is_none());
     }
 
     #[test]

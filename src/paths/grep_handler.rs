@@ -9,9 +9,10 @@ impl Handler for GrepHandler {
     type Input = GrepInput;
 
     fn run(input: Self::Input, settings: Settings) -> Option<Outcome> {
-        trace!(path = %input.path, "Handling grep");
+        let path = input.path.unwrap_or_cwd();
+        trace!(path, "Handling grep");
         let factory = PathRuleFactory::default();
-        factory.is_match_outcome(&input.path, &settings.read.paths)
+        factory.is_match_outcome(&path, &settings.read.paths)
     }
 }
 
@@ -69,6 +70,28 @@ mod tests {
 
         // Assert
         assert!(outcome.is_none());
+    }
+
+    #[test]
+    fn missing_path_falls_back_to_cwd() {
+        // Arrange
+        let input = GrepInput {
+            pattern: "needle".to_owned(),
+            path: None,
+        };
+        let cwd = cwd();
+        let settings = Settings {
+            read: ReadSettings {
+                paths: vec![format!("{cwd}/**")],
+            },
+            ..Settings::default()
+        };
+
+        // Act
+        let outcome = GrepHandler::run(input, settings);
+
+        // Assert
+        assert_eq!(outcome.expect("should match").decision, Decision::Allow);
     }
 
     #[test]

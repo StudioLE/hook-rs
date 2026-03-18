@@ -9,10 +9,10 @@ impl Handler for GlobHandler {
     type Input = GlobInput;
 
     fn run(input: Self::Input, settings: Settings) -> Option<Outcome> {
-        let path = input.path.as_deref().unwrap_or(".");
+        let path = input.path.unwrap_or_cwd();
         trace!(path, "Handling glob");
         let factory = PathRuleFactory::default();
-        factory.is_match_outcome(path, &settings.read.paths)
+        factory.is_match_outcome(&path, &settings.read.paths)
     }
 }
 
@@ -73,12 +73,13 @@ mod tests {
     }
 
     #[test]
-    fn missing_path_defaults_to_dot() {
+    fn missing_path_falls_back_to_cwd() {
         // Arrange
         let input = GlobInput::new("**/*.rs", None);
+        let cwd = cwd();
         let settings = Settings {
             read: ReadSettings {
-                paths: vec!["./**".to_owned()],
+                paths: vec![format!("{cwd}/**")],
             },
             ..Settings::default()
         };
