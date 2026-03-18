@@ -286,13 +286,6 @@ mod tests {
     }
 
     #[test]
-    fn _grep_c() {
-        // grep is Allow via safe_rules
-        let outcome = evaluate_expect_outcome("grep -C 3 pattern file");
-        assert_eq!(outcome.decision, Decision::Allow);
-    }
-
-    #[test]
     fn _echo_git() {
         let outcome = evaluate_expect_outcome("echo git status");
         assert_eq!(outcome.decision, Decision::Allow);

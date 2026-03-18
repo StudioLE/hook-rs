@@ -36,7 +36,6 @@ Allow read-only commands:
 - `echo`
 - `file`
 - `fmt`
-- `grep`
 - `head`
 - `jq`
 - `less`
@@ -54,12 +53,15 @@ Allow read-only commands:
 - `which`
 - `xxd`
 
-Allow without in-place flags (`-i`, `--in-place`, `-o`):
-- `sed`
-- `sort`
+Allow without in-place flags (`-i`, `--in-place`):
+- `sort` (without `-o`, `--output`)
 - `yq`
 
 [source: `allow_safe.rs`](src/bash/rules/allow_safe.rs)
+
+Allow `fd` without exec flags (`-x`, `--exec`, `-X`, `--exec-batch`).
+
+[source: `fd.rs`](src/bash/rules/fd.rs)
 
 Allow read-only git subcommands:
 - `git check-ignore`
@@ -95,6 +97,10 @@ Deny `find -delete` and `find -exec rm` / `find -execdir rm`.
 
 [source: `find.rs`](src/bash/rules/find.rs)
 
+Deny `fd -x rm` / `fd --exec rm` / `fd -X rm` / `fd --exec-batch rm`.
+
+[source: `fd.rs`](src/bash/rules/fd.rs)
+
 </details>
 
 <details>
@@ -109,6 +115,18 @@ Deny destructive git operations:
 - `git checkout --` (discarding changes)
 
 [source: `git_deny.rs`](src/bash/rules/git_deny.rs)
+
+</details>
+
+<details>
+<summary>Prefer Modern Alternatives</summary>
+
+Deny traditional tools and suggest modern alternatives:
+- `find` - use `fd` instead
+- `grep` - use `rg` instead
+- `sed` - use `sd` instead
+
+[source: `modern_alternatives.rs`](src/bash/rules/modern_alternatives.rs)
 
 </details>
 

@@ -59,8 +59,8 @@ mod tests {
     use crate::prelude::*;
 
     #[test]
-    fn for_loop_grep_basename() {
-        let cmd = r#"for f in src/bash/rules/snapshots/*git_deny*.snap; do echo "=== $(basename $f) ==="; grep "decision:" "$f"; done"#;
+    fn for_loop_rg_basename() {
+        let cmd = r#"for f in src/bash/rules/snapshots/*git_deny*.snap; do echo "=== $(basename $f) ==="; rg "decision:" "$f"; done"#;
         let outcome = evaluate_expect_outcome(cmd);
         assert_eq!(outcome.decision, Decision::Allow);
     }

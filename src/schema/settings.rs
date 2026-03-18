@@ -95,6 +95,10 @@ impl Settings {
                 paths: vec![
                     "~/.cargo/registry/src/**".to_owned(),
                     "~/.rustup/toolchains/**".to_owned(),
+                    "/path/to/repos/**".to_owned(),
+                    "README.md".to_owned(),
+                    "!.env".to_owned(),
+                    "!.env.*".to_owned(),
                 ],
             },
         }

@@ -168,8 +168,8 @@ mod tests {
     }
 
     #[test]
-    fn _grep_reset_hard() {
-        let outcome = evaluate_expect_outcome("grep 'git reset --hard' README.md");
+    fn _rg_reset_hard() {
+        let outcome = evaluate_expect_outcome("rg 'git reset --hard' README.md");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
@@ -296,8 +296,8 @@ mod tests {
     }
 
     #[test]
-    fn _grep_stash_drop() {
-        let outcome = evaluate_expect_outcome("grep 'git stash drop' file.txt");
+    fn _rg_stash_drop() {
+        let outcome = evaluate_expect_outcome("rg 'git stash drop' file.txt");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
@@ -481,14 +481,14 @@ mod tests {
     }
 
     #[test]
-    fn _grep_checkout_head() {
-        let outcome = evaluate_expect_outcome("grep 'git checkout HEAD --' README.md");
+    fn _rg_checkout_head() {
+        let outcome = evaluate_expect_outcome("rg 'git checkout HEAD --' README.md");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _grep_checkout_discard() {
-        let outcome = evaluate_expect_outcome("grep 'git checkout --' README.md");
+    fn _rg_checkout_discard() {
+        let outcome = evaluate_expect_outcome("rg 'git checkout --' README.md");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 }

@@ -218,8 +218,8 @@ mod tests {
     }
 
     #[test]
-    fn _grep_r() {
-        let outcome = evaluate_expect_outcome("grep -r rm .");
+    fn _rg_rm() {
+        let outcome = evaluate_expect_outcome("rg rm .");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 

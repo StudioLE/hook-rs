@@ -91,7 +91,9 @@ impl BashEvaluator {
     /// Create an evaluator with the given settings.
     pub fn new(settings: Settings) -> Self {
         let mut rules = Vec::new();
+        rules.extend(modern_alternative_rules());
         rules.push(rm());
+        rules.extend(fd_rules());
         rules.extend(find_rules());
         rules.extend(gh_rules());
         rules.extend(git_deny_rules());

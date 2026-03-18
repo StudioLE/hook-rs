@@ -92,50 +92,37 @@ mod tests {
 
     #[test]
     fn _find_name() {
-        let reason = evaluate_expect_skip("find . -name '*.rs'");
-        assert_eq!(reason, SkipReason::NoMatches);
+        let outcome = evaluate_expect_outcome("find . -name '*.rs'");
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _find_print() {
-        let reason = evaluate_expect_skip("find . -type f -print");
-        assert_eq!(reason, SkipReason::NoMatches);
+        let outcome = evaluate_expect_outcome("find . -type f -print");
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _find_maxdepth() {
-        let reason = evaluate_expect_skip("find /path -maxdepth 1");
-        assert_eq!(reason, SkipReason::NoMatches);
+        let outcome = evaluate_expect_outcome("find /path -maxdepth 1");
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _find_exec_ls() {
-        let reason = evaluate_expect_skip("find . -name '*.tmp' -exec ls {} \\;");
-        assert_eq!(reason, SkipReason::NoMatches);
+        let outcome = evaluate_expect_outcome("find . -name '*.tmp' -exec ls {} \\;");
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _find_exec_cat() {
-        let reason = evaluate_expect_skip("find . -name '*.txt' -exec cat {} +");
-        assert_eq!(reason, SkipReason::NoMatches);
+        let outcome = evaluate_expect_outcome("find . -name '*.txt' -exec cat {} +");
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn _echo_find_delete() {
         let outcome = evaluate_expect_outcome("echo 'find -delete is dangerous'");
-        assert_eq!(outcome.decision, Decision::Allow);
-    }
-
-    #[test]
-    fn _grep_delete() {
-        let outcome = evaluate_expect_outcome("grep -r 'delete' .");
-        assert_eq!(outcome.decision, Decision::Allow);
-    }
-
-    #[test]
-    fn _git_log_grep_delete() {
-        // git log is Allow via git_approval, grep is Allow via safe_rules
-        let outcome = evaluate_expect_outcome("git log --oneline | grep delete");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 }
