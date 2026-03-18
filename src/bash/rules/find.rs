@@ -1,10 +1,47 @@
-//! Deny rules for destructive `find` operations.
+//! Rules for `find` operations: allow read-only, deny destructive.
 
 use crate::prelude::*;
 
-/// Deny `find -delete` and `find -exec rm` to prevent bulk file deletion.
+/// Deny destructive `find`, allow read-only `find`.
 pub fn find_rules() -> Vec<BashRule> {
-    vec![find_delete(), find_exec_rm()]
+    vec![find_delete(), find_exec_rm(), find__read_only()]
+}
+
+/// Allow `find` without destructive flags when the path is in the read allow list.
+fn find__read_only() -> BashRule {
+    BashRule {
+        id: "find__read_only".to_owned(),
+        command: "find".to_owned(),
+        without_any: Some(vec![
+            Arg::new("-delete"),
+            Arg::new("-exec"),
+            Arg::new("-execdir"),
+        ]),
+        condition: Some(find_path_allowed),
+        outcome: Outcome::allow("Safe command: find (read-only, allowed path)"),
+        ..Default::default()
+    }
+}
+
+/// Check that `find`'s path argument is in the read allow list.
+fn find_path_allowed(
+    context: &SimpleContext,
+    _complete: &CompleteContext,
+    settings: &Settings,
+) -> bool {
+    let path = context.args.first().filter(|a| !a.starts_with('-'));
+    let Some(path) = path else {
+        return false;
+    };
+    let path = unquote_str(path);
+    let factory = PathRuleFactory::default();
+    if let Some(is_allowed) = factory.is_match(&path, &settings.read.paths) {
+        trace!(is_allowed, "find path matched read allow list");
+        is_allowed
+    } else {
+        trace!("find path not in read allow list");
+        false
+    }
 }
 
 /// Deny `find -delete`.
@@ -117,6 +154,39 @@ mod tests {
     #[test]
     fn _find_exec_cat() {
         let reason = evaluate_expect_skip("find . -name '*.txt' -exec cat {} +");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn _find_no_path() {
+        let reason = evaluate_expect_skip("find -name '*.rs'");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn _find_trusted_path() {
+        let home = dirs::home_dir().expect("home directory should be resolvable");
+        let path = home.join(".cargo/registry/src/crates");
+        let cmd = format!("find {} -type f -name '*.rs'", path.display());
+        let outcome = evaluate_expect_outcome(&cmd);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn _find_trusted_path__piped() {
+        let home = dirs::home_dir().expect("home directory should be resolvable");
+        let path = home.join(".rustup/toolchains/stable");
+        let cmd = format!("find {} -type f -name '*.md' | head -20", path.display());
+        let outcome = evaluate_expect_outcome(&cmd);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn _find_trusted_path__exec_ls() {
+        let home = dirs::home_dir().expect("home directory should be resolvable");
+        let path = home.join(".cargo/registry/src/crates");
+        let cmd = format!("find {} -name '*.toml' -exec ls {{}} \\;", path.display());
+        let reason = evaluate_expect_skip(&cmd);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 

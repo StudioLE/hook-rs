@@ -61,6 +61,10 @@ Allow without in-place flags (`-i`, `--in-place`, `-o`):
 
 [source: `allow_safe.rs`](src/bash/rules/allow_safe.rs)
 
+Allow `find` in trusted read paths when no destructive flags (`-delete`, `-exec`, `-execdir`) are present.
+
+[source: `find.rs`](src/bash/rules/find.rs)
+
 Allow read-only git subcommands:
 - `git check-ignore`
 - `git describe`
