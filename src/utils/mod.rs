@@ -3,9 +3,7 @@
 mod glob;
 mod logging;
 mod path_helpers;
-mod report;
 
 pub use glob::*;
 pub use logging::*;
 pub use path_helpers::*;
-pub use report::*;

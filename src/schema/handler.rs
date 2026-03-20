@@ -16,14 +16,14 @@ pub fn run<T: Handler>() -> Option<Outcome> {
     let input = match HookInput::<T::Input>::from_stdin() {
         Ok(input) => input,
         Err(report) => {
-            error!("{report:?}");
+            error!("{}", report.render());
             return Some(Outcome::error(report));
         }
     };
     let settings = match Settings::load() {
         Ok(settings) => settings,
         Err(report) => {
-            error!("{report:?}");
+            error!("{}", report.render());
             return Some(Outcome::error(report));
         }
     };

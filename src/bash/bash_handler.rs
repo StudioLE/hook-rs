@@ -17,7 +17,7 @@ impl Handler for BashHandler {
                     debug!(%reason, "Skipped");
                     None
                 } else {
-                    error!("{report:?}");
+                    error!("{}", report.render());
                     Some(Outcome::error(report))
                 }
             }

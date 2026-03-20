@@ -53,7 +53,7 @@ impl Outcome {
     pub fn error<T: Error + Send + Sync + 'static>(error: Report<T>) -> Self {
         Self {
             decision: Decision::Ask,
-            reason: format!("ERROR: {error:?}"),
+            reason: format!("ERROR: {}", error.render()),
         }
     }
 

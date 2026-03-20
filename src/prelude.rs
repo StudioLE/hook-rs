@@ -14,6 +14,7 @@ pub(crate) use std::collections::HashMap;
 pub(crate) use std::error::Error;
 pub(crate) use std::fmt::{Debug, Display, Formatter, Result as FmtResult};
 pub(crate) use std::path::{Path, PathBuf};
+pub(crate) use studiole_report::prelude::*;
 pub(crate) use thiserror::Error;
 #[allow(unused_imports, reason = "all tracing macros for convenience")]
 pub(crate) use tracing::{debug, error, info, trace, warn};
