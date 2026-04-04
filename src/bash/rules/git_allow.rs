@@ -8,6 +8,7 @@ pub(crate) const SAFE_SUBCOMMANDS: &[&str] = &[
     "describe",
     "diff",
     "fetch",
+    "grep",
     "log",
     "ls-tree",
     "merge-base",
@@ -128,6 +129,7 @@ mod tests {
             "describe",
             "diff",
             "fetch",
+            "grep",
             "log",
             "ls-tree",
             "merge-base",
@@ -140,6 +142,13 @@ mod tests {
             let outcome = evaluate_expect_outcome(&format!("git {sub}"));
             assert_eq!(outcome.decision, Decision::Allow, "git {sub}");
         }
+    }
+
+    /// Regex pattern with flags.
+    #[test]
+    fn _git_grep() {
+        let outcome = evaluate_expect_outcome("git grep -E 'foo|bar'");
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
