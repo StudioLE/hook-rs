@@ -58,6 +58,11 @@ pub struct SimpleContext {
     /// Whether any argument contains a command substitution.
     #[serde(skip_serializing_if = "is_false")]
     pub contains_substitution: bool,
+    /// Environment variable assignments prefixed to the command.
+    ///
+    /// Example: `RUST_LOG=debug cargo test` produces `[("RUST_LOG", "debug")]`
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub env_vars: Vec<(String, String)>,
     /// Compound structures this command is nested inside, outermost first.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub nesting: Vec<Nesting>,

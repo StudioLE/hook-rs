@@ -44,6 +44,7 @@ fn get_context_without_c(context: &SimpleContext) -> SimpleContext {
         has_heredoc: context.has_heredoc,
         contains_substitution: context.contains_substitution,
         nesting: context.nesting.clone(),
+        env_vars: context.env_vars.clone(),
     }
 }
 

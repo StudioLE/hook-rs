@@ -55,4 +55,7 @@ pub enum SkipReason {
     /// Command has a process substitution (`<(...)` or `>(...)`).
     #[error("Command has a process substitution (<(...) or >(...))")]
     ProcessSubstitution,
+    /// A prefix environment variable contains a command substitution.
+    #[error("A prefix environment variable contains a command substitution")]
+    PrefixEnvSubstitution,
 }

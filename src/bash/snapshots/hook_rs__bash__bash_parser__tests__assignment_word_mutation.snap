@@ -1,0 +1,13 @@
+---
+source: src/bash/bash_parser.rs
+expression: context
+---
+raw: "gh api graphql -f query='mutation { addComment(input: {subjectId: \"123\"}) { commentEdge { node { body } } } }'"
+children:
+  - children:
+      - name: gh
+        args:
+          - api
+          - graphql
+          - "-f"
+          - "query='mutation { addComment(input: {subjectId: \"123\"}) { commentEdge { node { body } } } }'"

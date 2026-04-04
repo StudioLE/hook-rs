@@ -1,0 +1,13 @@
+---
+source: src/bash/bash_parser.rs
+expression: context
+---
+raw: RUST_LOG=debug 2>/dev/null cargo test
+children:
+  - children:
+      - name: cargo
+        args:
+          - test
+        env_vars:
+          - - RUST_LOG
+            - debug

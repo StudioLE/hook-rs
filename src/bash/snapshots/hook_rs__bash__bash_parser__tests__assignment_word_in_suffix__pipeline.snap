@@ -1,0 +1,11 @@
+---
+source: src/bash/bash_parser.rs
+expression: context
+---
+raw: command key=value | other
+children:
+  - children:
+      - name: command
+        args:
+          - key=value
+      - name: other

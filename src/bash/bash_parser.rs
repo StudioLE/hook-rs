@@ -170,29 +170,32 @@ impl BashParser {
             return Err(ParseError::skip(SkipReason::CommandNameSubstitution));
         }
         let name = unquote_str(&word.value);
-        let all_items = simple
-            .suffix
-            .iter()
-            .flat_map(|suffix| &suffix.0)
-            .chain(simple.prefix.iter().flat_map(|p| &p.0));
-        let mut args = Vec::new();
-        let mut has_heredoc = false;
-        let mut contains_substitution = false;
+        let suffix_items = simple.suffix.iter().flat_map(|suffix| &suffix.0);
+        let prefix_items = simple.prefix.iter().flat_map(|p| &p.0);
+        let mut context = SimpleContext {
+            name,
+            args: Vec::new(),
+            has_heredoc: false,
+            contains_substitution: false,
+            nesting: self.nesting.clone(),
+            env_vars: Vec::new(),
+        };
         let mut inner_commands = Vec::new();
-        for item in all_items {
+        for item in suffix_items {
             match item {
-                CommandPrefixOrSuffixItem::Word(w) => {
+                CommandPrefixOrSuffixItem::Word(w)
+                | CommandPrefixOrSuffixItem::AssignmentWord(_, w) => {
                     let subs = extract_substitutions(&w.value)?;
                     if !subs.is_empty() {
-                        contains_substitution = true;
+                        context.contains_substitution = true;
                         for sub in &subs {
                             inner_commands.extend(self.parse_substitution(sub)?);
                         }
                     }
-                    args.push(w.value.clone());
+                    context.args.push(w.value.clone());
                 }
                 CommandPrefixOrSuffixItem::IoRedirect(IoRedirect::HereDocument(..)) => {
-                    has_heredoc = true;
+                    context.has_heredoc = true;
                 }
                 CommandPrefixOrSuffixItem::IoRedirect(r) if is_safe_redirect(r) => {}
                 CommandPrefixOrSuffixItem::IoRedirect(_) => {
@@ -201,24 +204,37 @@ impl BashParser {
                 CommandPrefixOrSuffixItem::ProcessSubstitution(..) => {
                     return Err(ParseError::skip(SkipReason::ProcessSubstitution));
                 }
-                CommandPrefixOrSuffixItem::AssignmentWord(..) => {}
             }
         }
-        trace!(
-            %name,
-            args = args.len(),
-            has_heredoc,
-            contains_substitution,
-            inner_commands = inner_commands.len(),
-            "Parsed simple command",
-        );
-        let mut result = vec![SimpleContext {
-            name,
-            args,
-            has_heredoc,
-            contains_substitution,
-            nesting: self.nesting.clone(),
-        }];
+        for item in prefix_items {
+            match item {
+                CommandPrefixOrSuffixItem::Word(w) => {
+                    return Err(Report::new(ParseError::UnexpectedPrefixWord)
+                        .attach("word", w.value.clone()));
+                }
+                CommandPrefixOrSuffixItem::IoRedirect(IoRedirect::HereDocument(..)) => {
+                    context.has_heredoc = true;
+                }
+                CommandPrefixOrSuffixItem::IoRedirect(r) if is_safe_redirect(r) => {}
+                CommandPrefixOrSuffixItem::IoRedirect(_) => {
+                    return Err(ParseError::skip(SkipReason::UnsafeRedirect));
+                }
+                CommandPrefixOrSuffixItem::ProcessSubstitution(..) => {
+                    return Err(ParseError::skip(SkipReason::ProcessSubstitution));
+                }
+                CommandPrefixOrSuffixItem::AssignmentWord(assignment, word) => {
+                    let subs = extract_substitutions(&word.value)?;
+                    if !subs.is_empty() {
+                        return Err(ParseError::skip(SkipReason::PrefixEnvSubstitution));
+                    }
+                    context
+                        .env_vars
+                        .push((assignment.name.to_string(), assignment.value.to_string()));
+                }
+            }
+        }
+        trace!(?context, "Parsed simple command");
+        let mut result = vec![context];
         result.extend(inner_commands);
         Ok(result)
     }
@@ -297,6 +313,9 @@ pub enum ParseError {
     /// Word-level parse failed for substitution extraction.
     #[error("Failed to parse a word")]
     Word,
+    /// A regular [`Word`] appeared in the command prefix, which the grammar should not produce.
+    #[error("Failed to parse unexpected word in prefix.")]
+    UnexpectedPrefixWord,
     /// Command was parsed successfully but skipped.
     #[error("Skipped: {0}")]
     Skip(SkipReason),
@@ -742,6 +761,87 @@ mod tests {
         let cmd =
             "git add file.md && git commit -m \"$(cat <<'EOF'\nfeat(scope): Add feature\nEOF\n)\"";
         let context = parse_expect_context(cmd);
+        assert_yaml_snapshot!(context);
+    }
+
+    /// Assignment words in suffix position (after command name) are arguments.
+    ///
+    /// `gh api graphql -f query='...'` - brush-parser classifies
+    /// `query='...'` as an `AssignmentWord` because of the `NAME=VALUE`
+    /// syntax. The word must still appear in args.
+    #[test]
+    fn assignment_word_in_suffix() {
+        let context = parse_expect_context("gh api graphql -f query='{ viewer { login } }'");
+        assert_yaml_snapshot!(context);
+    }
+
+    /// Assignment word containing `mutation` must appear in args for rule matching.
+    #[test]
+    fn assignment_word_mutation() {
+        let context = parse_expect_context(
+            "gh api graphql -f query='mutation { addComment(input: {subjectId: \"123\"}) { commentEdge { node { body } } } }'",
+        );
+        assert_yaml_snapshot!(context);
+    }
+
+    /// Prefix assignment words are environment variables, not arguments.
+    ///
+    /// `RUST_LOG=debug cargo test` - the `RUST_LOG=debug` sets an
+    /// environment variable and must NOT appear in cargo's args.
+    #[test]
+    fn assignment_word_in_prefix() {
+        let context = parse_expect_context("RUST_LOG=debug cargo test");
+        assert_yaml_snapshot!(context);
+    }
+
+    /// Multiple prefix env vars are all captured in `env_vars`.
+    #[test]
+    fn assignment_word_in_prefix__multiple() {
+        let context = parse_expect_context("FOO=1 BAR=2 command");
+        assert_yaml_snapshot!(context);
+    }
+
+    /// Prefix env var with `$()` substitution in value triggers a skip.
+    #[test]
+    fn assignment_word_in_prefix__substitution() {
+        let reason = parse_expect_skip("FOO=$(whoami) command");
+        assert_eq!(reason, SkipReason::PrefixEnvSubstitution);
+    }
+
+    /// Prefix env var with backtick substitution in value triggers a skip.
+    #[test]
+    fn assignment_word_in_prefix__backtick_substitution() {
+        let reason = parse_expect_skip("FOO=`whoami` command");
+        assert_eq!(reason, SkipReason::PrefixEnvSubstitution);
+    }
+
+    /// Substitution in assignment name is not a valid assignment word.
+    ///
+    /// Brush-parser sees `$(whoami)` as the command name, not an assignment.
+    #[test]
+    fn assignment_word_in_prefix__substitution_in_name() {
+        let reason = parse_expect_skip("$(whoami)=FOO command");
+        assert_eq!(reason, SkipReason::CommandNameSubstitution);
+    }
+
+    /// Prefix env var combined with redirect.
+    #[test]
+    fn assignment_word_in_prefix__with_redirect() {
+        let context = parse_expect_context("RUST_LOG=debug 2>/dev/null cargo test");
+        assert_yaml_snapshot!(context);
+    }
+
+    /// Suffix assignment word with command substitution in value.
+    #[test]
+    fn assignment_word_in_suffix__substitution() {
+        let context = parse_expect_context("command key=$(whoami)");
+        assert_yaml_snapshot!(context);
+    }
+
+    /// Suffix assignment word in a pipeline.
+    #[test]
+    fn assignment_word_in_suffix__pipeline() {
+        let context = parse_expect_context("command key=value | other");
         assert_yaml_snapshot!(context);
     }
 

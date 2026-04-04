@@ -1,0 +1,13 @@
+---
+source: src/bash/bash_parser.rs
+expression: context
+---
+raw: FOO=1 BAR=2 command
+children:
+  - children:
+      - name: command
+        env_vars:
+          - - FOO
+            - "1"
+          - - BAR
+            - "2"
