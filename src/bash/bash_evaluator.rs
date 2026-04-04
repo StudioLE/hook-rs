@@ -100,6 +100,7 @@ impl BashEvaluator {
         rules.extend(git_allow_rules());
         rules.extend(git_c_rules());
         rules.extend(insta_rules());
+        rules.extend(journalctl_rules());
         rules.extend(cd_git_rules());
         rules.extend(chained_push_rules());
         rules.extend(long_python_rules());
