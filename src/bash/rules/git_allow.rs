@@ -59,18 +59,7 @@ pub fn git_allow_rules() -> Vec<BashRule> {
     }
 
     rules.push(git_tag__bare());
-    rules.push(BashRule {
-        id: "git_tag__read_only".to_owned(),
-        command: "git tag".to_owned(),
-        with_any: Some(
-            ["-l", "--list", "--contains", "--merged", "--no-merged"]
-                .into_iter()
-                .map(Arg::new)
-                .collect(),
-        ),
-        outcome: Outcome::allow("Safe git subcommand: tag"),
-        ..Default::default()
-    });
+    rules.push(git_tag__read_only());
 
     for sub in ["-v", "--verbose", "show", "get-url"] {
         let sub_id = sub.trim_start_matches('-').replace('-', "_");
@@ -102,6 +91,26 @@ fn git_tag__bare() -> BashRule {
         id: "git_tag__bare".to_owned(),
         command: "git tag".to_owned(),
         condition: Some(|simple, _, _| simple.args.len() == 1),
+        outcome: Outcome::allow("Safe git subcommand: tag"),
+        ..Default::default()
+    }
+}
+
+/// Allow read-only `git tag` flags like `--list`, `--sort`, and `--verify`.
+fn git_tag__read_only() -> BashRule {
+    BashRule {
+        id: "git_tag__read_only".to_owned(),
+        command: "git tag".to_owned(),
+        with_any: Some(vec![
+            Arg::new("-l"),
+            Arg::new("--list"),
+            Arg::new("-v"),
+            Arg::new("--verify"),
+            Arg::new("--contains"),
+            Arg::new("--merged"),
+            Arg::new("--no-merged"),
+            Arg::new("--sort"),
+        ]),
         outcome: Outcome::allow("Safe git subcommand: tag"),
         ..Default::default()
     }
@@ -515,20 +524,33 @@ mod tests {
 
     #[test]
     fn _git_tag_sort() {
-        let reason = evaluate_expect_skip("git tag --sort=version:refname");
-        assert_eq!(reason, SkipReason::NoMatches);
+        let outcome = evaluate_expect_outcome("git tag --sort=version:refname");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn _git_tag_sort__negative() {
+        let outcome = evaluate_expect_outcome("git tag --sort=-creatordate");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    /// Space-separated value; `--sort` alone triggers the `with_any` match.
+    #[test]
+    fn _git_tag_sort__space_separated() {
+        let outcome = evaluate_expect_outcome("git tag --sort -creatordate");
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _git_tag_verify() {
-        let reason = evaluate_expect_skip("git tag -v v1.0");
-        assert_eq!(reason, SkipReason::NoMatches);
+        let outcome = evaluate_expect_outcome("git tag -v v1.0");
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _git_tag_verify_long() {
-        let reason = evaluate_expect_skip("git tag --verify v1.0");
-        assert_eq!(reason, SkipReason::NoMatches);
+        let outcome = evaluate_expect_outcome("git tag --verify v1.0");
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
