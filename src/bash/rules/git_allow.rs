@@ -21,7 +21,19 @@ pub(crate) const SAFE_SUBCOMMANDS: &[&str] = &[
 
 /// Allow read-only git subcommands, including trusted-path variants via `git -C`.
 pub fn git_allow_rules() -> Vec<BashRule> {
-    let mut rules: Vec<BashRule> = SAFE_SUBCOMMANDS
+    let mut rules = git_safe_subcommands();
+    rules.push(git_branch__bare());
+    rules.extend(git_branch__read_only());
+    rules.push(git_tag__bare());
+    rules.push(git_tag__read_only());
+    rules.extend(git_remote__read_only());
+    rules.push(git_remote__bare());
+    rules
+}
+
+/// Allow git subcommands that are unconditionally safe.
+fn git_safe_subcommands() -> Vec<BashRule> {
+    SAFE_SUBCOMMANDS
         .iter()
         .map(|sub| {
             BashRule::new(
@@ -30,10 +42,23 @@ pub fn git_allow_rules() -> Vec<BashRule> {
                 Outcome::allow(format!("Safe git subcommand: {sub}")),
             )
         })
-        .collect();
+        .collect()
+}
 
-    rules.push(git_branch__bare());
-    for flag in [
+/// Allow bare `git branch` (no arguments).
+fn git_branch__bare() -> BashRule {
+    BashRule {
+        id: "git_branch__bare".to_owned(),
+        command: "git branch".to_owned(),
+        condition: Some(|simple, _, _| simple.args.len() == 1),
+        outcome: Outcome::allow("Safe git subcommand: branch"),
+        ..Default::default()
+    }
+}
+
+/// Allow read-only `git branch` flags.
+fn git_branch__read_only() -> Vec<BashRule> {
+    [
         "-a",
         "--all",
         "-l",
@@ -47,42 +72,19 @@ pub fn git_allow_rules() -> Vec<BashRule> {
         "--merged",
         "--no-merged",
         "--points-at",
-    ] {
+    ]
+    .into_iter()
+    .map(|flag| {
         let flag_id = flag.trim_start_matches('-').replace('-', "_");
-        rules.push(BashRule {
+        BashRule {
             id: format!("git_branch_{flag_id}"),
             command: "git branch".to_owned(),
             with_any: Some(vec![Arg::new(flag)]),
             outcome: Outcome::allow("Safe git subcommand: branch"),
             ..Default::default()
-        });
-    }
-
-    rules.push(git_tag__bare());
-    rules.push(git_tag__read_only());
-
-    for sub in ["-v", "--verbose", "show", "get-url"] {
-        let sub_id = sub.trim_start_matches('-').replace('-', "_");
-        rules.push(BashRule::new(
-            format!("git_remote_{sub_id}"),
-            format!("git remote {sub}"),
-            Outcome::allow("Safe git subcommand: remote"),
-        ));
-    }
-    rules.push(git_remote__bare());
-
-    rules
-}
-
-/// Allow bare `git branch` (no arguments).
-fn git_branch__bare() -> BashRule {
-    BashRule {
-        id: "git_branch__bare".to_owned(),
-        command: "git branch".to_owned(),
-        condition: Some(|simple, _, _| simple.args.len() == 1),
-        outcome: Outcome::allow("Safe git subcommand: branch"),
-        ..Default::default()
-    }
+        }
+    })
+    .collect()
 }
 
 /// Allow bare `git tag` (no arguments).
@@ -114,6 +116,21 @@ fn git_tag__read_only() -> BashRule {
         outcome: Outcome::allow("Safe git subcommand: tag"),
         ..Default::default()
     }
+}
+
+/// Allow read-only `git remote` subcommands.
+fn git_remote__read_only() -> Vec<BashRule> {
+    ["-v", "--verbose", "show", "get-url"]
+        .into_iter()
+        .map(|sub| {
+            let sub_id = sub.trim_start_matches('-').replace('-', "_");
+            BashRule::new(
+                format!("git_remote_{sub_id}"),
+                format!("git remote {sub}"),
+                Outcome::allow("Safe git subcommand: remote"),
+            )
+        })
+        .collect()
 }
 
 /// Allow bare `git remote` (no arguments).
