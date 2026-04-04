@@ -30,16 +30,18 @@ impl PathRuleFactory {
 
     /// Check if a path is allowed using last-match-wins semantics.
     ///
+    /// - Expands a leading `~/` or bare `~` in the input path
     /// - Patterns are evaluated bottom-to-top (last match wins)
     /// - `!` prefix negates (untrusts)
     /// - No match returns `None`
     pub fn is_match(&self, path: &str, patterns: &[String]) -> Option<bool> {
+        let path = expand_tilde(path, &self.home);
         for pattern in patterns.iter().rev() {
             let (negated, glob) = match pattern.strip_prefix('!') {
                 Some(rest) => (true, rest),
                 None => (false, pattern.as_str()),
             };
-            if self.create(glob).is_match(path) {
+            if self.create(glob).is_match(&path) {
                 return Some(!negated);
             }
         }
@@ -78,16 +80,19 @@ fn strip_recursive_glob(pattern: &str) -> Option<String> {
         .map(ToOwned::to_owned)
 }
 
-/// Expand a leading `~/` to the given home directory.
-fn expand_tilde(pattern: impl Into<String>, home: &Path) -> String {
-    let pattern = pattern.into();
-    if let Some(rest) = pattern.strip_prefix("~/") {
+/// Expand a leading `~/` or bare `~` to the given home directory.
+fn expand_tilde(value: impl Into<String>, home: &Path) -> String {
+    let value = value.into();
+    if value == "~" {
+        return home.to_string_lossy().into_owned();
+    }
+    if let Some(rest) = value.strip_prefix("~/") {
         return format!("{}/{rest}", home.to_string_lossy());
     }
-    if pattern.contains('~') {
-        warn!("Pattern contains unexpected tilde: {pattern}");
+    if value.contains('~') {
+        warn!("Path contains unexpected tilde: {value}");
     }
-    pattern
+    value
 }
 
 #[cfg(test)]
@@ -117,9 +122,9 @@ mod tests {
     }
 
     #[test]
-    fn bare_tilde_unchanged() {
-        let result = expand_tilde("~", &home());
-        assert_eq!(result, "~");
+    fn bare_tilde() {
+        let output = expand_tilde("~", &home());
+        assert_eq!(output, "/home/user");
     }
 
     #[test]
@@ -198,9 +203,10 @@ mod tests {
     }
 
     #[test]
-    fn bare_tilde_no_glob_match() {
+    fn bare_tilde_pattern() {
         let rule = factory().create("~");
-        assert!(!rule.is_match("/home/user"));
+        assert!(rule.is_match("/home/user"));
+        assert!(!rule.is_match("/home/user/subdir"));
     }
 
     #[test]
@@ -255,6 +261,72 @@ mod tests {
     fn patterns_empty() {
         let patterns: Vec<String> = vec![];
         assert_eq!(factory().is_match("/a/file.txt", &patterns), None);
+    }
+
+    // is_match with tilde input paths
+
+    /// Input path with `~` matches a tilde settings pattern.
+    #[test]
+    fn is_match__tilde_input_tilde_pattern() {
+        let patterns = vec!["~/.config/foo/**".to_owned()];
+        assert_eq!(
+            factory().is_match("~/.config/foo/bar", &patterns),
+            Some(true)
+        );
+    }
+
+    /// Input path with `~` matches an absolute settings pattern.
+    #[test]
+    fn is_match__tilde_input_absolute_pattern() {
+        let patterns = vec!["/home/user/.config/foo/**".to_owned()];
+        assert_eq!(
+            factory().is_match("~/.config/foo/bar", &patterns),
+            Some(true)
+        );
+    }
+
+    /// Already-expanded input path matches a tilde settings pattern.
+    #[test]
+    fn is_match__absolute_input_tilde_pattern() {
+        let patterns = vec!["~/.config/foo/**".to_owned()];
+        assert_eq!(
+            factory().is_match("/home/user/.config/foo/bar", &patterns),
+            Some(true)
+        );
+    }
+
+    /// Bare `~` input matches a `~/**` pattern via exact prefix.
+    #[test]
+    fn is_match__bare_tilde_input() {
+        let patterns = vec!["~/**".to_owned()];
+        assert_eq!(factory().is_match("~", &patterns), Some(true));
+    }
+
+    /// Trailing-slash tilde input matches `~/**` pattern.
+    #[test]
+    fn is_match__tilde_slash_input() {
+        let patterns = vec!["~/**".to_owned()];
+        assert_eq!(factory().is_match("~/", &patterns), Some(true));
+    }
+
+    /// Tilde input with negation pattern.
+    #[test]
+    fn is_match__tilde_input_negation() {
+        let patterns = vec!["~/.config/**".to_owned(), "!~/.config/secret/**".to_owned()];
+        assert_eq!(
+            factory().is_match("~/.config/secret/key", &patterns),
+            Some(false)
+        );
+    }
+
+    /// Already-expanded path is not corrupted by `expand_tilde`.
+    #[test]
+    fn is_match__no_double_expansion() {
+        let patterns = vec!["/home/user/.config/**".to_owned()];
+        assert_eq!(
+            factory().is_match("/home/user/.config/foo", &patterns),
+            Some(true)
+        );
     }
 
     // basename patterns

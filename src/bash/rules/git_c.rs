@@ -514,6 +514,48 @@ mod tests {
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
+    // === tilde paths ===
+
+    /// Tilde path in `git -C` matches a tilde settings pattern.
+    #[test]
+    fn tilde_path_trusted() {
+        let settings = git_settings(&["~/.config/worktrees/**"]);
+        let outcome = eval_outcome("git -C ~/.config/worktrees/my-project status", settings);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    /// Tilde path in `git -C` matches an absolute settings pattern.
+    #[test]
+    fn tilde_path_absolute_pattern() {
+        let home = dirs::home_dir().expect("test requires home directory");
+        let pattern = format!("{home}/.config/worktrees/**", home = home.display());
+        let settings = git_settings(&[&pattern]);
+        let outcome = eval_outcome(
+            "git -C ~/.config/worktrees/my-project log --oneline",
+            settings,
+        );
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    /// Tilde path in `git -C` that doesn't match any pattern passes through.
+    #[test]
+    fn tilde_path_untrusted() {
+        let settings = git_settings(&["~/.config/worktrees/**"]);
+        let reason = eval_skip("git -C ~/.other/repo status", settings);
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    /// Destructive operation with tilde path is still denied.
+    #[test]
+    fn tilde_path_destructive() {
+        let settings = git_settings(&["~/.config/worktrees/**"]);
+        let outcome = eval_outcome(
+            "git -C ~/.config/worktrees/my-project reset --hard",
+            settings,
+        );
+        assert_eq!(outcome.decision, Decision::Deny);
+    }
+
     fn git_settings(paths: &[&str]) -> Settings {
         Settings {
             git: GitSettings {

@@ -136,6 +136,69 @@ mod tests {
         assert_eq!(outcome.expect("should match").decision, Decision::Allow);
     }
 
+    /// Tilde input path matches a tilde settings pattern via `PathRuleFactory` expansion.
+    #[test]
+    fn tilde_input_matches_tilde_pattern() {
+        // Arrange
+        let input =
+            ReadInput::new("~/.cargo/registry/src/index.crates.io-xxx/serde-1.0.0/src/lib.rs");
+        let settings = Settings {
+            read: ReadSettings {
+                paths: vec!["~/.cargo/registry/src/**".to_owned()],
+            },
+            ..Settings::default()
+        };
+
+        // Act
+        let outcome = ReadHandler::run(input, settings);
+
+        // Assert
+        assert_eq!(outcome.expect("should match").decision, Decision::Allow);
+    }
+
+    /// Tilde input path matches an absolute settings pattern.
+    #[test]
+    fn tilde_input_matches_absolute_pattern() {
+        // Arrange
+        let home = dirs::home_dir().expect("test requires home directory");
+        let input =
+            ReadInput::new("~/.cargo/registry/src/index.crates.io-xxx/serde-1.0.0/src/lib.rs");
+        let settings = Settings {
+            read: ReadSettings {
+                paths: vec![format!(
+                    "{home}/.cargo/registry/src/**",
+                    home = home.display()
+                )],
+            },
+            ..Settings::default()
+        };
+
+        // Act
+        let outcome = ReadHandler::run(input, settings);
+
+        // Assert
+        assert_eq!(outcome.expect("should match").decision, Decision::Allow);
+    }
+
+    /// Tilde input path to a deeply nested file.
+    #[test]
+    fn tilde_input_deep_path() {
+        // Arrange
+        let input = ReadInput::new("~/.config/tools/cache/v1/data/file.md");
+        let settings = Settings {
+            read: ReadSettings {
+                paths: vec!["~/.config/**".to_owned()],
+            },
+            ..Settings::default()
+        };
+
+        // Act
+        let outcome = ReadHandler::run(input, settings);
+
+        // Assert
+        assert_eq!(outcome.expect("should match").decision, Decision::Allow);
+    }
+
     fn absolute_settings() -> Settings {
         Settings {
             read: ReadSettings {
