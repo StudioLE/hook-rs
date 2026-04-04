@@ -76,6 +76,8 @@ fn gh_api_graphql__query() -> BashRule {
 }
 
 /// Ask for API with data flags.
+///
+/// Excludes `gh api graphql` which is handled by dedicated graphql rules.
 fn gh_api__data_flags() -> BashRule {
     BashRule {
         id: "gh_api__data_flags".to_owned(),
@@ -89,23 +91,29 @@ fn gh_api__data_flags() -> BashRule {
             Arg::new("--raw-field"),
             Arg::new("--input"),
         ]),
+        without_any: Some(vec![Arg::new("graphql")]),
         outcome: Outcome::ask("GitHub API request with data flags"),
         ..Default::default()
     }
 }
 
 /// Ask for API write method.
+///
+/// Excludes `gh api graphql` which is handled by dedicated graphql rules.
 fn gh_api__write_method() -> BashRule {
     BashRule {
         id: "gh_api__write_method".to_owned(),
         command: "gh api".to_owned(),
         with_any: Some(vec![Arg::new("-X").ivalue("{POST,PUT,PATCH,DELETE}")]),
+        without_any: Some(vec![Arg::new("graphql")]),
         outcome: Outcome::ask("GitHub API write method"),
         ..Default::default()
     }
 }
 
 /// Allow read-only `gh api` (no data flags or write methods).
+///
+/// Excludes `gh api graphql` which is handled by dedicated graphql rules.
 fn gh_api__read_only() -> BashRule {
     BashRule {
         id: "gh_api__read_only".to_owned(),
@@ -119,6 +127,7 @@ fn gh_api__read_only() -> BashRule {
             Arg::new("--raw-field"),
             Arg::new("--input"),
             Arg::new("-X").ivalue("{POST,PUT,PATCH,DELETE}"),
+            Arg::new("graphql"),
         ]),
         outcome: Outcome::allow("Read-only gh api command"),
         ..Default::default()
@@ -261,7 +270,7 @@ mod tests {
         let outcome = evaluate_expect_outcome(
             "gh api graphql -f query='{ repository(owner: \"owner\", name: \"repo\") { discussions(first: 10) { nodes { title } } } }'",
         );
-        assert_eq!(outcome.decision, Decision::Ask);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
@@ -269,14 +278,14 @@ mod tests {
         let outcome = evaluate_expect_outcome(
             "gh api graphql -f query='{ repository(owner: \"owner\", name: \"repo\") { discussion(number: 97) { author { login } } } }' --jq '.data.repository.discussion'",
         );
-        assert_eq!(outcome.decision, Decision::Ask);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _gh_api_graphql__query_explicit() {
         let outcome =
             evaluate_expect_outcome("gh api graphql -f query='query { viewer { login } }'");
-        assert_eq!(outcome.decision, Decision::Ask);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
