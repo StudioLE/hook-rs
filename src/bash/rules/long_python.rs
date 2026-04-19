@@ -86,27 +86,27 @@ mod tests {
     }
 
     #[test]
-    fn short_heredoc_passthrough() {
-        let reason = evaluate_expect_skip(&make_heredoc(5));
-        assert_eq!(reason, SkipReason::NoMatches);
+    fn short_heredoc() {
+        let outcome = evaluate_expect_outcome(&make_heredoc(5));
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn short_c_passthrough() {
-        let reason = evaluate_expect_skip("python3 -c 'print(\"hello\")'");
-        assert_eq!(reason, SkipReason::NoMatches);
+    fn short_c() {
+        let outcome = evaluate_expect_outcome("python3 -c 'print(\"hello\")'");
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn python_script_passthrough() {
-        let reason = evaluate_expect_skip("python3 /tmp/script.py");
-        assert_eq!(reason, SkipReason::NoMatches);
+    fn python_script() {
+        let outcome = evaluate_expect_outcome("python3 /tmp/script.py");
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn python_module_passthrough() {
-        let reason = evaluate_expect_skip("python3 -m http.server 8080");
-        assert_eq!(reason, SkipReason::NoMatches);
+    fn python_module() {
+        let outcome = evaluate_expect_outcome("python3 -m http.server 8080");
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
@@ -124,9 +124,9 @@ mod tests {
     }
 
     #[test]
-    fn boundary_exactly_20_lines_passthrough() {
-        let reason = evaluate_expect_skip(&make_heredoc(18));
-        assert_eq!(reason, SkipReason::NoMatches);
+    fn boundary_exactly_20_lines() {
+        let outcome = evaluate_expect_outcome(&make_heredoc(18));
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
@@ -136,9 +136,9 @@ mod tests {
     }
 
     #[test]
-    fn boundary_exactly_1000_chars_passthrough() {
-        let reason = evaluate_expect_skip(&make_long_c(978));
-        assert_eq!(reason, SkipReason::NoMatches);
+    fn boundary_exactly_1000_chars() {
+        let outcome = evaluate_expect_outcome(&make_long_c(978));
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
