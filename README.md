@@ -119,18 +119,6 @@ Deny destructive git operations:
 </details>
 
 <details>
-<summary>Prefer Modern Alternatives</summary>
-
-Deny traditional tools and suggest modern alternatives:
-- `find` - use `fd` instead
-- `grep` - use `rg` instead
-- `sed` - use `sd` instead
-
-[source: `modern_alternatives.rs`](src/bash/rules/modern_alternatives.rs)
-
-</details>
-
-<details>
 <summary>Trusted Git Paths</summary>
 
 Handle `git -C <path>` by combining path trust classification with subcommand analysis.

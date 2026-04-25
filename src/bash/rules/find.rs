@@ -1,10 +1,31 @@
-//! Deny rules for destructive `find` operations.
+//! Rules for `find` operations: allow read-only, deny destructive.
 
 use crate::prelude::*;
 
-/// Deny `find -delete` and `find -exec rm` to prevent bulk file deletion.
+/// Rules for `find`.
 pub fn find_rules() -> Vec<BashRule> {
-    vec![find_delete(), find_exec_rm()]
+    vec![find_delete(), find_exec_rm(), find__read_only()]
+}
+
+/// Allow `find` without exec flags.
+fn find__read_only() -> BashRule {
+    BashRule {
+        id: "find__read_only".to_owned(),
+        command: "find".to_owned(),
+        without_any: Some(vec![
+            Arg::new("-delete"),
+            Arg::new("-exec"),
+            Arg::new("-execdir"),
+            Arg::new("-ok"),
+            Arg::new("-okdir"),
+            Arg::new("-fprint"),
+            Arg::new("-fprint0"),
+            Arg::new("-fprintf"),
+            Arg::new("-fls"),
+        ]),
+        outcome: Outcome::allow("Safe command: find (read-only)"),
+        ..Default::default()
+    }
 }
 
 /// Deny `find -delete`.
@@ -93,31 +114,31 @@ mod tests {
     #[test]
     fn _find_name() {
         let outcome = evaluate_expect_outcome("find . -name '*.rs'");
-        assert_eq!(outcome.decision, Decision::Deny);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _find_print() {
         let outcome = evaluate_expect_outcome("find . -type f -print");
-        assert_eq!(outcome.decision, Decision::Deny);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _find_maxdepth() {
         let outcome = evaluate_expect_outcome("find /path -maxdepth 1");
-        assert_eq!(outcome.decision, Decision::Deny);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn _find_exec_ls() {
-        let outcome = evaluate_expect_outcome("find . -name '*.tmp' -exec ls {} \\;");
-        assert_eq!(outcome.decision, Decision::Deny);
+        let reason = evaluate_expect_skip("find . -name '*.tmp' -exec ls {} \\;");
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn _find_exec_cat() {
-        let outcome = evaluate_expect_outcome("find . -name '*.txt' -exec cat {} +");
-        assert_eq!(outcome.decision, Decision::Deny);
+        let reason = evaluate_expect_skip("find . -name '*.txt' -exec cat {} +");
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]

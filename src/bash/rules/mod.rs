@@ -12,7 +12,6 @@ mod git_deny;
 mod insta;
 mod journalctl;
 mod long_python;
-mod modern_alternatives;
 mod python;
 mod rm;
 
@@ -28,6 +27,5 @@ pub use git_deny::*;
 pub use insta::*;
 pub use journalctl::*;
 pub use long_python::*;
-pub use modern_alternatives::*;
 pub use python::*;
 pub use rm::*;
