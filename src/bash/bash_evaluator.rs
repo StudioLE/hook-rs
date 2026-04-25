@@ -93,6 +93,7 @@ impl BashEvaluator {
         let mut rules = Vec::new();
         rules.push(rm());
         rules.extend(cargo_rules());
+        rules.extend(curl_rules());
         rules.extend(fd_rules());
         rules.extend(find_rules());
         rules.extend(gh_rules());
