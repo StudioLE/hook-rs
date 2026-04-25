@@ -8,6 +8,8 @@ pub fn gh_rules() -> Vec<BashRule> {
         gh_run_list(),
         gh_run_view(),
         gh_release_list(),
+        gh_pr_view(),
+        gh_search_code(),
         gh_pr_comment(),
         gh_api_graphql__mutation(),
         gh_api_graphql__query(),
@@ -41,6 +43,24 @@ fn gh_release_list() -> BashRule {
         "gh_release_list",
         "gh release list",
         Outcome::allow("Read-only gh release list"),
+    )
+}
+
+/// Allow `gh pr view`.
+fn gh_pr_view() -> BashRule {
+    BashRule::new(
+        "gh_pr_view",
+        "gh pr view",
+        Outcome::allow("Read-only gh pr view"),
+    )
+}
+
+/// Allow `gh search code`.
+fn gh_search_code() -> BashRule {
+    BashRule::new(
+        "gh_search_code",
+        "gh search code",
+        Outcome::allow("Read-only gh search code"),
     )
 }
 
@@ -330,6 +350,26 @@ mod tests {
     fn _gh_api__data_flags__input() {
         let outcome = evaluate_expect_outcome("gh api /repos/owner/repo --input file.json");
         assert_eq!(outcome.decision, Decision::Ask);
+    }
+
+    #[test]
+    fn _gh_pr_view() {
+        let outcome = evaluate_expect_outcome("gh pr view 228");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn _gh_pr_view__json_fields() {
+        let outcome = evaluate_expect_outcome("gh pr view 228 --json reviews,commits");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn _gh_search_code() {
+        let outcome = evaluate_expect_outcome(
+            "gh search code --repo rust-lang/rust-analyzer \"fn diagnostics\" --limit 5",
+        );
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
