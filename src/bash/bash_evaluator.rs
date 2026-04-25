@@ -105,6 +105,7 @@ impl BashEvaluator {
         rules.extend(chained_push_rules());
         rules.extend(long_python_rules());
         rules.extend(python_rules());
+        rules.extend(sops_rules());
         rules.extend(safe_rules());
         Self { settings, rules }
     }

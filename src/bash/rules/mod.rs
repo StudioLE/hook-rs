@@ -15,6 +15,7 @@ mod journalctl;
 mod long_python;
 mod python;
 mod rm;
+mod sops;
 
 pub use allow_safe::*;
 pub use cargo::*;
@@ -31,3 +32,4 @@ pub use journalctl::*;
 pub use long_python::*;
 pub use python::*;
 pub use rm::*;
+pub use sops::*;
