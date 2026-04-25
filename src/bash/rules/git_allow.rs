@@ -320,7 +320,7 @@ mod tests {
 
     #[test]
     fn _cargo() {
-        let reason = evaluate_expect_skip("cargo build");
+        let reason = evaluate_expect_skip("cargo publish");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 

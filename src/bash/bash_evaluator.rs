@@ -92,13 +92,13 @@ impl BashEvaluator {
     pub fn new(settings: Settings) -> Self {
         let mut rules = Vec::new();
         rules.push(rm());
+        rules.extend(cargo_rules());
         rules.extend(fd_rules());
         rules.extend(find_rules());
         rules.extend(gh_rules());
         rules.extend(git_deny_rules());
         rules.extend(git_allow_rules());
         rules.extend(git_c_rules());
-        rules.extend(insta_rules());
         rules.extend(journalctl_rules());
         rules.extend(cd_git_rules());
         rules.extend(chained_push_rules());
@@ -201,12 +201,6 @@ mod tests {
     fn plain_ls_allowed() {
         let outcome = evaluate_expect_outcome("ls -la");
         assert_eq!(outcome.decision, Decision::Allow);
-    }
-
-    #[test]
-    fn plain_cargo_passthrough() {
-        let reason = evaluate_expect_skip("cargo build");
-        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
@@ -314,7 +308,7 @@ mod tests {
 
     #[test]
     fn safe_and_unknown_passthrough() {
-        let reason = evaluate_expect_skip("git status && cargo build");
+        let reason = evaluate_expect_skip("git status && cargo publish");
         assert_eq!(reason, SkipReason::OnlyAllowAll);
     }
 
@@ -326,7 +320,7 @@ mod tests {
 
     #[test]
     fn semi_allow_and_unknown_passthrough() {
-        let reason = evaluate_expect_skip("git status ; cargo build");
+        let reason = evaluate_expect_skip("git status ; cargo publish");
         assert_eq!(reason, SkipReason::OnlyAllowAll);
     }
 
@@ -362,13 +356,13 @@ mod tests {
 
     #[test]
     fn for_loop_allow_and_unknown_passthrough() {
-        let reason = evaluate_expect_skip("for f in *.txt; do git status && cargo build; done");
+        let reason = evaluate_expect_skip("for f in *.txt; do git status && cargo publish; done");
         assert_eq!(reason, SkipReason::OnlyAllowAll);
     }
 
     #[test]
     fn for_loop_unknown_passthrough() {
-        let reason = evaluate_expect_skip("for f in *.txt; do cargo build; done");
+        let reason = evaluate_expect_skip("for f in *.txt; do cargo publish; done");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 }
