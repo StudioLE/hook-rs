@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 /// Git subcommands considered safe (read-only or low-risk).
 pub(crate) const SAFE_SUBCOMMANDS: &[&str] = &[
+    "blame",
     "check-ignore",
     "describe",
     "diff",
@@ -28,6 +29,10 @@ pub fn git_allow_rules() -> Vec<BashRule> {
     rules.push(git_tag__read_only());
     rules.extend(git_remote__read_only());
     rules.push(git_remote__bare());
+    rules.extend(git_worktree__read_only());
+    rules.push(git_config_list());
+    rules.push(git_config_get());
+    rules.push(git_config__read_only_flags());
     rules
 }
 
@@ -72,6 +77,7 @@ fn git_branch__read_only() -> Vec<BashRule> {
         "--merged",
         "--no-merged",
         "--points-at",
+        "--show-current",
     ]
     .into_iter()
     .map(|flag| {
@@ -133,6 +139,58 @@ fn git_remote__read_only() -> Vec<BashRule> {
         .collect()
 }
 
+/// Allow read-only `git worktree` subcommands.
+fn git_worktree__read_only() -> Vec<BashRule> {
+    ["list"]
+        .into_iter()
+        .map(|sub| {
+            BashRule::new(
+                format!("git_worktree_{sub}"),
+                format!("git worktree {sub}"),
+                Outcome::allow("Safe git subcommand: worktree"),
+            )
+        })
+        .collect()
+}
+
+/// Allow `git config list`.
+fn git_config_list() -> BashRule {
+    BashRule::new(
+        "git_config_list",
+        "git config list",
+        Outcome::allow("Safe git subcommand: config"),
+    )
+}
+
+/// Allow `git config get`.
+fn git_config_get() -> BashRule {
+    BashRule::new(
+        "git_config_get",
+        "git config get",
+        Outcome::allow("Safe git subcommand: config"),
+    )
+}
+
+/// Allow read-only `git config` flag forms (`--get`, `--list`, etc.).
+fn git_config__read_only_flags() -> BashRule {
+    BashRule {
+        id: "git_config__read_only_flags".to_owned(),
+        command: "git config".to_owned(),
+        with_any: Some(vec![
+            Arg::new("-l"),
+            Arg::new("--list"),
+            Arg::new("--get"),
+            Arg::new("--get-all"),
+            Arg::new("--get-regexp"),
+            Arg::new("--get-urlmatch"),
+            Arg::new("--get-color"),
+            Arg::new("--get-colorbool"),
+        ]),
+        outcome: Outcome::allow("Safe git subcommand: config"),
+        ..Default::default()
+    }
+}
+
 /// Allow bare `git remote` (no arguments).
 fn git_remote__bare() -> BashRule {
     BashRule {
@@ -151,6 +209,7 @@ mod tests {
     #[test]
     fn _git_safe_subcommands() {
         for sub in [
+            "blame",
             "check-ignore",
             "describe",
             "diff",
@@ -391,6 +450,12 @@ mod tests {
     fn _git_branch_format() {
         let reason = evaluate_expect_skip("git branch --format='%(refname:short)'");
         assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn _git_branch_show_current() {
+        let outcome = evaluate_expect_outcome("git branch --show-current");
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
@@ -682,6 +747,196 @@ mod tests {
     #[test]
     fn _git_remote_prune() {
         let reason = evaluate_expect_skip("git remote prune origin");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    // Blame tests
+    #[test]
+    fn _git_blame() {
+        let outcome = evaluate_expect_outcome("git blame file.txt");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn _git_blame_line_range() {
+        let outcome = evaluate_expect_outcome("git blame file.txt -L 15,45");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    // Worktree tests
+    #[test]
+    fn _git_worktree_list() {
+        let outcome = evaluate_expect_outcome("git worktree list");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn _git_worktree_list_porcelain() {
+        let outcome = evaluate_expect_outcome("git worktree list --porcelain");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn _git_worktree_add() {
+        let reason = evaluate_expect_skip("git worktree add ../foo main");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn _git_worktree_remove() {
+        let reason = evaluate_expect_skip("git worktree remove ../foo");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn _git_worktree_prune() {
+        let reason = evaluate_expect_skip("git worktree prune");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn _git_worktree_move() {
+        let reason = evaluate_expect_skip("git worktree move ../foo ../bar");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn _git_worktree_lock() {
+        let reason = evaluate_expect_skip("git worktree lock ../foo");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn _git_worktree_unlock() {
+        let reason = evaluate_expect_skip("git worktree unlock ../foo");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn _git_worktree_repair() {
+        let reason = evaluate_expect_skip("git worktree repair");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn _git_worktree_bare() {
+        let reason = evaluate_expect_skip("git worktree");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    // Config tests
+    #[test]
+    fn _git_config_list() {
+        let outcome = evaluate_expect_outcome("git config list");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn _git_config_get() {
+        let outcome = evaluate_expect_outcome("git config get core.hooksPath");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn _git_config_list_long() {
+        let outcome = evaluate_expect_outcome("git config --list");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn _git_config_l() {
+        let outcome = evaluate_expect_outcome("git config -l");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn _git_config_get_flag() {
+        let outcome = evaluate_expect_outcome("git config --get core.hooksPath");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn _git_config_get_all() {
+        let outcome = evaluate_expect_outcome("git config --get-all remote.origin.fetch");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn _git_config_get_regexp() {
+        let outcome = evaluate_expect_outcome("git config --get-regexp '^remote\\.'");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn _git_config_get_urlmatch() {
+        let outcome = evaluate_expect_outcome("git config --get-urlmatch http https://example.com");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn _git_config_get_colorbool() {
+        let outcome = evaluate_expect_outcome("git config --get-colorbool color.diff");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn _git_config_set() {
+        let reason = evaluate_expect_skip("git config set user.name foo");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn _git_config_unset() {
+        let reason = evaluate_expect_skip("git config unset user.name");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn _git_config_set_flag() {
+        let reason = evaluate_expect_skip("git config --set user.name foo");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn _git_config_add() {
+        let reason = evaluate_expect_skip("git config --add remote.origin.fetch refs/foo");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn _git_config_unset_flag() {
+        let reason = evaluate_expect_skip("git config --unset user.name");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn _git_config_replace_all() {
+        let reason = evaluate_expect_skip("git config --replace-all user.name foo");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn _git_config_edit() {
+        let reason = evaluate_expect_skip("git config edit");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn _git_config_remove_section() {
+        let reason = evaluate_expect_skip("git config remove-section user");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn _git_config_rename_section() {
+        let reason = evaluate_expect_skip("git config rename-section foo bar");
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    /// Bare `git config <key> <value>` writes the value; must not be allowed.
+    #[test]
+    fn _git_config_bare_set() {
+        let reason = evaluate_expect_skip("git config user.name foo");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 }

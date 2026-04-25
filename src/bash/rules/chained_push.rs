@@ -119,6 +119,6 @@ mod tests {
     #[test]
     fn push_with_substitution_passthrough() {
         let reason = evaluate_expect_skip("git push origin \"$(git branch --show-current)\"");
-        assert_eq!(reason, SkipReason::NoMatches);
+        assert_eq!(reason, SkipReason::OnlyAllowAll);
     }
 }
