@@ -12,6 +12,7 @@ pub(crate) const READ_ONLY_SUBCOMMANDS: &[&str] = &[
     "log",
     "ls-tree",
     "merge-base",
+    "patch-id",
     "rev-parse",
     "show",
     "status",
@@ -258,6 +259,18 @@ mod tests {
     #[test]
     fn git_log_args() {
         let outcome = evaluate_expect_outcome("git log --oneline -5");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn git_patch_id() {
+        let outcome = evaluate_expect_outcome("git patch-id --stable");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn git_log_pipe_patch_id() {
+        let outcome = evaluate_expect_outcome("git log --format='%H' main | git patch-id --stable");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
