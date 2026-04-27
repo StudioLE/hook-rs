@@ -3,9 +3,9 @@
 use crate::prelude::*;
 
 const READ_ONLY_COMMANDS: &[&str] = &[
-    "base64", "basename", "cat", "column", "command", "cut", "dirname", "echo", "file", "fmt",
-    "grep", "head", "jq", "less", "ls", "readlink", "realpath", "rg", "stat", "tail", "tr", "tree",
-    "type", "uniq", "wc", "which", "xxd",
+    "base64", "basename", "cat", "column", "command", "cut", "diff", "dirname", "echo", "file",
+    "fmt", "grep", "head", "jq", "less", "ls", "readlink", "realpath", "rg", "stat", "tail", "tr",
+    "tree", "type", "uniq", "wc", "which", "xxd",
 ];
 
 /// Rules for read-only commands.
@@ -45,6 +45,18 @@ fn yq() -> BashRule {
 #[cfg(test)]
 mod tests {
     use crate::prelude::*;
+
+    #[test]
+    fn diff_two_files() {
+        let outcome = evaluate_expect_outcome("diff a.snap a.snap.new");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn diff_piped_head() {
+        let outcome = evaluate_expect_outcome("diff a.snap a.snap.new | head -50");
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
 
     #[test]
     fn for_loop_rg_basename() {
