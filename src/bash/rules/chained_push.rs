@@ -65,57 +65,55 @@ mod tests {
     }
 
     #[test]
-    fn standalone_push_passthrough() {
+    fn standalone_push() {
         let reason = evaluate_expect_skip("git push");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn push_origin_main_passthrough() {
+    fn push_origin_main() {
         let reason = evaluate_expect_skip("git push origin main");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn push_u_passthrough() {
+    fn push_u() {
         let reason = evaluate_expect_skip("git push -u origin feature-branch");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn push_set_upstream_passthrough() {
+    fn push_set_upstream() {
         let reason = evaluate_expect_skip("git push --set-upstream origin branch");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn push_force_with_lease_passthrough() {
+    fn push_force_with_lease() {
         let reason = evaluate_expect_skip("git push --force-with-lease");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn git_status_passthrough() {
-        // git status alone is Allow via git_approval, not passthrough
+    fn git_status() {
         let outcome = evaluate_expect_outcome("git status");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn commit_with_push_in_message_passthrough() {
+    fn commit_with_push_in_message() {
         let reason = evaluate_expect_skip("git commit -m 'push changes'");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn echo_git_push_passthrough() {
-        // echo is Allow via read_only_rules
+    fn echo_git_push() {
         let outcome = evaluate_expect_outcome("echo git push");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn push_with_substitution_passthrough() {
+    fn push_with_substitution() {
         let reason = evaluate_expect_skip("git push origin \"$(git branch --show-current)\"");
         assert_eq!(reason, SkipReason::OnlyAllowAll);
     }

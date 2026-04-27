@@ -170,7 +170,7 @@ mod tests {
     }
 
     #[test]
-    fn bash_json_fails_as_read_input() {
+    fn bash_json_as_read_input() {
         let json = r#"{"tool_name":"Bash","tool_input":{"command":"git status"}}"#;
         let result = HookInput::<ReadInput>::from_json(json);
         assert!(result.is_err());

@@ -219,8 +219,6 @@ impl Arg {
 mod tests {
     use super::*;
 
-    // === Arg::new - short flag bundling ===
-
     #[test]
     fn short_flag_standalone() {
         assert!(Arg::new("-d").is_present(&["-d"]));
@@ -237,11 +235,9 @@ mod tests {
     }
 
     #[test]
-    fn short_flag_no_match_long() {
+    fn short_flag_against_long() {
         assert!(!Arg::new("-d").is_present(&["--debug"]));
     }
-
-    // === Arg::new - long flags (with = expansion) ===
 
     #[test]
     fn long_flag_exact() {
@@ -259,11 +255,9 @@ mod tests {
     }
 
     #[test]
-    fn bare_value_no_match() {
+    fn bare_value_different() {
         assert!(!Arg::new("reset").is_present(&["status"]));
     }
-
-    // === Arg::new - glob ===
 
     #[test]
     fn glob_tmp_match() {
@@ -271,11 +265,9 @@ mod tests {
     }
 
     #[test]
-    fn glob_tmp_no_match() {
+    fn glob_tmp_outside() {
         assert!(!Arg::new("/tmp/*").is_present(&["/var/file.txt"]));
     }
-
-    // === Arg::new(...).value(...) - two-arg form ===
 
     #[test]
     fn value_two_arg_post() {
@@ -296,7 +288,7 @@ mod tests {
     }
 
     #[test]
-    fn value_two_arg_no_match_get() {
+    fn value_two_arg_get() {
         let arg = Arg::new("-X").value("{POST,PUT,PATCH,DELETE}");
         assert!(!arg.is_present(&["-X", "GET"]));
     }
@@ -306,8 +298,6 @@ mod tests {
         let arg = Arg::new("-exec").value("rm");
         assert!(arg.is_present(&["-exec", "rm"]));
     }
-
-    // === Arg::new(...).value(...) - concatenated short form ===
 
     #[test]
     fn value_concat_short_xpost() {
@@ -327,8 +317,6 @@ mod tests {
         assert!(arg.is_present(&["-ofile.txt"]));
     }
 
-    // === Arg::new(...).value(...) - = long form ===
-
     #[test]
     fn value_equals_long_wildcard() {
         let arg = Arg::new("--data").value("*");
@@ -342,12 +330,10 @@ mod tests {
     }
 
     #[test]
-    fn value_equals_long_no_match() {
+    fn value_equals_long_wrong_extension() {
         let arg = Arg::new("--data").value("*.json");
         assert!(!arg.is_present(&["--data=file.txt"]));
     }
-
-    // === Negative cases ===
 
     #[test]
     fn short_flag_not_present() {
@@ -360,11 +346,9 @@ mod tests {
     }
 
     #[test]
-    fn glob_option_no_match() {
+    fn glob_option_outside() {
         assert!(!Arg::new("*mutation*").is_present(&["query { viewer }"]));
     }
-
-    // === Substring glob on option ===
 
     #[test]
     fn glob_option_substring_match() {
@@ -376,8 +360,6 @@ mod tests {
         assert!(Arg::new("*mutation*").is_present(&["query='mutation { foo }'"]));
     }
 
-    // === Long flag + value in two-arg form ===
-
     #[test]
     fn value_two_arg_long_flag() {
         let arg = Arg::new("--data").value("foo");
@@ -385,12 +367,10 @@ mod tests {
     }
 
     #[test]
-    fn value_two_arg_long_flag_no_match() {
+    fn value_two_arg_long_flag_different() {
         let arg = Arg::new("--data").value("foo");
         assert!(!arg.is_present(&["--data", "bar"]));
     }
-
-    // === ivalue with non-glob exact pattern ===
 
     #[test]
     fn ivalue_exact_case_insensitive() {
@@ -404,34 +384,25 @@ mod tests {
         assert!(arg.is_present(&["-X", "POST"]));
     }
 
-    // === Value adjacency ===
-
     #[test]
     fn value_not_adjacent() {
         let arg = Arg::new("-X").value("{POST,PUT,PATCH,DELETE}");
         assert!(!arg.is_present(&["-X", "--verbose", "POST"]));
     }
 
-    // === Short flag bundled before value ===
-
+    /// `-aX` bundles `-a` and `-X`; `POST` is `-X`'s value as the next arg.
     #[test]
     fn value_bundled_option_two_arg() {
-        // -aX bundles -a and -X; POST is -X's value as next arg
         let arg = Arg::new("-X").value("{POST,PUT,PATCH,DELETE}");
         assert!(arg.is_present(&["-aX", "POST"]));
     }
 
-    // === Concatenated short: flag char not at position 1 ===
-
+    /// `-aXPOST`: flag char `X` is at position 2, not position 1; concatenated form only checks position 1.
     #[test]
     fn value_concat_flag_not_first() {
-        // -aXPOST: flag char X is at position 2, not position 1
-        // Concatenated form only checks position 1, so this should not match
         let arg = Arg::new("-X").value("{POST,PUT,PATCH,DELETE}");
         assert!(!arg.is_present(&["-aXPOST"]));
     }
-
-    // === exec with wrong value ===
 
     #[test]
     fn value_exec_wrong_value() {
@@ -445,14 +416,10 @@ mod tests {
         assert!(!arg.is_present(&["-exec"]));
     }
 
-    // === Long flag prefix without = ===
-
     #[test]
-    fn long_flag_no_match_prefix() {
+    fn long_flag_against_prefix() {
         assert!(!Arg::new("--data").is_present(&["--database"]));
     }
-
-    // === Glob metacharacters: ? and [] ===
 
     #[test]
     fn glob_question_mark() {
@@ -460,7 +427,7 @@ mod tests {
     }
 
     #[test]
-    fn glob_question_mark_no_match() {
+    fn glob_question_mark_long_arg() {
         assert!(!Arg::new("-?").is_present(&["--xx"]));
     }
 
@@ -470,11 +437,9 @@ mod tests {
     }
 
     #[test]
-    fn glob_bracket_range_no_match() {
+    fn glob_bracket_range_outside() {
         assert!(!Arg::new("-[abc]").is_present(&["-d"]));
     }
-
-    // === Cross-form: short option skips concat-long, long option skips concat-short ===
 
     #[test]
     fn short_option_no_concat_long_match() {
@@ -488,8 +453,6 @@ mod tests {
         assert!(!arg.is_present(&["--methodPOST"]));
     }
 
-    // === Glob: double-star ===
-
     #[test]
     fn glob_double_star() {
         assert!(Arg::new("**").is_present(&["anything"]));
@@ -501,11 +464,9 @@ mod tests {
     }
 
     #[test]
-    fn glob_double_star_prefix_no_match() {
+    fn glob_double_star_prefix_different() {
         assert!(!Arg::new("**/foo").is_present(&["bar/baz"]));
     }
-
-    // === Glob: negated character class ===
 
     #[test]
     fn glob_negated_bracket() {
@@ -513,11 +474,9 @@ mod tests {
     }
 
     #[test]
-    fn glob_negated_bracket_no_match() {
+    fn glob_negated_bracket_excluded() {
         assert!(!Arg::new("-[!abc]").is_present(&["-a"]));
     }
-
-    // === Glob: escaped metacharacter via character class ===
 
     #[test]
     fn glob_escaped_star_bracket() {
@@ -525,11 +484,9 @@ mod tests {
     }
 
     #[test]
-    fn glob_escaped_star_bracket_no_match() {
+    fn glob_escaped_star_bracket_other_char() {
         assert!(!Arg::new("[*]").is_present(&["x"]));
     }
-
-    // === Glob: backslash escape ===
 
     #[test]
     fn glob_backslash_escape_star() {
@@ -537,7 +494,7 @@ mod tests {
     }
 
     #[test]
-    fn glob_backslash_escape_star_no_match() {
+    fn glob_backslash_escape_star_other_char() {
         assert!(!Arg::new(r"\*").is_present(&["x"]));
     }
 }

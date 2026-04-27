@@ -34,14 +34,14 @@ mod tests {
 
     /// Read-only log viewing.
     #[test]
-    fn journalctl__read() {
+    fn journalctl_read() {
         let outcome = evaluate_expect_outcome("journalctl --since today -u sshd.service");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     /// Read-only with pipe to rg.
     #[test]
-    fn journalctl__piped_to_rg() {
+    fn journalctl_piped_to_rg() {
         let outcome = evaluate_expect_outcome(
             "journalctl --since \"today\" -u uupd.service --no-pager 2>&1 | rg '\"(ERROR|WARN)'",
         );
@@ -50,21 +50,21 @@ mod tests {
 
     /// Mutating flags pass through to default permission handling.
     #[test]
-    fn journalctl__vacuum_size() {
+    fn journalctl_vacuum_size() {
         let reason = evaluate_expect_skip("journalctl --vacuum-size=500M");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     /// Rotate passes through to default permission handling.
     #[test]
-    fn journalctl__rotate() {
+    fn journalctl_rotate() {
         let reason = evaluate_expect_skip("journalctl --rotate");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     /// Plain journalctl with no flags.
     #[test]
-    fn journalctl__bare() {
+    fn journalctl_bare() {
         let outcome = evaluate_expect_outcome("journalctl");
         assert_eq!(outcome.decision, Decision::Allow);
     }

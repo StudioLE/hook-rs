@@ -110,15 +110,14 @@ mod tests {
     }
 
     #[test]
-    fn long_non_python_passthrough() {
+    fn long_non_python() {
         let long_bash = format!("bash -c 'echo {}'", "x".repeat(1100));
         let reason = evaluate_expect_skip(&long_bash);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn ls_passthrough() {
-        // ls is Allow via read_only_rules
+    fn ls() {
         let outcome = evaluate_expect_outcome("ls -la");
         assert_eq!(outcome.decision, Decision::Allow);
     }
@@ -130,7 +129,7 @@ mod tests {
     }
 
     #[test]
-    fn boundary_21_lines_denied() {
+    fn boundary_21_lines() {
         let outcome = evaluate_expect_outcome(&make_heredoc(19));
         assert_eq!(outcome.decision, Decision::Deny);
     }
@@ -142,7 +141,7 @@ mod tests {
     }
 
     #[test]
-    fn boundary_1001_chars_denied() {
+    fn boundary_1001_chars() {
         let outcome = evaluate_expect_outcome(&make_long_c(979));
         assert_eq!(outcome.decision, Decision::Deny);
     }

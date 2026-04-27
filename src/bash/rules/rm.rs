@@ -20,231 +20,228 @@ mod tests {
     use crate::prelude::*;
 
     #[test]
-    fn _rm_r() {
+    fn rm_r() {
         let outcome = evaluate_expect_outcome("rm -r /path/to/dir");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm_cap_r() {
+    fn rm_cap_r() {
         let outcome = evaluate_expect_outcome("rm -R /path/to/dir");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm_rf() {
+    fn rm_rf() {
         let outcome = evaluate_expect_outcome("rm -rf /path/to/dir");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm_cap_rf() {
+    fn rm_cap_rf() {
         let outcome = evaluate_expect_outcome("rm -Rf /path/to/dir");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm_fr() {
+    fn rm_fr() {
         let outcome = evaluate_expect_outcome("rm -fr /path/to/dir");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm_f_cap_r() {
+    fn rm_f_cap_r() {
         let outcome = evaluate_expect_outcome("rm -fR /path/to/dir");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm_recursive() {
+    fn rm_recursive() {
         let outcome = evaluate_expect_outcome("rm --recursive /path/to/dir");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm_rfi() {
+    fn rm_rfi() {
         let outcome = evaluate_expect_outcome("rm -rfi /path/to/dir");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm_ir() {
+    fn rm_ir() {
         let outcome = evaluate_expect_outcome("rm -ir /path/to/dir");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm_single_file() {
+    fn rm_single_file() {
         let outcome = evaluate_expect_outcome("rm file.txt");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm_multiple_files() {
+    fn rm_multiple_files() {
         let outcome = evaluate_expect_outcome("rm file1.txt file2.txt");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm_f() {
+    fn rm_f() {
         let outcome = evaluate_expect_outcome("rm -f file.txt");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm_i() {
+    fn rm_i() {
         let outcome = evaluate_expect_outcome("rm -i file.txt");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm_with_path() {
+    fn rm_with_path() {
         let outcome = evaluate_expect_outcome("rm /path/to/file.txt");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm_wildcard() {
+    fn rm_wildcard() {
         let outcome = evaluate_expect_outcome("rm *.tmp");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm_r__chained() {
+    fn rm_r_chained() {
         let outcome = evaluate_expect_outcome("ls && rm -r /path");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm_rf__or_chain() {
+    fn rm_rf_or_chain() {
         let outcome = evaluate_expect_outcome("false || rm -rf /tmp/nothing");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm_r__semicolon() {
+    fn rm_r_semicolon() {
         let outcome = evaluate_expect_outcome("echo hi ; rm -r /path");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm__chained_file() {
+    fn rm_chained_file() {
         let outcome = evaluate_expect_outcome("ls && rm file.txt");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm__for_do() {
+    fn rm_for_do() {
         let outcome = evaluate_expect_outcome("for f in *.tmp; do rm $f; done");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm__if_then() {
+    fn rm_if_then() {
         let reason = evaluate_expect_skip("if true; then rm file.txt; fi");
         assert_eq!(reason, SkipReason::UnsupportedCompound);
     }
 
     #[test]
-    fn _rm__if_else() {
+    fn rm_if_else() {
         let reason = evaluate_expect_skip("if false; then echo hi; else rm file.txt; fi");
         assert_eq!(reason, SkipReason::UnsupportedCompound);
     }
 
     #[test]
-    fn _rm_rf__while_do() {
+    fn rm_rf_while_do() {
         let reason = evaluate_expect_skip("while true; do rm -rf /tmp/nothing; done");
         assert_eq!(reason, SkipReason::UnsupportedCompound);
     }
     #[test]
-    fn _rm__tmp_file() {
+    fn rm_tmp_file() {
         let outcome = evaluate_expect_outcome("rm /tmp/file.txt");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm_f__tmp() {
+    fn rm_f_tmp() {
         let outcome = evaluate_expect_outcome("rm -f /tmp/file.txt");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm_rf__tmp() {
+    fn rm_rf_tmp() {
         let outcome = evaluate_expect_outcome("rm -rf /tmp/dir");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm__tmp_multiple() {
+    fn rm_tmp_multiple() {
         let outcome = evaluate_expect_outcome("rm /tmp/file1 /tmp/file2");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm__tmp_path_traversal() {
+    fn rm_tmp_path_traversal() {
         let outcome = evaluate_expect_outcome("rm /tmp/../etc/passwd");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _rm__tmp_mixed() {
+    fn rm_tmp_mixed() {
         let outcome = evaluate_expect_outcome("rm /tmp/file.txt /home/user/file.txt");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _ls() {
+    fn ls() {
         let outcome = evaluate_expect_outcome("ls -la");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _git_rm() {
-        // git rm is Allow via git_approval
+    fn git_rm() {
         let outcome = evaluate_expect_outcome("git rm file.txt");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _git_rm_r() {
+    fn git_rm_r() {
         let outcome = evaluate_expect_outcome("git rm -r dir/");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _echo_rm() {
+    fn echo_rm() {
         let outcome = evaluate_expect_outcome("echo rm is blocked");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _rg_rm() {
+    fn rg_rm() {
         let outcome = evaluate_expect_outcome("rg rm .");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _cat() {
+    fn cat() {
         let outcome = evaluate_expect_outcome("cat file.txt");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _mv() {
+    fn mv() {
         let reason = evaluate_expect_skip("mv old.txt new.txt");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn _cargo_rm() {
+    fn cargo_rm() {
         let reason = evaluate_expect_skip("cargo rm some-dep");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn _xargs_rm() {
-        // echo | xargs rm — echo is Allow via read_only_rules, xargs is not matched
-        // but rm is not the command name here (xargs is), so rm rule doesn't fire
+    fn xargs_rm() {
         let reason = evaluate_expect_skip("echo file | xargs rm");
         assert_eq!(reason, SkipReason::OnlyAllowAll);
     }

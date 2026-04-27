@@ -77,157 +77,147 @@ mod tests {
     }
 
     #[test]
-    fn double_star_matches_directory() {
+    fn double_star_directory() {
         let r = rule("/opt/data/**");
         assert!(r.is_match("/opt/data"));
     }
 
     #[test]
-    fn double_star_star_matches_directory() {
+    fn double_star_star_directory() {
         let r = rule("/src/**/*");
         assert!(r.is_match("/src"));
     }
 
     #[test]
-    fn unrelated_directory_no_match() {
+    fn unrelated_directory_etc() {
         let r = rule("/opt/data/**");
         assert!(!r.is_match("/etc"));
     }
 
     #[test]
-    fn matches_file_via_glob() {
+    fn file_via_glob() {
         let r = rule("/opt/data/**");
         assert!(r.is_match("/opt/data/file.txt"));
     }
 
     #[test]
-    fn matches_directory_via_prefix() {
+    fn directory_via_prefix() {
         let r = rule("/opt/data/**");
         assert!(r.is_match("/opt/data"));
     }
 
     #[test]
-    fn no_match_unrelated() {
+    fn unrelated_passwd() {
         let r = rule("/opt/data/**");
         assert!(!r.is_match("/etc/passwd"));
     }
 
-    // ** recursive matching
-
     #[test]
-    fn double_star_matches_nested() {
+    fn double_star_nested() {
         let r = rule("/opt/data/**");
         assert!(r.is_match("/opt/data/a/b/c/file.txt"));
     }
 
     #[test]
-    fn double_star_matches_direct_child() {
+    fn double_star_direct_child() {
         let r = rule("/opt/data/**");
         assert!(r.is_match("/opt/data/file.txt"));
     }
 
     #[test]
-    fn double_star_no_match_sibling() {
+    fn double_star_sibling() {
         let r = rule("/opt/data/**");
         assert!(!r.is_match("/opt/other/file.txt"));
     }
 
-    // * single-level matching (literal_separator makes * stop at /)
-
     #[test]
-    fn single_star_matches_one_level() {
+    fn single_star_one_level() {
         let r = rule("/opt/*/file.txt");
         assert!(r.is_match("/opt/data/file.txt"));
     }
 
     #[test]
-    fn single_star_no_match_nested() {
+    fn single_star_nested() {
         let r = rule("/opt/*/file.txt");
         assert!(!r.is_match("/opt/a/b/file.txt"));
     }
 
-    // *.ext extension matching
-
     #[test]
-    fn star_ext_matches_in_dir() {
+    fn star_ext_in_dir() {
         let r = rule("/tmp/*.rs");
         assert!(r.is_match("/tmp/lib.rs"));
     }
 
     #[test]
-    fn star_ext_no_match_subdirectory() {
+    fn star_ext_subdirectory() {
         let r = rule("/tmp/*.rs");
         assert!(!r.is_match("/tmp/src/lib.rs"));
     }
 
     #[test]
-    fn star_ext_no_match_wrong_extension() {
+    fn star_ext_wrong_extension() {
         let r = rule("/tmp/*.rs");
         assert!(!r.is_match("/tmp/lib.toml"));
     }
 
     #[test]
-    fn double_star_ext_matches_nested() {
+    fn double_star_ext_nested() {
         let r = rule("/src/**/*.rs");
         assert!(r.is_match("/src/rules/read.rs"));
     }
 
     #[test]
-    fn double_star_ext_matches_deep_nested() {
+    fn double_star_ext_deep_nested() {
         let r = rule("/src/**/*.rs");
         assert!(r.is_match("/src/a/b/c/lib.rs"));
     }
 
     #[test]
-    fn double_star_ext_no_match_wrong_extension() {
+    fn double_star_ext_wrong_extension() {
         let r = rule("/src/**/*.rs");
         assert!(!r.is_match("/src/rules/read.toml"));
     }
 
-    // exact path
-
     #[test]
-    fn exact_path_matches() {
+    fn exact_path_same() {
         let r = rule("/etc/hosts");
         assert!(r.is_match("/etc/hosts"));
     }
 
     #[test]
-    fn exact_path_no_match_different() {
+    fn exact_path_different() {
         let r = rule("/etc/hosts");
         assert!(!r.is_match("/etc/passwd"));
     }
 
     #[test]
-    fn exact_path_no_match_nested() {
+    fn exact_path_nested() {
         let r = rule("/etc/hosts");
         assert!(!r.is_match("/etc/hosts/extra"));
     }
 
-    // basename matching (patterns without /)
-
     #[test]
-    fn bare_filename_matches_anywhere() {
+    fn bare_filename_anywhere() {
         let r = rule("CLAUDE.md");
         assert!(r.is_match("/home/user/project/.claude/CLAUDE.md"));
         assert!(r.is_match("/tmp/CLAUDE.md"));
     }
 
     #[test]
-    fn bare_filename_no_match_different_name() {
+    fn bare_filename_different_name() {
         let r = rule("CLAUDE.md");
         assert!(!r.is_match("/home/user/README.md"));
     }
 
     #[test]
-    fn bare_glob_matches_basename() {
+    fn bare_glob_basename() {
         let r = rule("*.md");
         assert!(r.is_match("/home/user/project/README.md"));
         assert!(r.is_match("/tmp/CLAUDE.md"));
     }
 
     #[test]
-    fn bare_glob_no_match_wrong_extension() {
+    fn bare_glob_wrong_extension() {
         let r = rule("*.md");
         assert!(!r.is_match("/home/user/project/lib.rs"));
     }
@@ -246,7 +236,7 @@ mod tests {
     }
 
     #[test]
-    fn bare_dotfile_glob_no_match_bare_env() {
+    fn bare_dotfile_glob_bare_env() {
         let r = rule(".env.*");
         assert!(!r.is_match("/home/user/project/.env"));
     }

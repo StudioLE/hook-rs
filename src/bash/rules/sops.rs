@@ -217,25 +217,25 @@ mod tests {
     }
 
     #[test]
-    fn sops_decrypt__long_flag() {
+    fn sops_decrypt_long_flag() {
         let outcome = evaluate_expect_outcome("sops --decrypt secrets.yaml");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn sops_decrypt__chained() {
+    fn sops_decrypt_chained() {
         let outcome = evaluate_expect_outcome("sops decrypt secrets.yaml | grep token");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn sops_decrypt__in_chain() {
+    fn sops_decrypt_in_chain() {
         let outcome = evaluate_expect_outcome("git pull && sops decrypt secrets.yaml");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn sops_d__output_file() {
+    fn sops_d_output_file() {
         let outcome = evaluate_expect_outcome("sops --decrypt --output /tmp/x.yaml secrets.yaml");
         assert_eq!(outcome.decision, Decision::Deny);
     }

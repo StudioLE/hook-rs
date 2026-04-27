@@ -21,7 +21,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn directory_matches_via_prefix() {
+    fn directory_via_prefix() {
         // Arrange
         let input = GrepInput::new("needle", "/opt/readonly");
         let settings = settings();
@@ -34,7 +34,7 @@ mod tests {
     }
 
     #[test]
-    fn file_path_matches_directly() {
+    fn file_path_directly() {
         // Arrange
         let input = GrepInput::new("needle", "/opt/readonly/src/lib.rs");
         let settings = settings();
@@ -47,7 +47,7 @@ mod tests {
     }
 
     #[test]
-    fn unrelated_directory_no_match() {
+    fn unrelated_directory() {
         // Arrange
         let input = GrepInput::new("needle", "/etc");
         let settings = settings();
@@ -60,7 +60,7 @@ mod tests {
     }
 
     #[test]
-    fn empty_settings_no_match() {
+    fn empty_settings() {
         // Arrange
         let input = GrepInput::new("needle", "/opt/readonly");
         let settings = Settings::default();

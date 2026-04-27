@@ -796,21 +796,21 @@ mod tests {
 
     /// Multiple prefix env vars are all captured in `env_vars`.
     #[test]
-    fn assignment_word_in_prefix__multiple() {
+    fn assignment_word_in_prefix_multiple() {
         let context = parse_expect_context("FOO=1 BAR=2 command");
         assert_yaml_snapshot!(context);
     }
 
     /// Prefix env var with `$()` substitution in value triggers a skip.
     #[test]
-    fn assignment_word_in_prefix__substitution() {
+    fn assignment_word_in_prefix_substitution() {
         let reason = parse_expect_skip("FOO=$(whoami) command");
         assert_eq!(reason, SkipReason::PrefixEnvSubstitution);
     }
 
     /// Prefix env var with backtick substitution in value triggers a skip.
     #[test]
-    fn assignment_word_in_prefix__backtick_substitution() {
+    fn assignment_word_in_prefix_backtick_substitution() {
         let reason = parse_expect_skip("FOO=`whoami` command");
         assert_eq!(reason, SkipReason::PrefixEnvSubstitution);
     }
@@ -819,28 +819,28 @@ mod tests {
     ///
     /// Brush-parser sees `$(whoami)` as the command name, not an assignment.
     #[test]
-    fn assignment_word_in_prefix__substitution_in_name() {
+    fn assignment_word_in_prefix_substitution_in_name() {
         let reason = parse_expect_skip("$(whoami)=FOO command");
         assert_eq!(reason, SkipReason::CommandNameSubstitution);
     }
 
     /// Prefix env var combined with redirect.
     #[test]
-    fn assignment_word_in_prefix__with_redirect() {
+    fn assignment_word_in_prefix_with_redirect() {
         let context = parse_expect_context("RUST_LOG=debug 2>/dev/null cargo test");
         assert_yaml_snapshot!(context);
     }
 
     /// Suffix assignment word with command substitution in value.
     #[test]
-    fn assignment_word_in_suffix__substitution() {
+    fn assignment_word_in_suffix_substitution() {
         let context = parse_expect_context("command key=$(whoami)");
         assert_yaml_snapshot!(context);
     }
 
     /// Suffix assignment word in a pipeline.
     #[test]
-    fn assignment_word_in_suffix__pipeline() {
+    fn assignment_word_in_suffix_pipeline() {
         let context = parse_expect_context("command key=value | other");
         assert_yaml_snapshot!(context);
     }

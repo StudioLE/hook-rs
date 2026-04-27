@@ -100,41 +100,37 @@ mod tests {
     }
 
     #[test]
-    fn git_then_cd_passthrough() {
+    fn git_then_cd() {
         let reason = evaluate_expect_skip("git status && cd /path");
         assert_eq!(reason, SkipReason::OnlyAllowAll);
     }
 
     #[test]
-    fn cd_alone_passthrough() {
+    fn cd_alone() {
         let reason = evaluate_expect_skip("cd /home/user/repos/my-project");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn git_alone_passthrough() {
-        // git status alone is matched by git_approval as Allow, not passthrough
+    fn git_alone() {
         let outcome = evaluate_expect_outcome("git status");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn git_log_passthrough() {
-        // git log is matched by git_approval as Allow
+    fn git_log() {
         let outcome = evaluate_expect_outcome("git log --oneline -5");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn non_cd_compound_passthrough() {
-        // ls -la is Allow via read_only_rules, git status is Allow via git_approval
+    fn non_cd_compound() {
         let outcome = evaluate_expect_outcome("ls -la && git status");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn echo_cd_allowed() {
-        // echo is Allow via read_only_rules, git status is Allow via git_approval
+    fn echo_cd_compound() {
         let outcome = evaluate_expect_outcome("echo cd /path && git status");
         assert_eq!(outcome.decision, Decision::Allow);
     }

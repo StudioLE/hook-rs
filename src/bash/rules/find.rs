@@ -64,85 +64,85 @@ mod tests {
     use crate::prelude::*;
 
     #[test]
-    fn _find_delete() {
+    fn find_delete() {
         let outcome = evaluate_expect_outcome("find . -name '*.tmp' -delete");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _find_delete__path() {
+    fn find_delete_path() {
         let outcome = evaluate_expect_outcome("find /path -type f -delete");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _find_delete__redirect() {
+    fn find_delete_redirect() {
         let outcome = evaluate_expect_outcome("find . -name .lock -delete 2>/dev/null");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _find_exec_rm() {
+    fn find_exec_rm() {
         let outcome = evaluate_expect_outcome("find . -name '*.tmp' -exec rm {} \\;");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _find_exec_rm__f() {
+    fn find_exec_rm_f() {
         let outcome = evaluate_expect_outcome("find . -type f -exec rm -f {} +");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _find_exec_rm__execdir() {
+    fn find_exec_rm_execdir() {
         let outcome = evaluate_expect_outcome("find . -name '*.log' -execdir rm {} \\;");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _find_delete__chained() {
+    fn find_delete_chained() {
         let outcome = evaluate_expect_outcome("ls && find . -delete");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _find_delete__semicolon() {
+    fn find_delete_semicolon() {
         let outcome = evaluate_expect_outcome("echo test ; find . -name '*.tmp' -delete");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _find_name() {
+    fn find_name() {
         let outcome = evaluate_expect_outcome("find . -name '*.rs'");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _find_print() {
+    fn find_print() {
         let outcome = evaluate_expect_outcome("find . -type f -print");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _find_maxdepth() {
+    fn find_maxdepth() {
         let outcome = evaluate_expect_outcome("find /path -maxdepth 1");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _find_exec_ls() {
+    fn find_exec_ls() {
         let reason = evaluate_expect_skip("find . -name '*.tmp' -exec ls {} \\;");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn _find_exec_cat() {
+    fn find_exec_cat() {
         let reason = evaluate_expect_skip("find . -name '*.txt' -exec cat {} +");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn _echo_find_delete() {
+    fn echo_find_delete() {
         let outcome = evaluate_expect_outcome("echo 'find -delete is dangerous'");
         assert_eq!(outcome.decision, Decision::Allow);
     }

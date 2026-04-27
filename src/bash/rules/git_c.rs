@@ -88,8 +88,6 @@ fn allow_git_c(context: &SimpleContext, complete: &CompleteContext, settings: &S
 mod tests {
     use crate::prelude::*;
 
-    // === last-match-wins: trust classification ===
-
     #[test]
     fn negation_overrides_earlier_trust() {
         let settings = git_settings(&["/a/b/**", "!/a/b/forked/**"]);
@@ -141,7 +139,7 @@ mod tests {
     }
 
     #[test]
-    fn path_matches_no_pattern() {
+    fn path_outside_pattern() {
         let settings = git_settings(&["/home/user/repos/**"]);
         let reason = eval_skip("git -C /tmp/other status", settings);
         assert_eq!(reason, SkipReason::NoMatches);
@@ -231,8 +229,6 @@ mod tests {
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
-    // === allow: trusted path (mock settings) ===
-
     #[test]
     fn trusted_path_status() {
         let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project status");
@@ -270,49 +266,49 @@ mod tests {
     }
 
     #[test]
-    fn forked_status_passthrough() {
+    fn forked_status() {
         let reason = evaluate_expect_skip("git -C /home/user/repos/forked/some-repo status");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn forked_log_passthrough() {
+    fn forked_log() {
         let reason = evaluate_expect_skip("git -C /home/user/repos/forked/some-repo log");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn unknown_status_passthrough() {
+    fn unknown_status() {
         let reason = evaluate_expect_skip("git -C /tmp/sketchy-repo status");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn unknown_diff_passthrough() {
+    fn unknown_diff() {
         let reason = evaluate_expect_skip("git -C /home/other/repo diff");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn unsafe_with_c_path_commit_passthrough() {
+    fn trusted_path_commit() {
         let reason = evaluate_expect_skip("git -C /home/user/repos/my-project commit -m 'test'");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn unsafe_with_c_path_push_passthrough() {
+    fn trusted_path_push() {
         let reason = evaluate_expect_skip("git -C /home/user/repos/my-project push origin main");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn unsafe_with_c_path_add_passthrough() {
+    fn trusted_path_add() {
         let reason = evaluate_expect_skip("git -C /home/user/repos/my-project add -A");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn unsafe_unknown_commit_passthrough() {
+    fn unknown_commit() {
         let reason = evaluate_expect_skip("git -C /tmp/sketchy commit -m 'evil'");
         assert_eq!(reason, SkipReason::NoMatches);
     }
@@ -336,18 +332,16 @@ mod tests {
     }
 
     #[test]
-    fn branch_forked_path_passthrough() {
+    fn branch_forked_path() {
         let reason = evaluate_expect_skip("git -C /home/user/repos/forked/repo branch");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn branch_delete_with_path_passthrough() {
+    fn branch_delete_with_path() {
         let reason = evaluate_expect_skip("git -C /home/user/repos/my-project branch -d old");
         assert_eq!(reason, SkipReason::NoMatches);
     }
-
-    // === deny: trusted path ===
 
     #[test]
     fn c_path_reset_hard() {
@@ -370,7 +364,7 @@ mod tests {
     }
 
     #[test]
-    fn c_path_reset_soft_passthrough() {
+    fn c_path_reset_soft() {
         let reason = evaluate_expect_skip("git -C /home/user/repos/my-project reset --soft HEAD~1");
         assert_eq!(reason, SkipReason::NoMatches);
     }
@@ -394,19 +388,19 @@ mod tests {
     }
 
     #[test]
-    fn c_path_stash_apply_passthrough() {
+    fn c_path_stash_apply() {
         let reason = evaluate_expect_skip("git -C /home/user/repos/my-project stash apply");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn c_path_stash_passthrough() {
+    fn c_path_stash_bare() {
         let reason = evaluate_expect_skip("git -C /home/user/repos/my-project stash");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn c_path_checkout_denied() {
+    fn c_path_checkout_discard_file() {
         let outcome =
             evaluate_expect_outcome("git -C /home/user/repos/my-project checkout -- file.txt");
         assert_eq!(outcome.decision, Decision::Deny);
@@ -427,7 +421,7 @@ mod tests {
     }
 
     #[test]
-    fn c_path_checkout_branch_passthrough() {
+    fn c_path_checkout_branch() {
         let reason = evaluate_expect_skip("git -C /home/user/repos/my-project checkout main");
         assert_eq!(reason, SkipReason::NoMatches);
     }
@@ -451,70 +445,64 @@ mod tests {
     }
 
     #[test]
-    fn c_path_clean_f_passthrough() {
+    fn c_path_clean_f_with_file() {
         let reason = evaluate_expect_skip("git -C /home/user/repos/my-project clean -f file.txt");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
-    // === deny: forked path ===
-
     #[test]
-    fn forked_reset_hard_denied() {
+    fn forked_reset_hard() {
         let outcome = evaluate_expect_outcome("git -C /home/user/repos/forked/repo reset --hard");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn forked_stash_pop_denied() {
+    fn forked_stash_pop() {
         let outcome = evaluate_expect_outcome("git -C /home/user/repos/forked/repo stash pop");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn forked_clean_fd_denied() {
+    fn forked_clean_fd() {
         let outcome = evaluate_expect_outcome("git -C /home/user/repos/forked/repo clean -fd");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
-    // === deny: unknown path ===
-
     #[test]
-    fn unknown_reset_hard_denied() {
+    fn unknown_reset_hard() {
         let outcome = evaluate_expect_outcome("git -C /tmp/sketchy reset --hard");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn unknown_stash_pop_denied() {
+    fn unknown_stash_pop() {
         let outcome = evaluate_expect_outcome("git -C /tmp/sketchy stash pop");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn unknown_stash_clear_denied() {
+    fn unknown_stash_clear() {
         let outcome = evaluate_expect_outcome("git -C /tmp/repo stash clear");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn unknown_clean_fd_denied() {
+    fn unknown_clean_fd() {
         let outcome = evaluate_expect_outcome("git -C /tmp/sketchy clean -fd");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn chained_git_c_push_passthrough() {
+    fn chained_git_c_push() {
         let reason = evaluate_expect_skip("git status && git -C /tmp/evil push");
         assert_eq!(reason, SkipReason::OnlyAllowAll);
     }
 
     #[test]
-    fn echo_git_c_quoted_passthrough() {
+    fn echo_git_c_quoted() {
         let outcome = evaluate_expect_outcome("echo 'git -C /path status'");
         assert_eq!(outcome.decision, Decision::Allow);
     }
-
-    // === tilde paths ===
 
     /// Tilde path in `git -C` matches a tilde settings pattern.
     #[test]

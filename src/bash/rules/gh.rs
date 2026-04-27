@@ -158,19 +158,17 @@ fn gh_api__read_only() -> BashRule {
 mod tests {
     use crate::prelude::*;
     #[test]
-    fn _non_gh() {
-        // ls and echo are Allow via read_only_rules
+    fn non_gh() {
         let outcome = evaluate_expect_outcome("ls -la");
         assert_eq!(outcome.decision, Decision::Allow);
         let outcome = evaluate_expect_outcome("echo hello");
         assert_eq!(outcome.decision, Decision::Allow);
-        // git status is Allow via git_approval
         let outcome = evaluate_expect_outcome("git status");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _gh_non_api() {
+    fn gh_non_api() {
         let reason = evaluate_expect_skip("gh pr list");
         assert_eq!(reason, SkipReason::NoMatches);
         let reason = evaluate_expect_skip("gh issue view 123");
@@ -180,105 +178,105 @@ mod tests {
     }
 
     #[test]
-    fn _gh_run_list() {
+    fn gh_run_list() {
         let outcome = evaluate_expect_outcome("gh run list");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _gh_run_list__flags() {
+    fn gh_run_list_flags() {
         let outcome = evaluate_expect_outcome("gh run list --limit 10");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _gh_run_view() {
+    fn gh_run_view() {
         let outcome = evaluate_expect_outcome("gh run view 12345");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _gh_run_view__log() {
+    fn gh_run_view_log() {
         let outcome = evaluate_expect_outcome("gh run view 12345 --log");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _gh_release_list() {
+    fn gh_release_list() {
         let outcome = evaluate_expect_outcome("gh release list");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _gh_release_list__flags() {
+    fn gh_release_list_flags() {
         let outcome = evaluate_expect_outcome("gh release list --limit 10");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _gh_api() {
+    fn gh_api() {
         let outcome = evaluate_expect_outcome("gh api user");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _gh_api__repos() {
+    fn gh_api_repos() {
         let outcome = evaluate_expect_outcome("gh api repos/owner/repo");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _gh_api__pulls() {
+    fn gh_api_pulls() {
         let outcome = evaluate_expect_outcome("gh api repos/owner/repo/pulls");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _gh_api__write_method__post() {
+    fn gh_api_write_method_post() {
         let outcome = evaluate_expect_outcome("gh api -X POST /repos/owner/repo/issues");
         assert_eq!(outcome.decision, Decision::Ask);
     }
 
     #[test]
-    fn _gh_api__write_method__put() {
+    fn gh_api_write_method_put() {
         let outcome = evaluate_expect_outcome("gh api -X PUT /repos/owner/repo/issues/1");
         assert_eq!(outcome.decision, Decision::Ask);
     }
 
     #[test]
-    fn _gh_api__write_method__patch() {
+    fn gh_api_write_method_patch() {
         let outcome = evaluate_expect_outcome("gh api -X PATCH /repos/owner/repo/issues/1");
         assert_eq!(outcome.decision, Decision::Ask);
     }
 
     #[test]
-    fn _gh_api__write_method__delete() {
+    fn gh_api_write_method_delete() {
         let outcome = evaluate_expect_outcome("gh api -X DELETE /repos/owner/repo/issues/1");
         assert_eq!(outcome.decision, Decision::Ask);
     }
 
     #[test]
-    fn _gh_api__pipe_base64() {
+    fn gh_api_pipe_base64() {
         let outcome =
             evaluate_expect_outcome("gh api repos/USER/REPO/readme --jq .content 2>&1 | base64 -d");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _gh_api__pipe_jq() {
+    fn gh_api_pipe_jq() {
         let outcome = evaluate_expect_outcome("gh api repos/owner/repo/pulls | jq -r '.[].title'");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _gh_api__jq_pipe() {
+    fn gh_api_jq_pipe() {
         let outcome =
             evaluate_expect_outcome("gh api repos/owner/repo/readme --jq '.content | @base64d'");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _gh_api__data_flags__d_before_jq() {
+    fn gh_api_data_flags_d_before_jq() {
         let outcome = evaluate_expect_outcome(
             "gh api repos/owner/repo -d @body.json --jq '.content | @base64d'",
         );
@@ -286,7 +284,7 @@ mod tests {
     }
 
     #[test]
-    fn _gh_api_graphql__query() {
+    fn gh_api_graphql_query() {
         let outcome = evaluate_expect_outcome(
             "gh api graphql -f query='{ repository(owner: \"owner\", name: \"repo\") { discussions(first: 10) { nodes { title } } } }'",
         );
@@ -294,7 +292,7 @@ mod tests {
     }
 
     #[test]
-    fn _gh_api_graphql__query_jq() {
+    fn gh_api_graphql_query_jq() {
         let outcome = evaluate_expect_outcome(
             "gh api graphql -f query='{ repository(owner: \"owner\", name: \"repo\") { discussion(number: 97) { author { login } } } }' --jq '.data.repository.discussion'",
         );
@@ -302,14 +300,14 @@ mod tests {
     }
 
     #[test]
-    fn _gh_api_graphql__query_explicit() {
+    fn gh_api_graphql_query_explicit() {
         let outcome =
             evaluate_expect_outcome("gh api graphql -f query='query { viewer { login } }'");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _gh_api_graphql__mutation() {
+    fn gh_api_graphql_mutation() {
         let outcome = evaluate_expect_outcome(
             "gh api graphql -f query='mutation { addComment(input: {subjectId: \"123\", body: \"test\"}) { commentEdge { node { body } } } }'",
         );
@@ -317,55 +315,55 @@ mod tests {
     }
 
     #[test]
-    fn _gh_api__data_flags__f() {
+    fn gh_api_data_flags_f() {
         let outcome = evaluate_expect_outcome("gh api /repos/owner/repo/issues -f title=test");
         assert_eq!(outcome.decision, Decision::Ask);
     }
 
     #[test]
-    fn _gh_api__data_flags__cap_f() {
+    fn gh_api_data_flags_cap_f() {
         let outcome = evaluate_expect_outcome("gh api /repos/owner/repo/issues -F body=test");
         assert_eq!(outcome.decision, Decision::Ask);
     }
 
     #[test]
-    fn _gh_api__data_flags__field() {
+    fn gh_api_data_flags_field() {
         let outcome = evaluate_expect_outcome("gh api /repos/owner/repo/issues --field title=test");
         assert_eq!(outcome.decision, Decision::Ask);
     }
 
     #[test]
-    fn _gh_api__data_flags__d() {
+    fn gh_api_data_flags_d() {
         let outcome = evaluate_expect_outcome("gh api /repos/owner/repo -d @body.json");
         assert_eq!(outcome.decision, Decision::Ask);
     }
 
     #[test]
-    fn _gh_api__data_flags__data() {
+    fn gh_api_data_flags_data() {
         let outcome = evaluate_expect_outcome("gh api /repos/owner/repo --data @body.json");
         assert_eq!(outcome.decision, Decision::Ask);
     }
 
     #[test]
-    fn _gh_api__data_flags__input() {
+    fn gh_api_data_flags_input() {
         let outcome = evaluate_expect_outcome("gh api /repos/owner/repo --input file.json");
         assert_eq!(outcome.decision, Decision::Ask);
     }
 
     #[test]
-    fn _gh_pr_view() {
+    fn gh_pr_view() {
         let outcome = evaluate_expect_outcome("gh pr view 228");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _gh_pr_view__json_fields() {
+    fn gh_pr_view_json_fields() {
         let outcome = evaluate_expect_outcome("gh pr view 228 --json reviews,commits");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _gh_search_code() {
+    fn gh_search_code() {
         let outcome = evaluate_expect_outcome(
             "gh search code --repo rust-lang/rust-analyzer \"fn diagnostics\" --limit 5",
         );
@@ -373,7 +371,7 @@ mod tests {
     }
 
     #[test]
-    fn _gh_pr_comment() {
+    fn gh_pr_comment() {
         let outcome = evaluate_expect_outcome("gh pr comment 123 --body 'test'");
         assert_eq!(outcome.decision, Decision::Ask);
     }

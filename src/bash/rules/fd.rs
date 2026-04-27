@@ -47,67 +47,67 @@ mod tests {
     use crate::prelude::*;
 
     #[test]
-    fn _fd_exec_rm() {
+    fn fd_exec_rm() {
         let outcome = evaluate_expect_outcome("fd -e tmp -x rm");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _fd_exec_rm__long() {
+    fn fd_exec_rm_long() {
         let outcome = evaluate_expect_outcome("fd -e tmp --exec rm");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _fd_exec_batch_rm() {
+    fn fd_exec_batch_rm() {
         let outcome = evaluate_expect_outcome("fd -e tmp -X rm");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _fd_exec_batch_rm__long() {
+    fn fd_exec_batch_rm_long() {
         let outcome = evaluate_expect_outcome("fd -e tmp --exec-batch rm");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _fd_exec_rm__chained() {
+    fn fd_exec_rm_chained() {
         let outcome = evaluate_expect_outcome("ls && fd -e tmp -x rm");
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
-    fn _fd_read_only() {
+    fn fd_read_only() {
         let outcome = evaluate_expect_outcome("fd -e rs");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _fd_read_only__pattern() {
+    fn fd_read_only_pattern() {
         let outcome = evaluate_expect_outcome("fd 'test.*' src/");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _fd_read_only__piped() {
+    fn fd_read_only_piped() {
         let outcome = evaluate_expect_outcome("fd -e rs | head -20");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
-    fn _fd_exec_ls() {
+    fn fd_exec_ls() {
         let reason = evaluate_expect_skip("fd -e rs -x ls");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn _fd_exec_cat() {
+    fn fd_exec_cat() {
         let reason = evaluate_expect_skip("fd -e txt --exec cat");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn _echo_fd() {
+    fn echo_fd() {
         let outcome = evaluate_expect_outcome("echo 'fd -x rm is dangerous'");
         assert_eq!(outcome.decision, Decision::Allow);
     }

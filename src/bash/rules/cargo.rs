@@ -113,37 +113,37 @@ mod tests {
     }
 
     #[test]
-    fn cargo_doc_target_dir_passthrough() {
+    fn cargo_doc_target_dir() {
         let reason = evaluate_expect_skip("cargo doc --target-dir /tmp/docs");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn cargo_doc_target_dir_equals_passthrough() {
+    fn cargo_doc_target_dir_equals() {
         let reason = evaluate_expect_skip("cargo doc --target-dir=/tmp/docs");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn cargo_build_out_dir_passthrough() {
+    fn cargo_build_out_dir() {
         let reason = evaluate_expect_skip("cargo build --out-dir ./bin");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn cargo_install_passthrough() {
+    fn cargo_install() {
         let reason = evaluate_expect_skip("cargo install --path .");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn cargo_publish_passthrough() {
+    fn cargo_publish() {
         let reason = evaluate_expect_skip("cargo publish");
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
-    fn cargo_run_passthrough() {
+    fn cargo_run_release() {
         let reason = evaluate_expect_skip("cargo run --release");
         assert_eq!(reason, SkipReason::NoMatches);
     }
@@ -173,7 +173,7 @@ mod tests {
     }
 
     #[test]
-    fn cargo_insta_target_dir_passthrough() {
+    fn cargo_insta_test_target_dir() {
         let reason = evaluate_expect_skip("cargo insta test --target-dir /tmp/x");
         assert_eq!(reason, SkipReason::NoMatches);
     }

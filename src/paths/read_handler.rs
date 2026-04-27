@@ -20,7 +20,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn matching_path_allowed() {
+    fn matching_path() {
         // Arrange
         let input = ReadInput::new("/opt/readonly/data/file.txt");
         let settings = absolute_settings();
@@ -33,7 +33,7 @@ mod tests {
     }
 
     #[test]
-    fn second_pattern_allowed() {
+    fn second_pattern_match() {
         // Arrange
         let input = ReadInput::new("/usr/share/doc/rust/html/index.html");
         let settings = absolute_settings();
@@ -46,7 +46,7 @@ mod tests {
     }
 
     #[test]
-    fn unrelated_path_no_match() {
+    fn unrelated_path() {
         // Arrange
         let input = ReadInput::new("/etc/passwd");
         let settings = absolute_settings();
@@ -59,7 +59,7 @@ mod tests {
     }
 
     #[test]
-    fn empty_settings_no_match() {
+    fn empty_settings() {
         // Arrange
         let input = ReadInput::new("/opt/readonly/file.txt");
         let settings = Settings::default();
@@ -138,7 +138,7 @@ mod tests {
 
     /// Tilde input path matches a tilde settings pattern via `PathRuleFactory` expansion.
     #[test]
-    fn tilde_input_matches_tilde_pattern() {
+    fn tilde_input_with_tilde_pattern() {
         // Arrange
         let input =
             ReadInput::new("~/.cargo/registry/src/index.crates.io-xxx/serde-1.0.0/src/lib.rs");
@@ -158,7 +158,7 @@ mod tests {
 
     /// Tilde input path matches an absolute settings pattern.
     #[test]
-    fn tilde_input_matches_absolute_pattern() {
+    fn tilde_input_with_absolute_pattern() {
         // Arrange
         let home = dirs::home_dir().expect("test requires home directory");
         let input =
