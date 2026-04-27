@@ -15,21 +15,9 @@ pub fn read_only_rules() -> Vec<BashRule> {
         .iter()
         .map(|cmd| BashRule::new(*cmd, *cmd, Outcome::allow(format!("Read-only `{cmd}`"))))
         .collect();
-    rules.push(sed());
     rules.push(sort__cmd());
     rules.push(yq());
     rules
-}
-
-/// Allow `sed` without `-i`/`--in-place`.
-fn sed() -> BashRule {
-    BashRule {
-        id: "sed".to_owned(),
-        command: "sed".to_owned(),
-        without_any: Some(vec![Arg::new("-i"), Arg::new("--in-place")]),
-        outcome: Outcome::allow("Read-only `sed`"),
-        ..Default::default()
-    }
 }
 
 /// Allow `sort` without `-o`/`--output`.
