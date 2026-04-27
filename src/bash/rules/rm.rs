@@ -1,18 +1,47 @@
-//! Deny rule for `rm` to prevent file deletion.
+//! Deny rules for `rm` to prevent file deletion.
 
 use crate::prelude::*;
 
-/// Deny all `rm` invocations, directing to `git rm` or `git clean` instead.
+/// Deny `rm` invocations.
 #[must_use]
-pub fn rm() -> BashRule {
-    BashRule::new(
-        "rm",
-        "rm",
-        Outcome::deny(
+pub fn rm_rules() -> Vec<BashRule> {
+    vec![rm(), rm__snap_new()]
+}
+
+/// Deny all `rm` invocations, directing to `git rm` or `git clean` instead.
+fn rm() -> BashRule {
+    BashRule {
+        id: "rm".to_owned(),
+        command: "rm".to_owned(),
+        without_any: Some(vec![
+            Arg::new("**/*.snap.new"),
+            Arg::new("**/*.snap.new.*"),
+            Arg::new("**/.*.pending-snap"),
+        ]),
+        outcome: Outcome::deny(
             "`rm` is blocked. Alternatives: `git rm -f <file>`, `git rm -fx <file>` (gitignored), \
              `git clean -f <file>`, `git clean -fx <file>` (gitignored)",
         ),
-    )
+        ..Default::default()
+    }
+}
+
+/// Deny `rm` of pending insta snapshots, directing to `cargo insta` workflow.
+fn rm__snap_new() -> BashRule {
+    BashRule {
+        id: "rm__snap_new".to_owned(),
+        command: "rm".to_owned(),
+        with_any: Some(vec![
+            Arg::new("**/*.snap.new"),
+            Arg::new("**/*.snap.new.*"),
+            Arg::new("**/.*.pending-snap"),
+        ]),
+        outcome: Outcome::deny(
+            "`rm` of pending insta snapshots is blocked. Use `cargo insta accept` to accept or \
+             `cargo insta reject` to reject pending snapshots",
+        ),
+        ..Default::default()
+    }
 }
 
 #[cfg(test)]
@@ -238,6 +267,49 @@ mod tests {
     fn cargo_rm() {
         let reason = evaluate_expect_skip("cargo rm some-dep");
         assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn rm_snap_new() {
+        let outcome = evaluate_expect_outcome("rm path/to/foo.snap.new");
+        assert_eq!(outcome.decision, Decision::Deny);
+        assert!(outcome.reason.contains("cargo insta"));
+    }
+
+    #[test]
+    fn rm_snap_new_dot_suffix() {
+        let outcome = evaluate_expect_outcome("rm path/to/foo.snap.new.42");
+        assert_eq!(outcome.decision, Decision::Deny);
+        assert!(outcome.reason.contains("cargo insta"));
+    }
+
+    #[test]
+    fn rm_snap_new_glob() {
+        let outcome = evaluate_expect_outcome("rm crates/core/snapshots/foo__bar.snap.new");
+        assert_eq!(outcome.decision, Decision::Deny);
+        assert!(outcome.reason.contains("cargo insta"));
+    }
+
+    #[test]
+    fn rm_snap_new_mixed_with_other() {
+        let outcome = evaluate_expect_outcome("rm foo.snap.new other.txt");
+        assert_eq!(outcome.decision, Decision::Deny);
+        assert!(outcome.reason.contains("cargo insta"));
+        assert!(!outcome.reason.contains("git clean"));
+    }
+
+    #[test]
+    fn rm_pending_snap_inline() {
+        let outcome = evaluate_expect_outcome("rm src/.foo.rs.pending-snap");
+        assert_eq!(outcome.decision, Decision::Deny);
+        assert!(outcome.reason.contains("cargo insta"));
+    }
+
+    #[test]
+    fn rm_snap_not_new() {
+        let outcome = evaluate_expect_outcome("rm foo.snap");
+        assert_eq!(outcome.decision, Decision::Deny);
+        assert!(outcome.reason.contains("git rm"));
     }
 
     #[test]
