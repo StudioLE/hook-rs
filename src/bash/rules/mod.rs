@@ -1,6 +1,7 @@
 //! Security rules for evaluating shell commands.
 
 mod allow_safe;
+mod awk;
 mod cargo;
 mod cd_git;
 mod chained_push;
@@ -18,6 +19,7 @@ mod rm;
 mod sops;
 
 pub use allow_safe::*;
+pub use awk::*;
 pub use cargo::*;
 pub use cd_git::*;
 pub use chained_push::*;
