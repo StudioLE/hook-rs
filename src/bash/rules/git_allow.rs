@@ -1,28 +1,33 @@
-//! Allow rules for safe, read-only git subcommands.
+//! Allow rules for safe git subcommands.
 
 use crate::prelude::*;
 
-/// Git subcommands considered safe (read-only or low-risk).
-pub(crate) const SAFE_SUBCOMMANDS: &[&str] = &[
+/// Git subcommands that only read (no filesystem or `.git/` writes).
+pub(crate) const READ_ONLY_SUBCOMMANDS: &[&str] = &[
     "blame",
     "check-ignore",
     "describe",
     "diff",
-    "fetch",
     "grep",
     "log",
     "ls-tree",
     "merge-base",
-    "mv",
     "rev-parse",
-    "rm",
     "show",
     "status",
 ];
 
-/// Allow read-only git subcommands, including trusted-path variants via `git -C`.
+/// Git subcommands that write but are considered safe.
+///
+/// - `fetch` writes refs and pack files under `.git/`
+/// - `mv` renames working tree files
+/// - `rm` deletes working tree files
+pub(crate) const SAFE_WRITE_SUBCOMMANDS: &[&str] = &["fetch", "mv", "rm"];
+
+/// Allow safe git subcommands, including trusted-path variants via `git -C`.
 pub fn git_allow_rules() -> Vec<BashRule> {
-    let mut rules = git_safe_subcommands();
+    let mut rules = git_read_only_subcommands();
+    rules.extend(git_safe_write_subcommands());
     rules.push(git_branch__bare());
     rules.extend(git_branch__read_only());
     rules.push(git_tag__bare());
@@ -36,15 +41,29 @@ pub fn git_allow_rules() -> Vec<BashRule> {
     rules
 }
 
-/// Allow git subcommands that are unconditionally safe.
-fn git_safe_subcommands() -> Vec<BashRule> {
-    SAFE_SUBCOMMANDS
+/// Allow read-only git subcommands.
+fn git_read_only_subcommands() -> Vec<BashRule> {
+    READ_ONLY_SUBCOMMANDS
         .iter()
         .map(|sub| {
             BashRule::new(
                 format!("git_{sub}").replace('-', "_"),
                 format!("git {sub}"),
-                Outcome::allow(format!("Safe git subcommand: {sub}")),
+                Outcome::allow(format!("Read-only `git {sub}`")),
+            )
+        })
+        .collect()
+}
+
+/// Allow git subcommands that write but are considered safe.
+fn git_safe_write_subcommands() -> Vec<BashRule> {
+    SAFE_WRITE_SUBCOMMANDS
+        .iter()
+        .map(|sub| {
+            BashRule::new(
+                format!("git_{sub}"),
+                format!("git {sub}"),
+                Outcome::allow(format!("Safe `git {sub}`")),
             )
         })
         .collect()
@@ -56,7 +75,7 @@ fn git_branch__bare() -> BashRule {
         id: "git_branch__bare".to_owned(),
         command: "git branch".to_owned(),
         condition: Some(|simple, _, _| simple.args.len() == 1),
-        outcome: Outcome::allow("Safe git subcommand: branch"),
+        outcome: Outcome::allow("Read-only `git branch`"),
         ..Default::default()
     }
 }
@@ -86,7 +105,7 @@ fn git_branch__read_only() -> Vec<BashRule> {
             id: format!("git_branch_{flag_id}"),
             command: "git branch".to_owned(),
             with_any: Some(vec![Arg::new(flag)]),
-            outcome: Outcome::allow("Safe git subcommand: branch"),
+            outcome: Outcome::allow("Read-only `git branch`"),
             ..Default::default()
         }
     })
@@ -99,7 +118,7 @@ fn git_tag__bare() -> BashRule {
         id: "git_tag__bare".to_owned(),
         command: "git tag".to_owned(),
         condition: Some(|simple, _, _| simple.args.len() == 1),
-        outcome: Outcome::allow("Safe git subcommand: tag"),
+        outcome: Outcome::allow("Read-only `git tag`"),
         ..Default::default()
     }
 }
@@ -119,7 +138,7 @@ fn git_tag__read_only() -> BashRule {
             Arg::new("--no-merged"),
             Arg::new("--sort"),
         ]),
-        outcome: Outcome::allow("Safe git subcommand: tag"),
+        outcome: Outcome::allow("Read-only `git tag`"),
         ..Default::default()
     }
 }
@@ -133,7 +152,7 @@ fn git_remote__read_only() -> Vec<BashRule> {
             BashRule::new(
                 format!("git_remote_{sub_id}"),
                 format!("git remote {sub}"),
-                Outcome::allow("Safe git subcommand: remote"),
+                Outcome::allow("Read-only `git remote`"),
             )
         })
         .collect()
@@ -147,7 +166,7 @@ fn git_worktree__read_only() -> Vec<BashRule> {
             BashRule::new(
                 format!("git_worktree_{sub}"),
                 format!("git worktree {sub}"),
-                Outcome::allow("Safe git subcommand: worktree"),
+                Outcome::allow("Read-only `git worktree`"),
             )
         })
         .collect()
@@ -158,7 +177,7 @@ fn git_config_list() -> BashRule {
     BashRule::new(
         "git_config_list",
         "git config list",
-        Outcome::allow("Safe git subcommand: config"),
+        Outcome::allow("Read-only `git config`"),
     )
 }
 
@@ -167,7 +186,7 @@ fn git_config_get() -> BashRule {
     BashRule::new(
         "git_config_get",
         "git config get",
-        Outcome::allow("Safe git subcommand: config"),
+        Outcome::allow("Read-only `git config`"),
     )
 }
 
@@ -186,7 +205,7 @@ fn git_config__read_only_flags() -> BashRule {
             Arg::new("--get-color"),
             Arg::new("--get-colorbool"),
         ]),
-        outcome: Outcome::allow("Safe git subcommand: config"),
+        outcome: Outcome::allow("Read-only `git config`"),
         ..Default::default()
     }
 }
@@ -197,7 +216,7 @@ fn git_remote__bare() -> BashRule {
         id: "git_remote__bare".to_owned(),
         command: "git remote".to_owned(),
         condition: Some(|simple, _, _| simple.args.len() == 1),
-        outcome: Outcome::allow("Safe git subcommand: remote"),
+        outcome: Outcome::allow("Read-only `git remote`"),
         ..Default::default()
     }
 }
@@ -313,7 +332,7 @@ mod tests {
 
     #[test]
     fn _ls() {
-        // ls is Allow via safe_rules
+        // ls is Allow via read_only_rules
         let outcome = evaluate_expect_outcome("ls -la");
         assert_eq!(outcome.decision, Decision::Allow);
     }
@@ -326,7 +345,7 @@ mod tests {
 
     #[test]
     fn _cat() {
-        // cat is Allow via safe_rules
+        // cat is Allow via read_only_rules
         let outcome = evaluate_expect_outcome("cat file.txt");
         assert_eq!(outcome.decision, Decision::Allow);
     }

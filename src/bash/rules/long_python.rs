@@ -18,7 +18,7 @@ fn python__long_inline() -> BashRule {
             "python__long_inline",
             "python",
             Outcome::deny(format!(
-                "Inline Python too long (must be < {MAX_CHARS} chars and < {MAX_LINES} lines). Write a script to /tmp/ and run it instead."
+                "Inline `python` over {MAX_CHARS} chars or {MAX_LINES} lines is blocked. Alternatives: write a script to `/tmp/` and run it"
             )),
         )
     }
@@ -32,7 +32,7 @@ fn python3__long_inline() -> BashRule {
             "python3__long_inline",
             "python3",
             Outcome::deny(format!(
-                "Inline Python too long (must be < {MAX_CHARS} chars and < {MAX_LINES} lines). Write a script to /tmp/ and run it instead."
+                "Inline `python` over {MAX_CHARS} chars or {MAX_LINES} lines is blocked. Alternatives: write a script to `/tmp/` and run it"
             )),
         )
     }
@@ -118,7 +118,7 @@ mod tests {
 
     #[test]
     fn ls_passthrough() {
-        // ls is Allow via safe_rules
+        // ls is Allow via read_only_rules
         let outcome = evaluate_expect_outcome("ls -la");
         assert_eq!(outcome.decision, Decision::Allow);
     }

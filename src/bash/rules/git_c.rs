@@ -15,7 +15,7 @@ fn git_c__deny_destructive() -> BashRule {
         id: "git_c__deny_destructive".to_owned(),
         command: "git -C".to_owned(),
         condition: Some(deny_git_c),
-        outcome: Outcome::deny("Destructive git operation with -C"),
+        outcome: Outcome::deny("Destructive `git -C` operation is blocked"),
         ..Default::default()
     }
 }
@@ -26,7 +26,7 @@ fn git_c__allow_trusted() -> BashRule {
         id: "git_c__allow_trusted".to_owned(),
         command: "git -C".to_owned(),
         condition: Some(allow_git_c),
-        outcome: Outcome::allow("Safe git subcommand in trusted path"),
+        outcome: Outcome::allow("Safe `git -C` in trusted path"),
         ..Default::default()
     }
 }

@@ -1,19 +1,19 @@
-//! Allow rules for read-only and side-effect-free commands.
+//! Allow rules for read-only commands.
 
 use crate::prelude::*;
 
-const SAFE_COMMANDS: &[&str] = &[
+const READ_ONLY_COMMANDS: &[&str] = &[
     "base64", "basename", "cat", "column", "command", "cut", "dirname", "echo", "file", "fmt",
     "grep", "head", "jq", "less", "ls", "readlink", "realpath", "rg", "stat", "tail", "tr", "tree",
     "type", "uniq", "wc", "which", "xxd",
 ];
 
-/// Rules for safe read-only commands, with denials for commands that can write or execute.
+/// Rules for read-only commands.
 #[must_use]
-pub fn safe_rules() -> Vec<BashRule> {
-    let mut rules: Vec<BashRule> = SAFE_COMMANDS
+pub fn read_only_rules() -> Vec<BashRule> {
+    let mut rules: Vec<BashRule> = READ_ONLY_COMMANDS
         .iter()
-        .map(|cmd| BashRule::new(*cmd, *cmd, Outcome::allow(format!("Safe command: {cmd}"))))
+        .map(|cmd| BashRule::new(*cmd, *cmd, Outcome::allow(format!("Read-only `{cmd}`"))))
         .collect();
     rules.push(sed());
     rules.push(sort__cmd());
@@ -27,7 +27,7 @@ fn sed() -> BashRule {
         id: "sed".to_owned(),
         command: "sed".to_owned(),
         without_any: Some(vec![Arg::new("-i"), Arg::new("--in-place")]),
-        outcome: Outcome::allow("Safe command: sed (no in-place edit)"),
+        outcome: Outcome::allow("Read-only `sed`"),
         ..Default::default()
     }
 }
@@ -38,7 +38,7 @@ fn sort__cmd() -> BashRule {
         id: "sort".to_owned(),
         command: "sort".to_owned(),
         without_any: Some(vec![Arg::new("-o"), Arg::new("--output")]),
-        outcome: Outcome::allow("Safe command: sort (no output file)"),
+        outcome: Outcome::allow("Read-only `sort`"),
         ..Default::default()
     }
 }
@@ -49,7 +49,7 @@ fn yq() -> BashRule {
         id: "yq".to_owned(),
         command: "yq".to_owned(),
         without_any: Some(vec![Arg::new("-i"), Arg::new("--in-place")]),
-        outcome: Outcome::allow("Safe command: yq (no in-place edit)"),
+        outcome: Outcome::allow("Read-only `yq`"),
         ..Default::default()
     }
 }

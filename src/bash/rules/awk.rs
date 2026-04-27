@@ -8,7 +8,7 @@ pub fn awk() -> BashRule {
         "awk",
         "awk",
         Outcome::deny(
-            "awk is blocked. Alternatives: built in `Read` tool, `cut`, `grep`, `head`, `tail`, or `wc -l`",
+            "`awk` is blocked. Alternatives: built-in `Read` tool, `cut`, `grep`, `head`, `tail`, `wc -l`",
         ),
     )
 }

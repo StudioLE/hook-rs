@@ -23,7 +23,7 @@ fn journalctl__read_only() -> BashRule {
             Arg::new("--smart-relinquish-var"),
             Arg::new("--setup-keys"),
         ]),
-        outcome: Outcome::allow("Read-only journalctl"),
+        outcome: Outcome::allow("Read-only `journalctl`"),
         ..Default::default()
     }
 }

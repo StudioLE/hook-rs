@@ -14,9 +14,7 @@ fn git_push__chained() -> BashRule {
         ..BashRule::new(
             "git_push__chained",
             "git push",
-            Outcome::deny(
-                "Chained git push is blocked. Run 'git push' as a separate, standalone command.",
-            ),
+            Outcome::deny("Chained `git push` is blocked. Run `git push` as a standalone command"),
         )
     }
 }
@@ -111,7 +109,7 @@ mod tests {
 
     #[test]
     fn echo_git_push_passthrough() {
-        // echo is Allow via safe_rules
+        // echo is Allow via read_only_rules
         let outcome = evaluate_expect_outcome("echo git push");
         assert_eq!(outcome.decision, Decision::Allow);
     }

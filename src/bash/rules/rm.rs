@@ -9,8 +9,8 @@ pub fn rm() -> BashRule {
         "rm",
         "rm",
         Outcome::deny(
-            "rm is blocked. Use 'git rm -f <file>' for specific files (or -fx if gitignored) \
-             or 'git clean -f <file>' for untracked files (or -fx if gitignored).",
+            "`rm` is blocked. Alternatives: `git rm -f <file>`, `git rm -fx <file>` (gitignored), \
+             `git clean -f <file>`, `git clean -fx <file>` (gitignored)",
         ),
     )
 }
@@ -243,7 +243,7 @@ mod tests {
 
     #[test]
     fn _xargs_rm() {
-        // echo | xargs rm — echo is Allow via safe_rules, xargs is not matched
+        // echo | xargs rm — echo is Allow via read_only_rules, xargs is not matched
         // but rm is not the command name here (xargs is), so rm rule doesn't fire
         let reason = evaluate_expect_skip("echo file | xargs rm");
         assert_eq!(reason, SkipReason::OnlyAllowAll);

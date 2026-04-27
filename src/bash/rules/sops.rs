@@ -2,10 +2,7 @@
 
 use crate::prelude::*;
 
-const REASON: &str = "sops decryption exposes secrets to Claude's context. \
-                      Write code that references the env vars directly \
-                      (e.g. `curl -H \"Authorization: Bearer $TOKEN\"`); \
-                      the user can run it via `sops exec-env` themselves.";
+const REASON: &str = "`sops` decryption is blocked. Plaintext secrets would be exposed to context";
 
 /// Deny `sops` subcommands that surface plaintext secrets.
 pub fn sops_rules() -> Vec<BashRule> {

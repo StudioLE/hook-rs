@@ -36,7 +36,7 @@ fn cargo_subcommand(sub: &str) -> BashRule {
         id: format!("cargo_{sub}"),
         command: format!("cargo {sub}"),
         without_any: Some(vec![Arg::new("--target-dir"), Arg::new("--out-dir")]),
-        outcome: Outcome::allow(format!("Safe command: cargo {sub}")),
+        outcome: Outcome::allow(format!("Safe `cargo {sub}`")),
         ..Default::default()
     }
 }
@@ -46,7 +46,7 @@ fn cargo_insta_subcommand(sub: &str) -> BashRule {
         id: format!("cargo_insta_{sub}"),
         command: format!("cargo insta {sub}"),
         without_any: Some(vec![Arg::new("--target-dir"), Arg::new("--out-dir")]),
-        outcome: Outcome::allow(format!("Safe command: cargo insta {sub}")),
+        outcome: Outcome::allow(format!("Safe `cargo insta {sub}`")),
         ..Default::default()
     }
 }
@@ -57,7 +57,10 @@ fn cargo_insta_review__heredoc() -> BashRule {
         id: "cargo_insta_review__heredoc".to_owned(),
         command: "cargo insta review".to_owned(),
         condition: Some(|simple, _, _| simple.has_heredoc),
-        outcome: Outcome::deny("Do not fake interactive input to cargo insta review."),
+        outcome: Outcome::deny(
+            "`cargo insta review` with heredoc input is blocked. \
+             Alternatives: `cargo insta accept`, `cargo insta pending-snapshots`",
+        ),
         ..Default::default()
     }
 }

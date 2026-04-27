@@ -23,7 +23,7 @@ fn find__read_only() -> BashRule {
             Arg::new("-fprintf"),
             Arg::new("-fls"),
         ]),
-        outcome: Outcome::allow("Safe command: find (read-only)"),
+        outcome: Outcome::allow("Read-only `find`"),
         ..Default::default()
     }
 }
@@ -35,8 +35,8 @@ fn find_delete() -> BashRule {
         command: "find".to_owned(),
         with_any: Some(vec![Arg::new("-delete")]),
         outcome: Outcome::deny(
-            "find -delete is blocked. Use 'find ... -print' to preview matches first, \
-             then delete with targeted commands.",
+            "`find -delete` is blocked. Alternatives: `find ... -print` to preview, \
+             then `git rm` / `git clean`",
         ),
         ..Default::default()
     }
@@ -52,8 +52,8 @@ fn find_exec_rm() -> BashRule {
             Arg::new("-execdir").value("rm"),
         ]),
         outcome: Outcome::deny(
-            "find -exec rm is blocked. Use 'find ... -print' to preview matches first, \
-             then delete with targeted commands.",
+            "`find -exec rm` is blocked. Alternatives: `find ... -print` to preview, \
+             then `git rm` / `git clean`",
         ),
         ..Default::default()
     }

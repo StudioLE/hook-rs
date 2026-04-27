@@ -70,7 +70,7 @@ fn curl__read_only() -> BashRule {
             Arg::new("--quote"),
             Arg::new("--ftp-create-dirs"),
         ]),
-        outcome: Outcome::allow("Read-only curl"),
+        outcome: Outcome::allow("Read-only `curl`"),
         ..Default::default()
     }
 }

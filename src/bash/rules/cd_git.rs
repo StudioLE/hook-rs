@@ -14,7 +14,9 @@ fn cd_git() -> BashRule {
         ..BashRule::new(
             "cd_git",
             "cd",
-            Outcome::deny("Do not chain cd and git. Use 'git -C <path> <command>' instead."),
+            Outcome::deny(
+                "`cd ... && git ...` is blocked. Alternatives: `git -C <path> <command>`",
+            ),
         )
     }
 }
@@ -125,14 +127,14 @@ mod tests {
 
     #[test]
     fn non_cd_compound_passthrough() {
-        // ls -la is Allow via safe_rules, git status is Allow via git_approval
+        // ls -la is Allow via read_only_rules, git status is Allow via git_approval
         let outcome = evaluate_expect_outcome("ls -la && git status");
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn echo_cd_allowed() {
-        // echo is Allow via safe_rules, git status is Allow via git_approval
+        // echo is Allow via read_only_rules, git status is Allow via git_approval
         let outcome = evaluate_expect_outcome("echo cd /path && git status");
         assert_eq!(outcome.decision, Decision::Allow);
     }

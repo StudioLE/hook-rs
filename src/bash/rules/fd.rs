@@ -18,7 +18,7 @@ fn fd__read_only() -> BashRule {
             Arg::new("-X"),
             Arg::new("--exec-batch"),
         ]),
-        outcome: Outcome::allow("Safe command: fd (no exec)"),
+        outcome: Outcome::allow("Read-only `fd`"),
         ..Default::default()
     }
 }
@@ -35,8 +35,8 @@ fn fd_exec_rm() -> BashRule {
             Arg::new("--exec-batch").value("rm"),
         ]),
         outcome: Outcome::deny(
-            "fd -x rm is blocked. Use 'fd ... --list-details' to preview matches first, \
-             then delete with targeted commands.",
+            "`fd -x rm` is blocked. Alternatives: `fd ... --list-details` to preview, \
+             then `git rm` / `git clean`",
         ),
         ..Default::default()
     }

@@ -1,6 +1,5 @@
 //! Security rules for evaluating shell commands.
 
-mod allow_safe;
 mod awk;
 mod cargo;
 mod cd_git;
@@ -15,10 +14,10 @@ mod git_deny;
 mod journalctl;
 mod long_python;
 mod python;
+mod read_only;
 mod rm;
 mod sops;
 
-pub use allow_safe::*;
 pub use awk::*;
 pub use cargo::*;
 pub use cd_git::*;
@@ -33,5 +32,6 @@ pub use git_deny::*;
 pub use journalctl::*;
 pub use long_python::*;
 pub use python::*;
+pub use read_only::*;
 pub use rm::*;
 pub use sops::*;

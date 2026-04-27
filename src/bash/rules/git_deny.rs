@@ -20,7 +20,7 @@ fn git_reset_hard() -> BashRule {
         id: "git_reset_hard".to_owned(),
         command: "git reset".to_owned(),
         with_any: Some(vec![Arg::new("--hard")]),
-        outcome: Outcome::deny("git reset --hard discards uncommitted changes"),
+        outcome: Outcome::deny("`git reset --hard` is blocked. Discards uncommitted changes"),
         ..Default::default()
     }
 }
@@ -30,7 +30,10 @@ fn git_stash_pop() -> BashRule {
     BashRule {
         id: "git_stash_pop".to_owned(),
         command: "git stash pop".to_owned(),
-        outcome: Outcome::deny("git stash pop can cause merge conflicts and lose stash"),
+        outcome: Outcome::deny(
+            "`git stash pop` is blocked. Can cause merge conflicts and lose the stash. \
+             Alternatives: `git stash apply`",
+        ),
         ..Default::default()
     }
 }
@@ -40,7 +43,7 @@ fn git_stash_drop() -> BashRule {
     BashRule {
         id: "git_stash_drop".to_owned(),
         command: "git stash drop".to_owned(),
-        outcome: Outcome::deny("git stash drop permanently deletes a stash entry"),
+        outcome: Outcome::deny("`git stash drop` is blocked. Permanently deletes a stash entry"),
         ..Default::default()
     }
 }
@@ -50,7 +53,9 @@ fn git_stash_clear() -> BashRule {
     BashRule {
         id: "git_stash_clear".to_owned(),
         command: "git stash clear".to_owned(),
-        outcome: Outcome::deny("git stash clear permanently deletes all stash entries"),
+        outcome: Outcome::deny(
+            "`git stash clear` is blocked. Permanently deletes all stash entries",
+        ),
         ..Default::default()
     }
 }
@@ -62,8 +67,8 @@ fn git_clean_d() -> BashRule {
         command: "git clean".to_owned(),
         with_any: Some(vec![Arg::new("-d")]),
         outcome: Outcome::deny(
-            "git clean with -d is blocked. Use 'git clean -f <file>' for specific files \
-             (or -fx if gitignored) or 'git rm -r <dir>' for tracked directories.",
+            "`git clean -d` is blocked. Alternatives: `git clean -f <file>`, \
+             `git clean -fx <file>` (gitignored), `git rm -r <dir>` (tracked)",
         ),
         ..Default::default()
     }
@@ -76,8 +81,8 @@ fn git_checkout_discard() -> BashRule {
         command: "git checkout".to_owned(),
         with_any: Some(vec![Arg::new("--")]),
         outcome: Outcome::deny(
-            "git checkout -- is blocked. Do not discard changes to revert your mistakes. \
-             Fix the code properly.",
+            "`git checkout --` is blocked. Do not discard changes to revert mistakes; \
+             fix the code instead",
         ),
         ..Default::default()
     }

@@ -24,7 +24,7 @@ fn gh_run_list() -> BashRule {
     BashRule::new(
         "gh_run_list",
         "gh run list",
-        Outcome::allow("Read-only gh run list"),
+        Outcome::allow("Read-only `gh run list`"),
     )
 }
 
@@ -33,7 +33,7 @@ fn gh_run_view() -> BashRule {
     BashRule::new(
         "gh_run_view",
         "gh run view",
-        Outcome::allow("Read-only gh run view"),
+        Outcome::allow("Read-only `gh run view`"),
     )
 }
 
@@ -42,7 +42,7 @@ fn gh_release_list() -> BashRule {
     BashRule::new(
         "gh_release_list",
         "gh release list",
-        Outcome::allow("Read-only gh release list"),
+        Outcome::allow("Read-only `gh release list`"),
     )
 }
 
@@ -51,7 +51,7 @@ fn gh_pr_view() -> BashRule {
     BashRule::new(
         "gh_pr_view",
         "gh pr view",
-        Outcome::allow("Read-only gh pr view"),
+        Outcome::allow("Read-only `gh pr view`"),
     )
 }
 
@@ -60,7 +60,7 @@ fn gh_search_code() -> BashRule {
     BashRule::new(
         "gh_search_code",
         "gh search code",
-        Outcome::allow("Read-only gh search code"),
+        Outcome::allow("Read-only `gh search code`"),
     )
 }
 
@@ -69,7 +69,7 @@ fn gh_pr_comment() -> BashRule {
     BashRule::new(
         "gh_pr_comment",
         "gh pr comment",
-        Outcome::ask("PR comment requires approval"),
+        Outcome::ask("`gh pr comment` requires approval"),
     )
 }
 
@@ -79,7 +79,7 @@ fn gh_api_graphql__mutation() -> BashRule {
         id: "gh_api_graphql__mutation".to_owned(),
         command: "gh api graphql".to_owned(),
         with_any: Some(vec![Arg::new("*mutation*")]),
-        outcome: Outcome::ask("GitHub GraphQL mutation"),
+        outcome: Outcome::ask("`gh api graphql` with mutation requires approval"),
         ..Default::default()
     }
 }
@@ -90,7 +90,7 @@ fn gh_api_graphql__query() -> BashRule {
         id: "gh_api_graphql__query".to_owned(),
         command: "gh api graphql".to_owned(),
         without_any: Some(vec![Arg::new("*mutation*")]),
-        outcome: Outcome::allow("Read-only GraphQL query"),
+        outcome: Outcome::allow("Read-only `gh api graphql` query"),
         ..Default::default()
     }
 }
@@ -112,7 +112,7 @@ fn gh_api__data_flags() -> BashRule {
             Arg::new("--input"),
         ]),
         without_any: Some(vec![Arg::new("graphql")]),
-        outcome: Outcome::ask("GitHub API request with data flags"),
+        outcome: Outcome::ask("`gh api` with data flags requires approval"),
         ..Default::default()
     }
 }
@@ -126,7 +126,7 @@ fn gh_api__write_method() -> BashRule {
         command: "gh api".to_owned(),
         with_any: Some(vec![Arg::new("-X").ivalue("{POST,PUT,PATCH,DELETE}")]),
         without_any: Some(vec![Arg::new("graphql")]),
-        outcome: Outcome::ask("GitHub API write method"),
+        outcome: Outcome::ask("`gh api` with write method requires approval"),
         ..Default::default()
     }
 }
@@ -149,7 +149,7 @@ fn gh_api__read_only() -> BashRule {
             Arg::new("-X").ivalue("{POST,PUT,PATCH,DELETE}"),
             Arg::new("graphql"),
         ]),
-        outcome: Outcome::allow("Read-only gh api command"),
+        outcome: Outcome::allow("Read-only `gh api`"),
         ..Default::default()
     }
 }
@@ -159,7 +159,7 @@ mod tests {
     use crate::prelude::*;
     #[test]
     fn _non_gh() {
-        // ls and echo are Allow via safe_rules
+        // ls and echo are Allow via read_only_rules
         let outcome = evaluate_expect_outcome("ls -la");
         assert_eq!(outcome.decision, Decision::Allow);
         let outcome = evaluate_expect_outcome("echo hello");

@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-const REASON: &str = "Python is not permitted. Use shell tools, jq, yq, or Rust instead.";
+const REASON: &str = "`python` is blocked. Alternatives: shell tools, `jq`, `yq`, Rust";
 
 /// Rules for all Python commands.
 pub fn python_rules() -> Vec<BashRule> {
