@@ -104,7 +104,6 @@ impl BashEvaluator {
         rules.extend(journalctl_rules());
         rules.extend(cd_git_rules());
         rules.extend(chained_push_rules());
-        rules.extend(long_python_rules());
         rules.extend(python_rules());
         rules.extend(sed_rules());
         rules.extend(sops_rules());
