@@ -15,6 +15,9 @@ pub struct Settings {
     /// Read tool settings for auto-allowing trusted file paths.
     #[serde(default)]
     pub read: ReadSettings,
+    /// Worktree settings for `git worktree add` path classification.
+    #[serde(default)]
+    pub worktrees: WorktreeSettings,
 }
 
 /// Glob patterns for auto-allowing Read tool access to trusted paths.
@@ -56,6 +59,31 @@ pub struct GitSettings {
     pub paths: Vec<String>,
 }
 
+/// Worktree path classification for `git worktree add` operations.
+///
+/// Ordered glob patterns following `.gitignore` semantics:
+///
+/// - Evaluated top-to-bottom, last match wins
+/// - Prefix with `!` to negate (untrust)
+/// - Paths matching no pattern are untrusted
+/// - Supports tilde expansion (`~/worktrees/**`)
+///
+/// ```yaml
+/// worktrees:
+///   paths:
+///     - /home/user/worktrees/**
+/// ```
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct WorktreeSettings {
+    /// Glob patterns for trusted worktree target directories.
+    ///
+    /// - Last matching pattern wins
+    /// - Prefix with `!` to negate
+    /// - Supports tilde expansion (`~/worktrees/**`)
+    #[serde(default)]
+    pub paths: Vec<String>,
+}
+
 impl Settings {
     /// Load settings from file.
     ///
@@ -75,6 +103,7 @@ impl Settings {
             path = %path.display(),
             git_paths = settings.git.paths.len(),
             read_paths = settings.read.paths.len(),
+            worktrees_paths = settings.worktrees.paths.len(),
             "Loaded settings",
         );
         Ok(settings)
@@ -100,6 +129,9 @@ impl Settings {
                     "!.env".to_owned(),
                     "!.env.*".to_owned(),
                 ],
+            },
+            worktrees: WorktreeSettings {
+                paths: vec!["/home/user/worktrees/**".to_owned()],
             },
         }
     }
@@ -207,6 +239,20 @@ mod tests {
                 "/home/user/repos/**",
                 "!/home/user/repos/forked/**",
                 "/home/user/repos/forked/this",
+            ]
+        );
+    }
+
+    #[test]
+    fn yaml_worktree_paths() {
+        let yaml = "worktrees:\n  paths:\n    - /home/user/worktrees/**\n    - !/home/user/worktrees/blocked/**\n";
+        let settings: Settings =
+            serde_yaml::from_str(&quote_yaml_tags(yaml)).expect("should parse");
+        assert_eq!(
+            settings.worktrees.paths,
+            vec![
+                "/home/user/worktrees/**",
+                "!/home/user/worktrees/blocked/**"
             ]
         );
     }
