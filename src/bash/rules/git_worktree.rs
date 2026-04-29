@@ -44,27 +44,14 @@ fn has_unsupported_flags(
         Some(rest) if !rest.is_empty() => rest,
         _ => return false,
     };
-    let mut i = 0;
-    while i < remaining.len() {
-        let Some(arg) = remaining.get(i) else {
-            break;
-        };
-        if arg == "-b" {
-            i += 2;
-        } else if arg.starts_with('-') {
-            return true;
-        } else {
-            i += 1;
-        }
-    }
-    false
+    parse_worktree_args(remaining).is_err()
 }
 
 /// True if the first positional `/`-prefixed argument matches a trusted worktree path.
 ///
-/// Skips `-b`'s value argument to avoid matching a branch name as a path.
-/// Git rejects refs starting with `/` so this is defense-in-depth rather than
-/// a practical bypass today.
+/// Uses [`ArgParser`] to correctly skip flag values. Git rejects refs
+/// starting with `/` so this is defense-in-depth rather than a
+/// practical bypass today.
 fn is_worktree_path_trusted(
     context: &SimpleContext,
     _complete: &CompleteContext,
@@ -74,27 +61,35 @@ fn is_worktree_path_trusted(
         Some(rest) if !rest.is_empty() => rest,
         _ => return false,
     };
+    let Ok(parsed) = parse_worktree_args(remaining) else {
+        return false;
+    };
     let factory = PathRuleFactory::default();
-    let mut i = 0;
-    while i < remaining.len() {
-        let Some(arg) = remaining.get(i) else {
-            break;
-        };
-        if arg == "-b" {
-            i += 2;
-            continue;
+    for arg in &parsed {
+        if let Arg::Operand(value) = arg {
+            if !value.starts_with('/') {
+                continue;
+            }
+            if let Some(is_allowed) = factory.is_match(value, &settings.worktrees.paths) {
+                trace!(is_allowed, "Matched worktree path");
+                return is_allowed;
+            }
         }
-        let unquoted = unquote_str(arg);
-        if unquoted.starts_with('/')
-            && let Some(is_allowed) = factory.is_match(&unquoted, &settings.worktrees.paths)
-        {
-            trace!(is_allowed, "Matched worktree path");
-            return is_allowed;
-        }
-        i += 1;
     }
     trace!("No worktree path match");
     false
+}
+
+/// Parse args after `worktree add` using a schema that only allows `-b`.
+fn parse_worktree_args(args: &[String]) -> Result<Vec<Arg>, Report<ArgParseError>> {
+    let settings = ArgParserSettings {
+        schema: ArgSchema {
+            bool_flags: vec![],
+            value_flags: vec![String::from("-b")],
+        },
+        unquote: true,
+    };
+    ArgParser::new(settings).parse(args.to_vec())
 }
 
 #[cfg(test)]
