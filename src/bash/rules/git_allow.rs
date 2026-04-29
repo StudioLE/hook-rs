@@ -397,7 +397,7 @@ mod tests {
     #[test]
     fn git_status_semicolon_log() {
         let outcome = evaluate_expect_outcome("git status ; git log");
-        assert_eq!(outcome.decision, Decision::Allow);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]

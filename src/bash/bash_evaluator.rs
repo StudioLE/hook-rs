@@ -26,6 +26,9 @@ impl BashEvaluator {
         &self,
         complete_context: &CompleteContext,
     ) -> Result<Vec<Outcome>, Report<ParseError>> {
+        if let Some(outcome) = semicolon_rule(complete_context) {
+            return Ok(vec![outcome]);
+        }
         let mut all_outcomes = Vec::new();
         let mut has_unmatched = false;
         for simple_context in complete_context.all_commands() {
@@ -319,13 +322,13 @@ mod tests {
     #[test]
     fn semi_both_safe() {
         let outcome = evaluate_expect_outcome("git status ; git diff");
-        assert_eq!(outcome.decision, Decision::Allow);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn semi_safe_and_unknown() {
-        let reason = evaluate_expect_skip("git status ; cargo publish");
-        assert_eq!(reason, SkipReason::OnlyAllowAll);
+        let outcome = evaluate_expect_outcome("git status ; cargo publish");
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
@@ -337,7 +340,7 @@ mod tests {
     #[test]
     fn semi_mixed_with_and() {
         let outcome = evaluate_expect_outcome("git status && git diff ; git log");
-        assert_eq!(outcome.decision, Decision::Allow);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]

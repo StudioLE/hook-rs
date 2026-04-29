@@ -17,6 +17,7 @@ mod python;
 mod read_only;
 mod rm;
 mod sed;
+mod semicolon;
 mod sops;
 
 pub use awk::*;
@@ -36,4 +37,5 @@ pub use python::*;
 pub use read_only::*;
 pub use rm::*;
 pub use sed::*;
+pub use semicolon::*;
 pub use sops::*;
