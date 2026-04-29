@@ -12,7 +12,7 @@ fn sed__read_only() -> BashRule {
     BashRule {
         id: "sed__read_only".to_owned(),
         command: "sed".to_owned(),
-        without_any: Some(vec![Arg::new("-i"), Arg::new("--in-place")]),
+        without_any: Some(vec![ArgMatcher::new("-i"), ArgMatcher::new("--in-place")]),
         outcome: Outcome::allow("Read-only `sed`"),
         ..Default::default()
     }
@@ -23,7 +23,7 @@ fn sed__in_place() -> BashRule {
     BashRule {
         id: "sed__in_place".to_owned(),
         command: "sed".to_owned(),
-        with_any: Some(vec![Arg::new("-i"), Arg::new("--in-place")]),
+        with_any: Some(vec![ArgMatcher::new("-i"), ArgMatcher::new("--in-place")]),
         outcome: Outcome::deny(
             "`sed -i` is blocked. Use the built-in `Edit` or `Write` tool instead",
         ),

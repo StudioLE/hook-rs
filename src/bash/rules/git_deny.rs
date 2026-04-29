@@ -19,7 +19,7 @@ fn git_reset_hard() -> BashRule {
     BashRule {
         id: "git_reset_hard".to_owned(),
         command: "git reset".to_owned(),
-        with_any: Some(vec![Arg::new("--hard")]),
+        with_any: Some(vec![ArgMatcher::new("--hard")]),
         outcome: Outcome::deny("`git reset --hard` is blocked. Discards uncommitted changes"),
         ..Default::default()
     }
@@ -65,7 +65,7 @@ fn git_clean_d() -> BashRule {
     BashRule {
         id: "git_clean_d".to_owned(),
         command: "git clean".to_owned(),
-        with_any: Some(vec![Arg::new("-d")]),
+        with_any: Some(vec![ArgMatcher::new("-d")]),
         outcome: Outcome::deny(
             "`git clean -d` is blocked. Alternatives: `git clean -f <file>`, \
              `git clean -fx <file>` (gitignored), `git rm -r <dir>` (tracked)",
@@ -79,7 +79,7 @@ fn git_checkout_discard() -> BashRule {
     BashRule {
         id: "git_checkout_discard".to_owned(),
         command: "git checkout".to_owned(),
-        with_any: Some(vec![Arg::new("--")]),
+        with_any: Some(vec![ArgMatcher::new("--")]),
         outcome: Outcome::deny(
             "`git checkout --` is blocked. Do not discard changes to revert mistakes; \
              fix the code instead",

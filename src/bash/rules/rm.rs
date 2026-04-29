@@ -14,9 +14,9 @@ fn rm() -> BashRule {
         id: "rm".to_owned(),
         command: "rm".to_owned(),
         without_any: Some(vec![
-            Arg::new("**/*.snap.new"),
-            Arg::new("**/*.snap.new.*"),
-            Arg::new("**/.*.pending-snap"),
+            ArgMatcher::new("**/*.snap.new"),
+            ArgMatcher::new("**/*.snap.new.*"),
+            ArgMatcher::new("**/.*.pending-snap"),
         ]),
         outcome: Outcome::deny(
             "`rm` is blocked. Alternatives: `git rm -f <file>`, `git rm -fx <file>` (gitignored), \
@@ -32,9 +32,9 @@ fn rm__snap_new() -> BashRule {
         id: "rm__snap_new".to_owned(),
         command: "rm".to_owned(),
         with_any: Some(vec![
-            Arg::new("**/*.snap.new"),
-            Arg::new("**/*.snap.new.*"),
-            Arg::new("**/.*.pending-snap"),
+            ArgMatcher::new("**/*.snap.new"),
+            ArgMatcher::new("**/*.snap.new.*"),
+            ArgMatcher::new("**/.*.pending-snap"),
         ]),
         outcome: Outcome::deny(
             "`rm` of pending insta snapshots is blocked. Use `cargo insta accept` to accept or \

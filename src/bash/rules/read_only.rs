@@ -25,7 +25,7 @@ fn sort__cmd() -> BashRule {
     BashRule {
         id: "sort".to_owned(),
         command: "sort".to_owned(),
-        without_any: Some(vec![Arg::new("-o"), Arg::new("--output")]),
+        without_any: Some(vec![ArgMatcher::new("-o"), ArgMatcher::new("--output")]),
         outcome: Outcome::allow("Read-only `sort`"),
         ..Default::default()
     }
@@ -36,7 +36,7 @@ fn yq() -> BashRule {
     BashRule {
         id: "yq".to_owned(),
         command: "yq".to_owned(),
-        without_any: Some(vec![Arg::new("-i"), Arg::new("--in-place")]),
+        without_any: Some(vec![ArgMatcher::new("-i"), ArgMatcher::new("--in-place")]),
         outcome: Outcome::allow("Read-only `yq`"),
         ..Default::default()
     }

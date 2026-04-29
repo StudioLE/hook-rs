@@ -7,14 +7,14 @@ use crate::prelude::*;
 /// Matches a command-line argument by pattern, optionally checking its
 /// option-argument (the value that follows the flag).
 ///
-/// - `Arg::new("x")` checks whether the flag/value is present in the args.
-/// - `Arg::new("x").value("y")` checks whether the flag is present and its
+/// - `ArgMatcher::new("x")` checks whether the flag/value is present in the args.
+/// - `ArgMatcher::new("x").value("y")` checks whether the flag is present and its
 ///   option-argument matches the pattern. Three forms are recognized:
 ///   - Two-arg: `-X POST` (flag and value as separate args)
 ///   - Concatenated short: `-XPOST` (short flags only)
 ///   - Equals long: `--data=foo` (long flags only)
 /// - Value matching is case-sensitive by default; use `.ivalue()` for case-insensitive.
-pub struct Arg {
+pub struct ArgMatcher {
     /// Raw option pattern string.
     option: String,
     /// Pre-compiled glob for `option`, if it contains glob chars.
@@ -27,8 +27,8 @@ pub struct Arg {
     case_insensitive: bool,
 }
 
-impl Arg {
-    /// Create a new [`Arg`] matching the given option pattern.
+impl ArgMatcher {
+    /// Create a new [`ArgMatcher`] matching the given option pattern.
     pub fn new(option: impl Into<String>) -> Self {
         let option = option.into();
         let option_glob = compile_arg_glob(&option, false);
@@ -221,280 +221,280 @@ mod tests {
 
     #[test]
     fn short_flag_standalone() {
-        assert!(Arg::new("-d").is_present(&["-d"]));
+        assert!(ArgMatcher::new("-d").is_present(&["-d"]));
     }
 
     #[test]
     fn short_flag_bundled_fd() {
-        assert!(Arg::new("-d").is_present(&["-fd"]));
+        assert!(ArgMatcher::new("-d").is_present(&["-fd"]));
     }
 
     #[test]
     fn short_flag_bundled_fxd() {
-        assert!(Arg::new("-d").is_present(&["-fxd"]));
+        assert!(ArgMatcher::new("-d").is_present(&["-fxd"]));
     }
 
     #[test]
     fn short_flag_against_long() {
-        assert!(!Arg::new("-d").is_present(&["--debug"]));
+        assert!(!ArgMatcher::new("-d").is_present(&["--debug"]));
     }
 
     #[test]
     fn long_flag_exact() {
-        assert!(Arg::new("--data").is_present(&["--data"]));
+        assert!(ArgMatcher::new("--data").is_present(&["--data"]));
     }
 
     #[test]
     fn long_flag_equals() {
-        assert!(Arg::new("--data").is_present(&["--data=foo"]));
+        assert!(ArgMatcher::new("--data").is_present(&["--data=foo"]));
     }
 
     #[test]
     fn bare_value_exact() {
-        assert!(Arg::new("reset").is_present(&["reset"]));
+        assert!(ArgMatcher::new("reset").is_present(&["reset"]));
     }
 
     #[test]
     fn bare_value_different() {
-        assert!(!Arg::new("reset").is_present(&["status"]));
+        assert!(!ArgMatcher::new("reset").is_present(&["status"]));
     }
 
     #[test]
     fn glob_tmp_match() {
-        assert!(Arg::new("/tmp/*").is_present(&["/tmp/file.txt"]));
+        assert!(ArgMatcher::new("/tmp/*").is_present(&["/tmp/file.txt"]));
     }
 
     #[test]
     fn glob_tmp_outside() {
-        assert!(!Arg::new("/tmp/*").is_present(&["/var/file.txt"]));
+        assert!(!ArgMatcher::new("/tmp/*").is_present(&["/var/file.txt"]));
     }
 
     #[test]
     fn value_two_arg_post() {
-        let arg = Arg::new("-X").value("{POST,PUT,PATCH,DELETE}");
+        let arg = ArgMatcher::new("-X").value("{POST,PUT,PATCH,DELETE}");
         assert!(arg.is_present(&["-X", "POST"]));
     }
 
     #[test]
     fn value_two_arg_case_sensitive() {
-        let arg = Arg::new("-X").value("{POST,PUT,PATCH,DELETE}");
+        let arg = ArgMatcher::new("-X").value("{POST,PUT,PATCH,DELETE}");
         assert!(!arg.is_present(&["-X", "post"]));
     }
 
     #[test]
     fn value_two_arg_case_insensitive() {
-        let arg = Arg::new("-X").ivalue("{POST,PUT,PATCH,DELETE}");
+        let arg = ArgMatcher::new("-X").ivalue("{POST,PUT,PATCH,DELETE}");
         assert!(arg.is_present(&["-X", "post"]));
     }
 
     #[test]
     fn value_two_arg_get() {
-        let arg = Arg::new("-X").value("{POST,PUT,PATCH,DELETE}");
+        let arg = ArgMatcher::new("-X").value("{POST,PUT,PATCH,DELETE}");
         assert!(!arg.is_present(&["-X", "GET"]));
     }
 
     #[test]
     fn value_two_arg_exec_rm() {
-        let arg = Arg::new("-exec").value("rm");
+        let arg = ArgMatcher::new("-exec").value("rm");
         assert!(arg.is_present(&["-exec", "rm"]));
     }
 
     #[test]
     fn value_concat_short_xpost() {
-        let arg = Arg::new("-X").value("{POST,PUT,PATCH,DELETE}");
+        let arg = ArgMatcher::new("-X").value("{POST,PUT,PATCH,DELETE}");
         assert!(arg.is_present(&["-XPOST"]));
     }
 
     #[test]
     fn value_concat_short_case_insensitive() {
-        let arg = Arg::new("-X").ivalue("{POST,PUT,PATCH,DELETE}");
+        let arg = ArgMatcher::new("-X").ivalue("{POST,PUT,PATCH,DELETE}");
         assert!(arg.is_present(&["-Xpost"]));
     }
 
     #[test]
     fn value_concat_short_glob() {
-        let arg = Arg::new("-o").value("*.txt");
+        let arg = ArgMatcher::new("-o").value("*.txt");
         assert!(arg.is_present(&["-ofile.txt"]));
     }
 
     #[test]
     fn value_equals_long_wildcard() {
-        let arg = Arg::new("--data").value("*");
+        let arg = ArgMatcher::new("--data").value("*");
         assert!(arg.is_present(&["--data=foo"]));
     }
 
     #[test]
     fn value_equals_long_json() {
-        let arg = Arg::new("--data").value("*.json");
+        let arg = ArgMatcher::new("--data").value("*.json");
         assert!(arg.is_present(&["--data=file.json"]));
     }
 
     #[test]
     fn value_equals_long_wrong_extension() {
-        let arg = Arg::new("--data").value("*.json");
+        let arg = ArgMatcher::new("--data").value("*.json");
         assert!(!arg.is_present(&["--data=file.txt"]));
     }
 
     #[test]
     fn short_flag_not_present() {
-        assert!(!Arg::new("-d").is_present(&["-f", "-g"]));
+        assert!(!ArgMatcher::new("-d").is_present(&["-f", "-g"]));
     }
 
     #[test]
     fn empty_args() {
-        assert!(!Arg::new("-d").is_present(&[]));
+        assert!(!ArgMatcher::new("-d").is_present(&[]));
     }
 
     #[test]
     fn glob_option_outside() {
-        assert!(!Arg::new("*mutation*").is_present(&["query { viewer }"]));
+        assert!(!ArgMatcher::new("*mutation*").is_present(&["query { viewer }"]));
     }
 
     #[test]
     fn glob_option_substring_match() {
-        assert!(Arg::new("*mutation*").is_present(&["mutation { addComment }"]));
+        assert!(ArgMatcher::new("*mutation*").is_present(&["mutation { addComment }"]));
     }
 
     #[test]
     fn glob_option_substring_middle() {
-        assert!(Arg::new("*mutation*").is_present(&["query='mutation { foo }'"]));
+        assert!(ArgMatcher::new("*mutation*").is_present(&["query='mutation { foo }'"]));
     }
 
     #[test]
     fn value_two_arg_long_flag() {
-        let arg = Arg::new("--data").value("foo");
+        let arg = ArgMatcher::new("--data").value("foo");
         assert!(arg.is_present(&["--data", "foo"]));
     }
 
     #[test]
     fn value_two_arg_long_flag_different() {
-        let arg = Arg::new("--data").value("foo");
+        let arg = ArgMatcher::new("--data").value("foo");
         assert!(!arg.is_present(&["--data", "bar"]));
     }
 
     #[test]
     fn ivalue_exact_case_insensitive() {
-        let arg = Arg::new("-X").ivalue("POST");
+        let arg = ArgMatcher::new("-X").ivalue("POST");
         assert!(arg.is_present(&["-X", "post"]));
     }
 
     #[test]
     fn ivalue_exact_case_insensitive_match() {
-        let arg = Arg::new("-X").ivalue("POST");
+        let arg = ArgMatcher::new("-X").ivalue("POST");
         assert!(arg.is_present(&["-X", "POST"]));
     }
 
     #[test]
     fn value_not_adjacent() {
-        let arg = Arg::new("-X").value("{POST,PUT,PATCH,DELETE}");
+        let arg = ArgMatcher::new("-X").value("{POST,PUT,PATCH,DELETE}");
         assert!(!arg.is_present(&["-X", "--verbose", "POST"]));
     }
 
     /// `-aX` bundles `-a` and `-X`; `POST` is `-X`'s value as the next arg.
     #[test]
     fn value_bundled_option_two_arg() {
-        let arg = Arg::new("-X").value("{POST,PUT,PATCH,DELETE}");
+        let arg = ArgMatcher::new("-X").value("{POST,PUT,PATCH,DELETE}");
         assert!(arg.is_present(&["-aX", "POST"]));
     }
 
     /// `-aXPOST`: flag char `X` is at position 2, not position 1; concatenated form only checks position 1.
     #[test]
     fn value_concat_flag_not_first() {
-        let arg = Arg::new("-X").value("{POST,PUT,PATCH,DELETE}");
+        let arg = ArgMatcher::new("-X").value("{POST,PUT,PATCH,DELETE}");
         assert!(!arg.is_present(&["-aXPOST"]));
     }
 
     #[test]
     fn value_exec_wrong_value() {
-        let arg = Arg::new("-exec").value("rm");
+        let arg = ArgMatcher::new("-exec").value("rm");
         assert!(!arg.is_present(&["-exec", "ls"]));
     }
 
     #[test]
     fn value_exec_no_value() {
-        let arg = Arg::new("-exec").value("rm");
+        let arg = ArgMatcher::new("-exec").value("rm");
         assert!(!arg.is_present(&["-exec"]));
     }
 
     #[test]
     fn long_flag_against_prefix() {
-        assert!(!Arg::new("--data").is_present(&["--database"]));
+        assert!(!ArgMatcher::new("--data").is_present(&["--database"]));
     }
 
     #[test]
     fn glob_question_mark() {
-        assert!(Arg::new("-?").is_present(&["-x"]));
+        assert!(ArgMatcher::new("-?").is_present(&["-x"]));
     }
 
     #[test]
     fn glob_question_mark_long_arg() {
-        assert!(!Arg::new("-?").is_present(&["--xx"]));
+        assert!(!ArgMatcher::new("-?").is_present(&["--xx"]));
     }
 
     #[test]
     fn glob_bracket_range() {
-        assert!(Arg::new("-[abc]").is_present(&["-b"]));
+        assert!(ArgMatcher::new("-[abc]").is_present(&["-b"]));
     }
 
     #[test]
     fn glob_bracket_range_outside() {
-        assert!(!Arg::new("-[abc]").is_present(&["-d"]));
+        assert!(!ArgMatcher::new("-[abc]").is_present(&["-d"]));
     }
 
     #[test]
     fn short_option_no_concat_long_match() {
-        let arg = Arg::new("-X").value("POST");
+        let arg = ArgMatcher::new("-X").value("POST");
         assert!(!arg.is_present(&["-X=POST"]));
     }
 
     #[test]
     fn long_option_no_concat_short_match() {
-        let arg = Arg::new("--method").value("POST");
+        let arg = ArgMatcher::new("--method").value("POST");
         assert!(!arg.is_present(&["--methodPOST"]));
     }
 
     #[test]
     fn glob_double_star() {
-        assert!(Arg::new("**").is_present(&["anything"]));
+        assert!(ArgMatcher::new("**").is_present(&["anything"]));
     }
 
     #[test]
     fn glob_double_star_prefix() {
-        assert!(Arg::new("**/foo").is_present(&["bar/foo"]));
+        assert!(ArgMatcher::new("**/foo").is_present(&["bar/foo"]));
     }
 
     #[test]
     fn glob_double_star_prefix_different() {
-        assert!(!Arg::new("**/foo").is_present(&["bar/baz"]));
+        assert!(!ArgMatcher::new("**/foo").is_present(&["bar/baz"]));
     }
 
     #[test]
     fn glob_negated_bracket() {
-        assert!(Arg::new("-[!abc]").is_present(&["-d"]));
+        assert!(ArgMatcher::new("-[!abc]").is_present(&["-d"]));
     }
 
     #[test]
     fn glob_negated_bracket_excluded() {
-        assert!(!Arg::new("-[!abc]").is_present(&["-a"]));
+        assert!(!ArgMatcher::new("-[!abc]").is_present(&["-a"]));
     }
 
     #[test]
     fn glob_escaped_star_bracket() {
-        assert!(Arg::new("[*]").is_present(&["*"]));
+        assert!(ArgMatcher::new("[*]").is_present(&["*"]));
     }
 
     #[test]
     fn glob_escaped_star_bracket_other_char() {
-        assert!(!Arg::new("[*]").is_present(&["x"]));
+        assert!(!ArgMatcher::new("[*]").is_present(&["x"]));
     }
 
     #[test]
     fn glob_backslash_escape_star() {
-        assert!(Arg::new(r"\*").is_present(&["*"]));
+        assert!(ArgMatcher::new(r"\*").is_present(&["*"]));
     }
 
     #[test]
     fn glob_backslash_escape_star_other_char() {
-        assert!(!Arg::new(r"\*").is_present(&["x"]));
+        assert!(!ArgMatcher::new(r"\*").is_present(&["x"]));
     }
 }

@@ -4,13 +4,9 @@ use crate::prelude::*;
 
 /// Deny sequential commands separated by `;`.
 pub fn semicolon_rule(complete: &CompleteContext) -> Option<Outcome> {
-    if contains_semicolon(complete) {
-        Some(Outcome::deny(
+    contains_semicolon(complete).then(|| Outcome::deny(
             "Sequential commands with `;` are blocked. Use `&&` for related commands or run each separately",
         ))
-    } else {
-        None
-    }
 }
 
 /// Check if any pipeline in the command uses `;` as a separator.

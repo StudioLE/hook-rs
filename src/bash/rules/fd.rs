@@ -13,10 +13,10 @@ fn fd__read_only() -> BashRule {
         id: "fd__read_only".to_owned(),
         command: "fd".to_owned(),
         without_any: Some(vec![
-            Arg::new("-x"),
-            Arg::new("--exec"),
-            Arg::new("-X"),
-            Arg::new("--exec-batch"),
+            ArgMatcher::new("-x"),
+            ArgMatcher::new("--exec"),
+            ArgMatcher::new("-X"),
+            ArgMatcher::new("--exec-batch"),
         ]),
         outcome: Outcome::allow("Read-only `fd`"),
         ..Default::default()
@@ -29,10 +29,10 @@ fn fd_exec_rm() -> BashRule {
         id: "fd_exec_rm".to_owned(),
         command: "fd".to_owned(),
         with_any: Some(vec![
-            Arg::new("-x").value("rm"),
-            Arg::new("--exec").value("rm"),
-            Arg::new("-X").value("rm"),
-            Arg::new("--exec-batch").value("rm"),
+            ArgMatcher::new("-x").value("rm"),
+            ArgMatcher::new("--exec").value("rm"),
+            ArgMatcher::new("-X").value("rm"),
+            ArgMatcher::new("--exec-batch").value("rm"),
         ]),
         outcome: Outcome::deny(
             "`fd -x rm` is blocked. Alternatives: `fd ... --list-details` to preview, \

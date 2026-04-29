@@ -17,21 +17,21 @@ pub struct BashRule {
     /// Only match if any of these arguments are present after the command.
     ///
     /// Examples:
-    /// - `Arg::new("-f")`
-    /// - `Arg::new("--force")`
-    /// - `Arg::new("-X").value("{POST,PUT}")`
-    pub with_any: Option<Vec<Arg>>,
+    /// - `ArgMatcher::new("-f")`
+    /// - `ArgMatcher::new("--force")`
+    /// - `ArgMatcher::new("-X").value("{POST,PUT}")`
+    pub with_any: Option<Vec<ArgMatcher>>,
     /// Only match if **all** of these arguments are present after the command.
     ///
     /// Examples:
-    /// - `[Arg::new("reset"), Arg::new("--hard")]`
-    pub with_all: Option<Vec<Arg>>,
+    /// - `[ArgMatcher::new("reset"), ArgMatcher::new("--hard")]`
+    pub with_all: Option<Vec<ArgMatcher>>,
     /// Do not match if any of these arguments are present after the command.
     ///
     /// Examples:
-    /// - `Arg::new("-i")`
-    /// - `Arg::new("--in-place")`
-    pub without_any: Option<Vec<Arg>>,
+    /// - `ArgMatcher::new("-i")`
+    /// - `ArgMatcher::new("--in-place")`
+    pub without_any: Option<Vec<ArgMatcher>>,
     /// Only match if the command satisfies this condition.
     pub condition: Option<fn(&SimpleContext, &CompleteContext, &Settings) -> bool>,
     /// Outcome if the command matches.

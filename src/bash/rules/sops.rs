@@ -97,7 +97,7 @@ fn sops_d() -> BashRule {
     BashRule {
         id: "sops_d".to_owned(),
         command: "sops".to_owned(),
-        with_any: Some(vec![Arg::new("-d"), Arg::new("--decrypt")]),
+        with_any: Some(vec![ArgMatcher::new("-d"), ArgMatcher::new("--decrypt")]),
         outcome: Outcome::deny(DECRYPT_REASON),
         ..Default::default()
     }

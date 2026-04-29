@@ -78,7 +78,7 @@ fn gh_api_graphql__mutation() -> BashRule {
     BashRule {
         id: "gh_api_graphql__mutation".to_owned(),
         command: "gh api graphql".to_owned(),
-        with_any: Some(vec![Arg::new("*mutation*")]),
+        with_any: Some(vec![ArgMatcher::new("*mutation*")]),
         outcome: Outcome::ask("`gh api graphql` with mutation requires approval"),
         ..Default::default()
     }
@@ -89,7 +89,7 @@ fn gh_api_graphql__query() -> BashRule {
     BashRule {
         id: "gh_api_graphql__query".to_owned(),
         command: "gh api graphql".to_owned(),
-        without_any: Some(vec![Arg::new("*mutation*")]),
+        without_any: Some(vec![ArgMatcher::new("*mutation*")]),
         outcome: Outcome::allow("Read-only `gh api graphql` query"),
         ..Default::default()
     }
@@ -103,15 +103,15 @@ fn gh_api__data_flags() -> BashRule {
         id: "gh_api__data_flags".to_owned(),
         command: "gh api".to_owned(),
         with_any: Some(vec![
-            Arg::new("-d"),
-            Arg::new("--data"),
-            Arg::new("-f"),
-            Arg::new("--field"),
-            Arg::new("-F"),
-            Arg::new("--raw-field"),
-            Arg::new("--input"),
+            ArgMatcher::new("-d"),
+            ArgMatcher::new("--data"),
+            ArgMatcher::new("-f"),
+            ArgMatcher::new("--field"),
+            ArgMatcher::new("-F"),
+            ArgMatcher::new("--raw-field"),
+            ArgMatcher::new("--input"),
         ]),
-        without_any: Some(vec![Arg::new("graphql")]),
+        without_any: Some(vec![ArgMatcher::new("graphql")]),
         outcome: Outcome::ask("`gh api` with data flags requires approval"),
         ..Default::default()
     }
@@ -124,8 +124,10 @@ fn gh_api__write_method() -> BashRule {
     BashRule {
         id: "gh_api__write_method".to_owned(),
         command: "gh api".to_owned(),
-        with_any: Some(vec![Arg::new("-X").ivalue("{POST,PUT,PATCH,DELETE}")]),
-        without_any: Some(vec![Arg::new("graphql")]),
+        with_any: Some(vec![
+            ArgMatcher::new("-X").ivalue("{POST,PUT,PATCH,DELETE}"),
+        ]),
+        without_any: Some(vec![ArgMatcher::new("graphql")]),
         outcome: Outcome::ask("`gh api` with write method requires approval"),
         ..Default::default()
     }
@@ -139,15 +141,15 @@ fn gh_api__read_only() -> BashRule {
         id: "gh_api__read_only".to_owned(),
         command: "gh api".to_owned(),
         without_any: Some(vec![
-            Arg::new("-d"),
-            Arg::new("--data"),
-            Arg::new("-f"),
-            Arg::new("--field"),
-            Arg::new("-F"),
-            Arg::new("--raw-field"),
-            Arg::new("--input"),
-            Arg::new("-X").ivalue("{POST,PUT,PATCH,DELETE}"),
-            Arg::new("graphql"),
+            ArgMatcher::new("-d"),
+            ArgMatcher::new("--data"),
+            ArgMatcher::new("-f"),
+            ArgMatcher::new("--field"),
+            ArgMatcher::new("-F"),
+            ArgMatcher::new("--raw-field"),
+            ArgMatcher::new("--input"),
+            ArgMatcher::new("-X").ivalue("{POST,PUT,PATCH,DELETE}"),
+            ArgMatcher::new("graphql"),
         ]),
         outcome: Outcome::allow("Read-only `gh api`"),
         ..Default::default()

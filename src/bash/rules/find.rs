@@ -13,15 +13,15 @@ fn find__read_only() -> BashRule {
         id: "find__read_only".to_owned(),
         command: "find".to_owned(),
         without_any: Some(vec![
-            Arg::new("-delete"),
-            Arg::new("-exec"),
-            Arg::new("-execdir"),
-            Arg::new("-ok"),
-            Arg::new("-okdir"),
-            Arg::new("-fprint"),
-            Arg::new("-fprint0"),
-            Arg::new("-fprintf"),
-            Arg::new("-fls"),
+            ArgMatcher::new("-delete"),
+            ArgMatcher::new("-exec"),
+            ArgMatcher::new("-execdir"),
+            ArgMatcher::new("-ok"),
+            ArgMatcher::new("-okdir"),
+            ArgMatcher::new("-fprint"),
+            ArgMatcher::new("-fprint0"),
+            ArgMatcher::new("-fprintf"),
+            ArgMatcher::new("-fls"),
         ]),
         outcome: Outcome::allow("Read-only `find`"),
         ..Default::default()
@@ -33,7 +33,7 @@ fn find_delete() -> BashRule {
     BashRule {
         id: "find_delete".to_owned(),
         command: "find".to_owned(),
-        with_any: Some(vec![Arg::new("-delete")]),
+        with_any: Some(vec![ArgMatcher::new("-delete")]),
         outcome: Outcome::deny(
             "`find -delete` is blocked. Alternatives: `find ... -print` to preview, \
              then `git rm` / `git clean`",
@@ -48,8 +48,8 @@ fn find_exec_rm() -> BashRule {
         id: "find_exec_rm".to_owned(),
         command: "find".to_owned(),
         with_any: Some(vec![
-            Arg::new("-exec").value("rm"),
-            Arg::new("-execdir").value("rm"),
+            ArgMatcher::new("-exec").value("rm"),
+            ArgMatcher::new("-execdir").value("rm"),
         ]),
         outcome: Outcome::deny(
             "`find -exec rm` is blocked. Alternatives: `find ... -print` to preview, \
