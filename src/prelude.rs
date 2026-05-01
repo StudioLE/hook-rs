@@ -10,11 +10,13 @@ pub(crate) use brush_parser::unquote_str;
 pub(crate) use globset::GlobMatcher;
 pub(crate) use serde::de::DeserializeOwned;
 pub(crate) use serde::{Deserialize, Serialize};
+pub(crate) use serde_json::from_str as json_from_str;
+pub(crate) use serde_json::to_string as json_to_string;
+pub(crate) use serde_yaml::from_str as yaml_from_str;
 pub(crate) use std::collections::HashMap;
 pub(crate) use std::error::Error;
 pub(crate) use std::fmt::{Debug, Display, Formatter, Result as FmtResult};
 pub(crate) use std::path::{Path, PathBuf};
 pub(crate) use studiole_report::prelude::*;
 pub(crate) use thiserror::Error;
-#[allow(unused_imports, reason = "all tracing macros for convenience")]
 pub(crate) use tracing::{debug, error, info, trace, warn};

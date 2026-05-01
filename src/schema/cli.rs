@@ -1,7 +1,7 @@
 //! CLI subcommand types for the hook binary.
 
 use crate::prelude::*;
-use argh::FromArgs;
+use argh::{FromArgs, from_env};
 use tracing::Level;
 
 /// Claude Code hook evaluator.
@@ -52,7 +52,7 @@ impl Cli {
     /// - Dispatch to the appropriate handler
     /// - Print the result
     pub fn run() {
-        let cli: Cli = argh::from_env();
+        let cli: Cli = from_env();
         let _logger = init_logger(cli.log_level);
         let outcome = match cli.subcommand {
             Subcommand::Bash(_) => run::<BashHandler>(),

@@ -1,6 +1,7 @@
 //! Factory for building glob-based [`PathRule`] with tilde expansion.
 
 use crate::prelude::*;
+use dirs::home_dir;
 
 /// Build glob-based rules from patterns, expanding `~/` to a concrete home directory.
 pub struct PathRuleFactory {
@@ -67,7 +68,7 @@ impl PathRuleFactory {
 
 impl Default for PathRuleFactory {
     fn default() -> Self {
-        let home = dirs::home_dir().expect("home directory should be resolvable");
+        let home = home_dir().expect("home directory should be resolvable");
         Self::new(home)
     }
 }

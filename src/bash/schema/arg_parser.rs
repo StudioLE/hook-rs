@@ -113,7 +113,11 @@ impl ArgParser {
         for (i, &c) in chars.iter().enumerate() {
             let flag = format!("-{c}");
             if self.settings.schema.is_value_flag(&flag) {
-                let remainder: String = chars[i + 1..].iter().collect();
+                let remainder: String = chars
+                    .get(i + 1..)
+                    .expect("i + 1 is within bounds of enumerated slice")
+                    .iter()
+                    .collect();
                 let value = if remainder.is_empty() {
                     self.next()
                         .ok_or_else(|| flag_error(ArgParseError::MissingValue, &flag))?
@@ -219,10 +223,7 @@ mod tests {
             .expect("should parse");
         assert_eq!(
             output,
-            vec![
-                Arg::Flag("-v".to_owned()),
-                Arg::Operand("log".to_owned()),
-            ]
+            vec![Arg::Flag("-v".to_owned()), Arg::Operand("log".to_owned()),]
         );
     }
 
@@ -397,9 +398,7 @@ mod tests {
             .expect("should parse");
         assert_eq!(
             output,
-            vec![
-                Arg::FlagPair("-X".to_owned(), "POSTv".to_owned()),
-            ]
+            vec![Arg::FlagPair("-X".to_owned(), "POSTv".to_owned()),]
         );
     }
 

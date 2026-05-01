@@ -18,6 +18,7 @@ impl Handler for ReadHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use dirs::home_dir;
 
     #[test]
     fn matching_path() {
@@ -74,7 +75,7 @@ mod tests {
     #[test]
     fn tilde_pattern_expands_to_real_home() {
         // Arrange
-        let home = dirs::home_dir().expect("test requires home directory");
+        let home = home_dir().expect("test requires home directory");
         let input = ReadInput::new(format!(
             "{home}/.cargo/registry/src/index.crates.io-xxx/serde-1.0.0/src/lib.rs",
             home = home.display()
@@ -160,7 +161,7 @@ mod tests {
     #[test]
     fn tilde_input_with_absolute_pattern() {
         // Arrange
-        let home = dirs::home_dir().expect("test requires home directory");
+        let home = home_dir().expect("test requires home directory");
         let input =
             ReadInput::new("~/.cargo/registry/src/index.crates.io-xxx/serde-1.0.0/src/lib.rs");
         let settings = Settings {

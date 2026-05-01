@@ -1,7 +1,8 @@
 //! User-specific settings loaded from `~/.config/hook-rs/settings.yaml`.
 
 use crate::prelude::*;
-use std::fs;
+use dirs::config_dir;
+use std::fs::read_to_string;
 
 const APP_NAME: &str = "hook-rs";
 const SETTINGS_FILE_NAME: &str = "settings.yaml";
@@ -95,10 +96,10 @@ impl Settings {
             debug!("Using default settings");
             return Ok(Self::default());
         }
-        let raw = fs::read_to_string(&path).change_context(SettingsError::Read)?;
+        let raw = read_to_string(&path).change_context(SettingsError::Read)?;
         let yaml = quote_yaml_tags(&raw);
         let settings: Settings =
-            serde_yaml::from_str(&yaml).change_context(SettingsError::Deserialize)?;
+            yaml_from_str(&yaml).change_context(SettingsError::Deserialize)?;
         trace!(
             path = %path.display(),
             git_paths = settings.git.paths.len(),
@@ -186,7 +187,7 @@ fn quote_yaml_tags(yaml: &str) -> String {
 
 /// Path to the settings file.
 fn config_path() -> PathBuf {
-    dirs::config_dir()
+    config_dir()
         .expect("config_dir should be valid")
         .join(APP_NAME)
         .join(SETTINGS_FILE_NAME)
@@ -199,40 +200,35 @@ mod tests {
     #[test]
     fn yaml_negation_unquoted() {
         let yaml = "git:\n  paths:\n    - !/home/user/repos/forked/**\n";
-        let settings: Settings =
-            serde_yaml::from_str(&quote_yaml_tags(yaml)).expect("should parse");
+        let settings: Settings = yaml_from_str(&quote_yaml_tags(yaml)).expect("should parse");
         assert_eq!(settings.git.paths, vec!["!/home/user/repos/forked/**"]);
     }
 
     #[test]
     fn yaml_negation_already_quoted() {
         let yaml = "git:\n  paths:\n    - \"!/home/user/repos/forked/**\"\n";
-        let settings: Settings =
-            serde_yaml::from_str(&quote_yaml_tags(yaml)).expect("should parse");
+        let settings: Settings = yaml_from_str(&quote_yaml_tags(yaml)).expect("should parse");
         assert_eq!(settings.git.paths, vec!["!/home/user/repos/forked/**"]);
     }
 
     #[test]
     fn yaml_negation_single_quoted() {
         let yaml = "git:\n  paths:\n    - '!/home/user/repos/forked/**'\n";
-        let settings: Settings =
-            serde_yaml::from_str(&quote_yaml_tags(yaml)).expect("should parse");
+        let settings: Settings = yaml_from_str(&quote_yaml_tags(yaml)).expect("should parse");
         assert_eq!(settings.git.paths, vec!["!/home/user/repos/forked/**"]);
     }
 
     #[test]
     fn yaml_non_negated_unchanged() {
         let yaml = "git:\n  paths:\n    - /home/user/repos/**\n";
-        let settings: Settings =
-            serde_yaml::from_str(&quote_yaml_tags(yaml)).expect("should parse");
+        let settings: Settings = yaml_from_str(&quote_yaml_tags(yaml)).expect("should parse");
         assert_eq!(settings.git.paths, vec!["/home/user/repos/**"]);
     }
 
     #[test]
     fn yaml_mixed_patterns() {
         let yaml = "git:\n  paths:\n    - /home/user/repos/**\n    - !/home/user/repos/forked/**\n    - /home/user/repos/forked/this\n";
-        let settings: Settings =
-            serde_yaml::from_str(&quote_yaml_tags(yaml)).expect("should parse");
+        let settings: Settings = yaml_from_str(&quote_yaml_tags(yaml)).expect("should parse");
         assert_eq!(
             settings.git.paths,
             vec![
@@ -246,8 +242,7 @@ mod tests {
     #[test]
     fn yaml_worktree_paths() {
         let yaml = "worktrees:\n  paths:\n    - /home/user/worktrees/**\n    - !/home/user/worktrees/blocked/**\n";
-        let settings: Settings =
-            serde_yaml::from_str(&quote_yaml_tags(yaml)).expect("should parse");
+        let settings: Settings = yaml_from_str(&quote_yaml_tags(yaml)).expect("should parse");
         assert_eq!(
             settings.worktrees.paths,
             vec![

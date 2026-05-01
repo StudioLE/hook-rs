@@ -70,7 +70,7 @@ impl<T: DeserializeOwned> HookInput<T> {
 
     /// Deserialize hook input from a JSON string.
     pub(crate) fn from_json(json: &str) -> Result<Self, Report<HookError>> {
-        serde_json::from_str(json).change_context(HookError::DeserializeInput)
+        json_from_str(json).change_context(HookError::DeserializeInput)
     }
 }
 

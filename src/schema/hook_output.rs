@@ -25,7 +25,7 @@ pub struct HookSpecificOutput {
 impl HookOutput {
     /// Serialize to JSON and print to stdout.
     pub fn print(&self) {
-        let json = serde_json::to_string(&self).expect("should be able to serialize HookOutput");
+        let json = json_to_string(&self).expect("should be able to serialize HookOutput");
         println!("{json}");
     }
 }

@@ -87,6 +87,7 @@ fn allow_git_c(context: &SimpleContext, complete: &CompleteContext, settings: &S
 #[cfg(test)]
 mod tests {
     use crate::prelude::*;
+    use dirs::home_dir;
 
     #[test]
     fn negation_overrides_earlier_trust() {
@@ -515,7 +516,7 @@ mod tests {
     /// Tilde path in `git -C` matches an absolute settings pattern.
     #[test]
     fn tilde_path_absolute_pattern() {
-        let home = dirs::home_dir().expect("test requires home directory");
+        let home = home_dir().expect("test requires home directory");
         let pattern = format!("{home}/.config/worktrees/**", home = home.display());
         let settings = git_settings(&[&pattern]);
         let outcome = eval_outcome(
