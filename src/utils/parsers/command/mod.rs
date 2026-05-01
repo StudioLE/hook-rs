@@ -1,5 +1,5 @@
 //! Schema-aware hierarchical command parser.
-#![expect(dead_code, unused_imports, reason = "schema parser not yet integrated")]
+#![expect(dead_code, reason = "implemented for extensibility")]
 
 mod command_parser;
 mod command_schema;

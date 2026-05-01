@@ -798,12 +798,6 @@ mod tests {
     }
 
     #[test]
-    fn git_worktree_add() {
-        let reason = evaluate_expect_skip("git worktree add ../foo main");
-        assert_eq!(reason, SkipReason::NoMatches);
-    }
-
-    #[test]
     fn git_worktree_remove() {
         let reason = evaluate_expect_skip("git worktree remove ../foo");
         assert_eq!(reason, SkipReason::NoMatches);

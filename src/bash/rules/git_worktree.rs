@@ -34,62 +34,74 @@ fn git_worktree_add__trusted_path() -> BashRule {
     }
 }
 
-/// True if any flag other than `-b` is present in the args after `worktree add`.
+/// True if any flag other than `-b` is present in the args.
 fn has_unsupported_flags(
     context: &SimpleContext,
     _complete: &CompleteContext,
     _settings: &Settings,
 ) -> bool {
-    let remaining = match context.args.get(2..) {
-        Some(rest) if !rest.is_empty() => rest,
-        _ => return false,
-    };
-    parse_worktree_args(remaining).is_err()
+    parse_worktree_args(&context.args).is_err()
 }
 
-/// True if the first positional `/`-prefixed argument matches a trusted worktree path.
+/// True if the path operand matches a trusted worktree path.
 ///
-/// Uses [`ArgParser`] to correctly skip flag values. Git rejects refs
-/// starting with `/` so this is defense-in-depth rather than a
-/// practical bypass today.
+/// The [`CommandParser`] schema constrains the path operand to
+/// absolute paths via `/**` glob, so no manual prefix check is needed.
 fn is_worktree_path_trusted(
     context: &SimpleContext,
     _complete: &CompleteContext,
     settings: &Settings,
 ) -> bool {
-    let remaining = match context.args.get(2..) {
-        Some(rest) if !rest.is_empty() => rest,
-        _ => return false,
+    let Ok(parsed) = parse_worktree_args(&context.args) else {
+        return false;
     };
-    let Ok(parsed) = parse_worktree_args(remaining) else {
+    let Some(add) = parsed.get(2) else {
+        return false;
+    };
+    let Some(path) = add.operands.first() else {
         return false;
     };
     let factory = PathRuleFactory::default();
-    for arg in &parsed {
-        if let Arg::Operand(value) = arg {
-            if !value.starts_with('/') {
-                continue;
-            }
-            if let Some(is_allowed) = factory.is_match(value, &settings.worktrees.paths) {
-                trace!(is_allowed, "Matched worktree path");
-                return is_allowed;
-            }
-        }
+    if let Some(is_allowed) = factory.is_match(path, &settings.worktrees.paths) {
+        trace!(is_allowed, "Matched worktree path");
+        return is_allowed;
     }
     trace!("No worktree path match");
     false
 }
 
-/// Parse args after `worktree add` using a schema that only allows `-b`.
-fn parse_worktree_args(args: &[String]) -> Result<Vec<Arg>, Report<ArgParseError>> {
-    let settings = ArgParserSettings {
-        schema: ArgSchema {
-            bool_flags: vec![],
-            value_flags: vec![String::from("-b")],
-        },
-        unquote: true,
-    };
-    ArgParser::new(settings).parse(args.to_vec())
+/// Parse `git worktree add` args using a schema that only allows `-b`.
+///
+/// Constrains the path operand to absolute paths via `/**` glob.
+fn parse_worktree_args(args: &[String]) -> Result<Vec<ParsedCommand>, Report<CommandParseError>> {
+    let schema = CommandSchemaBuilder::new("git")
+        .with_subcommand(
+            CommandSchemaBuilder::new("worktree")
+                .with_subcommand(
+                    CommandSchemaBuilder::new("add")
+                        .with_option(
+                            OptionSchemaBuilder::new(["-b"])
+                                .with_value(ValueConstraint::Any)
+                                .build(),
+                        )
+                        .with_operand(
+                            OperandSchemaBuilder::new("path")
+                                .with_value(
+                                    ValueConstraint::glob("/**").expect("/** is a valid glob"),
+                                )
+                                .build(),
+                        )
+                        .with_operand(
+                            OperandSchemaBuilder::new("commit-ish")
+                                .with_optional()
+                                .build(),
+                        )
+                        .build(),
+                )
+                .build(),
+        )
+        .build();
+    CommandParser::new(schema).parse(args.to_vec())
 }
 
 #[cfg(test)]
@@ -200,6 +212,14 @@ mod tests {
         let outcome =
             evaluate_expect_outcome("git worktree add /home/user/worktrees/my-project -b feat");
         assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    /// Relative path is rejected by the operand schema.
+    #[test]
+    fn trusted_path_relative() {
+        let settings = worktree_settings(&["./**"]);
+        let outcome = eval_outcome("git worktree add ./worktree -b feat", settings);
+        assert_eq!(outcome.decision, Decision::Deny);
     }
 
     fn worktree_settings(paths: &[&str]) -> Settings {

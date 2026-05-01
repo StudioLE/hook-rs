@@ -209,9 +209,6 @@ impl ParserState {
     /// Validate current operands against the schema's operand constraints.
     fn validate_level(&self) -> Result<(), Report<CommandParseError>> {
         let schemas = &self.current_schema.operands;
-        if schemas.is_empty() {
-            return Ok(());
-        }
         let has_variadic = schemas.last().is_some_and(|s| s.variadic);
         let min_required = schemas
             .iter()
@@ -459,6 +456,7 @@ mod tests {
                     .with_option(OptionSchemaBuilder::new(["--flag"]).build())
                     .build(),
             )
+            .with_operand(OperandSchemaBuilder::new("args").with_variadic().build())
             .build();
 
         // Act
@@ -728,27 +726,26 @@ mod tests {
         );
     }
 
-    /// When a command has no operand schemas, any operands are accepted.
+    /// When a command has no operand schemas, operands are rejected.
     #[test]
     fn command_parser_no_operand_schema() {
         // Arrange
         let schema = CommandSchemaBuilder::new("cmd").build();
 
         // Act
-        let output = parse(schema, &["a", "b", "c"]).expect("should parse");
+        let error = parse(schema, &["a", "b", "c"]).expect_err("should fail");
 
         // Assert
-        assert_eq!(
-            output[0].operands,
-            vec![String::from("a"), String::from("b"), String::from("c"),]
-        );
+        assert_eq!(*error.current_context(), CommandParseError::TooManyOperands);
     }
 
     /// Double-quoted operand is unquoted by default.
     #[test]
     fn command_parser_unquote_double_quoted_operand() {
         // Arrange
-        let schema = CommandSchemaBuilder::new("cmd").build();
+        let schema = CommandSchemaBuilder::new("cmd")
+            .with_operand(OperandSchemaBuilder::new("arg").build())
+            .build();
 
         // Act
         let output = parse(schema, &["\"hello\""]).expect("should parse");
@@ -761,7 +758,9 @@ mod tests {
     #[test]
     fn command_parser_unquote_single_quoted_operand() {
         // Arrange
-        let schema = CommandSchemaBuilder::new("cmd").build();
+        let schema = CommandSchemaBuilder::new("cmd")
+            .with_operand(OperandSchemaBuilder::new("arg").build())
+            .build();
 
         // Act
         let output = parse(schema, &["'hello'"]).expect("should parse");
@@ -809,7 +808,9 @@ mod tests {
     #[test]
     fn command_parser_without_unquote() {
         // Arrange
-        let schema = CommandSchemaBuilder::new("cmd").build();
+        let schema = CommandSchemaBuilder::new("cmd")
+            .with_operand(OperandSchemaBuilder::new("arg").build())
+            .build();
         let tokens = vec![String::from("\"hello\"")];
 
         // Act
@@ -909,19 +910,19 @@ mod tests {
             output[0].operands,
             vec![String::from("start"), String::from("42")]
         );
-        
+
         // Act
         let error = parse(schema.clone(), &["explode", "42"]).expect_err("should fail");
-        
+
         // Assert
         assert_eq!(
             *error.current_context(),
             CommandParseError::InvalidOperandValue
         );
-        
+
         // Act
         let error = parse(schema, &["start", "abc"]).expect_err("should fail");
-        
+
         // Assert
         assert_eq!(
             *error.current_context(),
@@ -933,7 +934,9 @@ mod tests {
     #[test]
     fn command_parser_unquote_escaped_quote() {
         // Arrange
-        let schema = CommandSchemaBuilder::new("cmd").build();
+        let schema = CommandSchemaBuilder::new("cmd")
+            .with_operand(OperandSchemaBuilder::new("arg").build())
+            .build();
 
         // Act
         let output = parse(schema, &["it\\'s"]).expect("should parse");
