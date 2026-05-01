@@ -98,8 +98,7 @@ impl Settings {
         }
         let raw = read_to_string(&path).change_context(SettingsError::Read)?;
         let yaml = quote_yaml_tags(&raw);
-        let settings: Settings =
-            yaml_from_str(&yaml).change_context(SettingsError::Deserialize)?;
+        let settings: Settings = yaml_from_str(&yaml).change_context(SettingsError::Deserialize)?;
         trace!(
             path = %path.display(),
             git_paths = settings.git.paths.len(),

@@ -1,7 +1,6 @@
 //! Glob pattern compilation utilities.
 
 use crate::prelude::*;
-use globset::GlobBuilder;
 
 /// Compile a glob for argument matching, where `/` is not treated as a separator.
 pub fn compile_arg_glob(pattern: &str, case_insensitive: bool) -> Option<GlobMatcher> {

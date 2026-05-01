@@ -1,7 +1,6 @@
 //! Schema-aware argument parser.
 
 use crate::prelude::*;
-use std::collections::VecDeque;
 
 /// Schema-aware argument parser.
 ///

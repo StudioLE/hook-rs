@@ -181,6 +181,76 @@ Deny `cargo insta review` with heredoc input to prevent faking interactive input
 
 </details>
 
+## Parsers
+
+Bash rules classify command arguments using three approaches in increasing order of strictness. All three strip shell quotes and handle short-flag bundling (e.g. `-an5`).
+
+### `ArgMatcher` - Pattern matching on individual arguments
+
+Lightweight boolean matcher embedded directly in `BashRule` fields (`with_any`, `with_all`, `without_any`). Checks whether a flag or value is present in the argument list using glob patterns. No schema required.
+
+Recognizes three flag-value forms: two-arg (`-X POST`), concatenated short (`-XPOST`), and equals long (`--data=foo`).
+
+Best for simple presence/absence checks where you don't need structured parsing.
+
+```rust
+BashRule {
+    with_any: Some(vec![
+        ArgMatcher::new("-X").ivalue("{POST,PUT,PATCH,DELETE}"),
+        ArgMatcher::new("--data"),
+    ]),
+    without_any: Some(vec![ArgMatcher::new("graphql")]),
+    ..
+}
+```
+
+[source: `arg_matcher.rs`](src/bash/arg_matcher.rs)
+
+### `ArgParser` - Flat schema-aware classification
+
+Walks a list of arguments against an `ArgSchema` that declares which flags are boolean and which take a value. Rejects unknown flags. Returns `Vec<Arg>` where each element is `Flag`, `FlagPair`, `Operand`, or `Separator`.
+
+Best for rules that receive pre-sliced arguments and need to distinguish flags from positional values without subcommand awareness.
+
+```rust
+let settings = ArgParserSettings {
+    schema: ArgSchema {
+        bool_flags: vec![],
+        value_flags: vec![String::from("-b")],
+    },
+    unquote: true,
+};
+let parsed: Vec<Arg> = ArgParser::new(settings).parse(args)?;
+```
+
+[source: `utils/parsers/arg/`](src/utils/parsers/arg/)
+
+### `CommandParser` - Hierarchical command parsing
+
+Walks the full token stream against a recursive `CommandSchema` tree. Each node defines its own options, operand constraints, and subcommands. Supports value validation via glob, regex, and exact-set constraints. Returns `Vec<ParsedCommand>` where index 0 is the root command, index 1 is the first subcommand, etc.
+
+Best for rules that need the full command hierarchy, value validation, or operand count enforcement.
+
+```rust
+let schema = CommandSchemaBuilder::new("git")
+    .with_subcommand(
+        CommandSchemaBuilder::new("worktree")
+            .with_subcommand(
+                CommandSchemaBuilder::new("add")
+                    .with_option(
+                        OptionSchemaBuilder::new(["-b"])
+                            .with_value(ValueConstraint::Any)
+                            .build(),
+                    )
+                    .build(),
+            )
+            .build(),
+    )
+    .build();
+let parsed: Vec<ParsedCommand> = CommandParser::new(schema).parse(args)?;
+```
+
+[source: `utils/parsers/command/`](src/utils/parsers/command/)
 
 ## Install
 
