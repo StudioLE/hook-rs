@@ -33,8 +33,13 @@ impl BashEvaluator {
         let mut has_unmatched = false;
         for simple_context in complete_context.all_commands() {
             let mut outcomes = Vec::new();
+            let ctx = BashRuleContext {
+                simple: simple_context,
+                complete: complete_context,
+                settings: &self.settings,
+            };
             for rule in &self.rules {
-                if rule.matches(simple_context, complete_context, &self.settings) {
+                if rule.matches(&ctx) {
                     outcomes.push(rule.outcome.clone());
                 }
             }

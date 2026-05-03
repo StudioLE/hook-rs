@@ -35,24 +35,16 @@ fn git_worktree_add__trusted_path() -> BashRule {
 }
 
 /// True if any flag other than `-b` is present in the args.
-fn has_unsupported_flags(
-    context: &SimpleContext,
-    _complete: &CompleteContext,
-    _settings: &Settings,
-) -> bool {
-    parse_worktree_args(&context.args).is_err()
+fn has_unsupported_flags(ctx: &BashRuleContext) -> bool {
+    parse_worktree_args(&ctx.simple.args).is_err()
 }
 
 /// True if the path operand matches a trusted worktree path.
 ///
 /// The [`CommandParser`] schema constrains the path operand to
 /// absolute paths via `/**` glob, so no manual prefix check is needed.
-fn is_worktree_path_trusted(
-    context: &SimpleContext,
-    _complete: &CompleteContext,
-    settings: &Settings,
-) -> bool {
-    let Ok(parsed) = parse_worktree_args(&context.args) else {
+fn is_worktree_path_trusted(ctx: &BashRuleContext) -> bool {
+    let Ok(parsed) = parse_worktree_args(&ctx.simple.args) else {
         return false;
     };
     let Some(add) = parsed.get(2) else {
@@ -62,7 +54,7 @@ fn is_worktree_path_trusted(
         return false;
     };
     let factory = PathRuleFactory::default();
-    if let Some(is_allowed) = factory.is_match(path, &settings.worktrees.paths) {
+    if let Some(is_allowed) = factory.is_match(path, &ctx.settings.worktrees.paths) {
         trace!(is_allowed, "Matched worktree path");
         return is_allowed;
     }

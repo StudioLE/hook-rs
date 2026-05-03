@@ -62,7 +62,7 @@ fn cargo_insta_review__heredoc() -> BashRule {
     BashRule {
         id: "cargo_insta_review__heredoc".to_owned(),
         command: "cargo insta review".to_owned(),
-        condition: Some(|simple, _, _| simple.has_heredoc),
+        condition: Some(|ctx| ctx.simple.has_heredoc),
         outcome: Outcome::deny(
             "`cargo insta review` with heredoc input is blocked. \
              Alternatives: `cargo insta accept`, `cargo insta pending-snapshots`",

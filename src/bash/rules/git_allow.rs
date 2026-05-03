@@ -75,7 +75,7 @@ fn git_branch__bare() -> BashRule {
     BashRule {
         id: "git_branch__bare".to_owned(),
         command: "git branch".to_owned(),
-        condition: Some(|simple, _, _| simple.args.len() == 1),
+        condition: Some(|ctx| ctx.simple.args.len() == 1),
         outcome: Outcome::allow("Read-only `git branch`"),
         ..Default::default()
     }
@@ -118,7 +118,7 @@ fn git_tag__bare() -> BashRule {
     BashRule {
         id: "git_tag__bare".to_owned(),
         command: "git tag".to_owned(),
-        condition: Some(|simple, _, _| simple.args.len() == 1),
+        condition: Some(|ctx| ctx.simple.args.len() == 1),
         outcome: Outcome::allow("Read-only `git tag`"),
         ..Default::default()
     }
@@ -216,7 +216,7 @@ fn git_remote__bare() -> BashRule {
     BashRule {
         id: "git_remote__bare".to_owned(),
         command: "git remote".to_owned(),
-        condition: Some(|simple, _, _| simple.args.len() == 1),
+        condition: Some(|ctx| ctx.simple.args.len() == 1),
         outcome: Outcome::allow("Read-only `git remote`"),
         ..Default::default()
     }

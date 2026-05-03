@@ -109,8 +109,12 @@ fn sops_d() -> BashRule {
 /// - The first arg is the subcommand (`exec-env` or `exec-file`); skip it
 /// - Each remaining arg is fed back through [`BashParser`] so the inner
 ///   command is structurally analyzed rather than tokenized ad-hoc
-fn exec_reads_secrets(simple: &SimpleContext, _: &CompleteContext, _: &Settings) -> bool {
-    simple.args.iter().skip(1).any(|arg| arg_reads_secrets(arg))
+fn exec_reads_secrets(ctx: &BashRuleContext) -> bool {
+    ctx.simple
+        .args
+        .iter()
+        .skip(1)
+        .any(|arg| arg_reads_secrets(arg))
 }
 
 /// Re-parse a single argument as a shell command and inspect every parsed

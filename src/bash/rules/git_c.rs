@@ -64,24 +64,30 @@ fn is_c_path_trusted(context: &SimpleContext, settings: &Settings) -> bool {
     }
 }
 
-fn deny_git_c(context: &SimpleContext, complete: &CompleteContext, settings: &Settings) -> bool {
-    if !guard(context) {
+fn deny_git_c(ctx: &BashRuleContext) -> bool {
+    if !guard(ctx.simple) {
         return false;
     }
-    let new_context = get_context_without_c(context);
-    git_deny_rules()
-        .iter()
-        .any(|r| r.matches(&new_context, complete, settings))
+    let new_simple = get_context_without_c(ctx.simple);
+    let inner = BashRuleContext {
+        simple: &new_simple,
+        complete: ctx.complete,
+        settings: ctx.settings,
+    };
+    git_deny_rules().iter().any(|r| r.matches(&inner))
 }
 
-fn allow_git_c(context: &SimpleContext, complete: &CompleteContext, settings: &Settings) -> bool {
-    if !guard(context) || !is_c_path_trusted(context, settings) {
+fn allow_git_c(ctx: &BashRuleContext) -> bool {
+    if !guard(ctx.simple) || !is_c_path_trusted(ctx.simple, ctx.settings) {
         return false;
     }
-    let new_context = get_context_without_c(context);
-    git_allow_rules()
-        .iter()
-        .any(|r| r.matches(&new_context, complete, settings))
+    let new_simple = get_context_without_c(ctx.simple);
+    let inner = BashRuleContext {
+        simple: &new_simple,
+        complete: ctx.complete,
+        settings: ctx.settings,
+    };
+    git_allow_rules().iter().any(|r| r.matches(&inner))
 }
 
 #[cfg(test)]

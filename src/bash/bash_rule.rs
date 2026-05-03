@@ -33,7 +33,7 @@ pub struct BashRule {
     /// - `ArgMatcher::new("--in-place")`
     pub without_any: Option<Vec<ArgMatcher>>,
     /// Only match if the command satisfies this condition.
-    pub condition: Option<fn(&SimpleContext, &CompleteContext, &Settings) -> bool>,
+    pub condition: Option<fn(&BashRuleContext) -> bool>,
     /// Outcome if the command matches.
     pub outcome: Outcome,
 }
@@ -52,30 +52,27 @@ impl BashRule {
     /// Check if this rule matches the given command.
     ///
     /// Single-char short flags (e.g. `-d`) also match inside bundled args (e.g. `-fd`).
-    pub fn matches(
-        &self,
-        simple: &SimpleContext,
-        complete: &CompleteContext,
-        settings: &Settings,
-    ) -> bool {
+    pub fn matches(&self, ctx: &BashRuleContext) -> bool {
         let mut parts = self.command.split_whitespace();
         let Some(name) = parts.next() else {
             return false;
         };
-        if simple.name != name {
+        if ctx.simple.name != name {
             return false;
         }
         let leading_args: Vec<&str> = parts.collect();
-        if !simple
+        if !ctx
+            .simple
             .args
             .iter()
             .zip(&leading_args)
             .all(|(actual, expected)| actual == expected)
-            || simple.args.len() < leading_args.len()
+            || ctx.simple.args.len() < leading_args.len()
         {
             return false;
         }
-        let remaining_args: Vec<&str> = simple
+        let remaining_args: Vec<&str> = ctx
+            .simple
             .args
             .get(leading_args.len()..)
             .unwrap_or_default()
@@ -98,11 +95,11 @@ impl BashRule {
             return false;
         }
         if let Some(condition) = &self.condition
-            && !condition(simple, complete, settings)
+            && !condition(ctx)
         {
             return false;
         }
-        debug!(id = %self.id, decision = %self.outcome.decision, command = %simple.name, "Matched bash rule");
+        debug!(id = %self.id, decision = %self.outcome.decision, command = %ctx.simple.name, "Matched bash rule");
         true
     }
 }

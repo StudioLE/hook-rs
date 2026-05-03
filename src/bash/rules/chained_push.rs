@@ -19,8 +19,8 @@ fn git_push__chained() -> BashRule {
     }
 }
 
-fn is_chained(_simple: &SimpleContext, complete: &CompleteContext, _settings: &Settings) -> bool {
-    complete.children.len() > 1
+fn is_chained(ctx: &BashRuleContext) -> bool {
+    ctx.complete.children.len() > 1
 }
 
 #[cfg(test)]

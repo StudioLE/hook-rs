@@ -19,12 +19,8 @@ fn cd_trusted_path() -> BashRule {
 }
 
 /// True if `cd` has exactly one operand matching a trusted read path.
-fn is_cd_path_trusted(
-    context: &SimpleContext,
-    _complete: &CompleteContext,
-    settings: &Settings,
-) -> bool {
-    let Ok(parsed) = parse_cd_args(&context.args) else {
+fn is_cd_path_trusted(ctx: &BashRuleContext) -> bool {
+    let Ok(parsed) = parse_cd_args(&ctx.simple.args) else {
         return false;
     };
     let Some(cd) = parsed.first() else {
@@ -34,7 +30,7 @@ fn is_cd_path_trusted(
         return false;
     };
     let factory = PathRuleFactory::default();
-    if let Some(is_allowed) = factory.is_match(path, &settings.read.paths) {
+    if let Some(is_allowed) = factory.is_match(path, &ctx.settings.read.paths) {
         trace!(is_allowed, "Matched cd path");
         return is_allowed;
     }

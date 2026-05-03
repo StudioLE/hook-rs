@@ -21,13 +21,9 @@ fn cd_git() -> BashRule {
     }
 }
 
-fn is_cd_then_git(
-    _simple: &SimpleContext,
-    complete: &CompleteContext,
-    _settings: &Settings,
-) -> bool {
+fn is_cd_then_git(ctx: &BashRuleContext) -> bool {
     let mut seen_cd = false;
-    for pipeline in &complete.children {
+    for pipeline in &ctx.complete.children {
         let Some(first) = pipeline.children.first() else {
             continue;
         };
