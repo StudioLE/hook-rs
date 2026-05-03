@@ -10,6 +10,7 @@ mod option_schema;
 mod option_schema_builder;
 mod parsed_command;
 mod parsed_option;
+mod subcommand;
 mod value_constraint;
 
 pub use command_parser::*;
@@ -21,4 +22,5 @@ pub use option_schema::*;
 pub use option_schema_builder::*;
 pub use parsed_command::*;
 pub use parsed_option::*;
+pub use subcommand::*;
 pub use value_constraint::*;

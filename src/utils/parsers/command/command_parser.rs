@@ -5,7 +5,7 @@ use crate::prelude::*;
 /// Schema-aware hierarchical command parser.
 ///
 /// Holds a [`CommandSchema`] and parses token streams against it,
-/// producing `Vec<ParsedCommand>` output.
+/// producing [`ParsedCommand`] output.
 ///
 /// Strips shell quotes from tokens by default via [`unquote_str`].
 /// Disable with [`CommandParser::without_unquote`].
@@ -32,10 +32,7 @@ impl CommandParser {
     }
 
     /// Parse tokens against the schema.
-    pub fn parse(
-        &self,
-        tokens: Vec<String>,
-    ) -> Result<Vec<ParsedCommand>, Report<CommandParseError>> {
+    pub fn parse(&self, tokens: Vec<String>) -> Result<ParsedCommand, Report<CommandParseError>> {
         let tokens = if self.unquote {
             tokens.into_iter().map(|t| unquote_str(&t)).collect()
         } else {
@@ -49,13 +46,13 @@ impl CommandParser {
             after_separator: false,
             current_schema: self.schema.clone(),
         };
-        state.run()
+        state.run().map(ParsedCommand::new)
     }
 }
 
 struct ParserState {
     queue: VecDeque<String>,
-    output: Vec<ParsedCommand>,
+    output: Vec<Subcommand>,
     current_options: Vec<ParsedOption>,
     current_operands: Vec<String>,
     after_separator: bool,
@@ -63,7 +60,7 @@ struct ParserState {
 }
 
 impl ParserState {
-    fn run(mut self) -> Result<Vec<ParsedCommand>, Report<CommandParseError>> {
+    fn run(mut self) -> Result<Vec<Subcommand>, Report<CommandParseError>> {
         while self.peek().is_some() {
             if self.after_separator {
                 let token = self.next().expect("peek confirmed token");
@@ -120,10 +117,10 @@ impl ParserState {
             .is_some_and(|s| s.starts_with('-') && s.len() >= 2 && !s.starts_with("--"))
     }
 
-    /// Emit a [`ParsedCommand`] for the current schema level and reset state.
+    /// Emit a [`Subcommand`] for the current schema level and reset state.
     fn flush_level(&mut self) -> Result<(), Report<CommandParseError>> {
         self.validate_level()?;
-        self.output.push(ParsedCommand {
+        self.output.push(Subcommand {
             name: self.current_schema.name.clone(),
             options: take(&mut self.current_options),
             operands: take(&mut self.current_operands),
@@ -327,7 +324,7 @@ mod tests {
     fn parse(
         schema: CommandSchema,
         input: &[&str],
-    ) -> Result<Vec<ParsedCommand>, Report<CommandParseError>> {
+    ) -> Result<ParsedCommand, Report<CommandParseError>> {
         let tokens: Vec<String> = input.iter().map(|s| String::from(*s)).collect();
         CommandParser::new(schema).parse(tokens)
     }

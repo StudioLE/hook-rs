@@ -43,7 +43,7 @@ fn is_cd_path_trusted(
 }
 
 /// Parse `cd` args: no options, one required absolute path operand.
-fn parse_cd_args(args: &[String]) -> Result<Vec<ParsedCommand>, Report<CommandParseError>> {
+fn parse_cd_args(args: &[String]) -> Result<ParsedCommand, Report<CommandParseError>> {
     let schema = CommandSchemaBuilder::new("cd")
         .with_operand(
             OperandSchemaBuilder::new("path")

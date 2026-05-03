@@ -73,7 +73,7 @@ fn is_worktree_path_trusted(
 /// Parse `git worktree add` args using a schema that only allows `-b`.
 ///
 /// Constrains the path operand to absolute paths via `/**` glob.
-fn parse_worktree_args(args: &[String]) -> Result<Vec<ParsedCommand>, Report<CommandParseError>> {
+fn parse_worktree_args(args: &[String]) -> Result<ParsedCommand, Report<CommandParseError>> {
     let schema = CommandSchemaBuilder::new("git")
         .with_subcommand(
             CommandSchemaBuilder::new("worktree")

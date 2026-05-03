@@ -18,6 +18,7 @@ pub(crate) use std::collections::{HashMap, VecDeque};
 pub(crate) use std::error::Error;
 pub(crate) use std::fmt::{Debug, Display, Formatter, Result as FmtResult};
 pub(crate) use std::mem::take;
+pub(crate) use std::ops::Deref;
 pub(crate) use std::path::{Path, PathBuf};
 pub(crate) use studiole_report::prelude::*;
 pub(crate) use thiserror::Error;
