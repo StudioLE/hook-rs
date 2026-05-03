@@ -2,6 +2,7 @@
 
 mod awk;
 mod cargo;
+mod cd;
 mod cd_git;
 mod chained_push;
 mod curl;
@@ -22,6 +23,7 @@ mod sops;
 
 pub use awk::*;
 pub use cargo::*;
+pub use cd::*;
 pub use cd_git::*;
 pub use chained_push::*;
 pub use curl::*;

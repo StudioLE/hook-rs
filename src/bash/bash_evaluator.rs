@@ -97,6 +97,7 @@ impl BashEvaluator {
         rules.extend(rm_rules());
         rules.push(awk());
         rules.extend(cargo_rules());
+        rules.extend(cd_rules());
         rules.extend(curl_rules());
         rules.extend(fd_rules());
         rules.extend(find_rules());
