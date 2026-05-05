@@ -177,7 +177,7 @@ impl ArgParser {
     }
 }
 
-fn flag_error(error: ArgParseError, flag: impl Into<String>) -> Report<ArgParseError> {
+fn flag_error(error: ArgParseError, flag: impl Into<String> + Display) -> Report<ArgParseError> {
     Report::new(error).attach("flag", flag)
 }
 
