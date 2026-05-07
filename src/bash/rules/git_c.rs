@@ -52,10 +52,9 @@ fn get_context_without_c(context: &SimpleContext) -> SimpleContext {
     clippy::indexing_slicing,
     reason = "guard() ensures args.len() > 2, so index 1 is safe"
 )]
-fn is_c_path_trusted(context: &SimpleContext, settings: &Settings) -> bool {
-    let path = unquote_str(&context.args[1]);
-    let factory = PathRuleFactory::default();
-    if let Some(is_allowed) = factory.is_match(&path, &settings.git.paths) {
+fn is_c_path_trusted(ctx: &BashRuleContext) -> bool {
+    let path = unquote_str(&ctx.simple.args[1]);
+    if let Some(is_allowed) = ctx.paths.is_match(&path, &ctx.settings.git.paths) {
         trace!(is_allowed, "Matched");
         is_allowed
     } else {
@@ -73,12 +72,13 @@ fn deny_git_c(ctx: &BashRuleContext) -> bool {
         simple: &new_simple,
         complete: ctx.complete,
         settings: ctx.settings,
+        paths: ctx.paths,
     };
     git_deny_rules().iter().any(|r| r.matches(&inner))
 }
 
 fn allow_git_c(ctx: &BashRuleContext) -> bool {
-    if !guard(ctx.simple) || !is_c_path_trusted(ctx.simple, ctx.settings) {
+    if !guard(ctx.simple) || !is_c_path_trusted(ctx) {
         return false;
     }
     let new_simple = get_context_without_c(ctx.simple);
@@ -86,6 +86,7 @@ fn allow_git_c(ctx: &BashRuleContext) -> bool {
         simple: &new_simple,
         complete: ctx.complete,
         settings: ctx.settings,
+        paths: ctx.paths,
     };
     git_allow_rules().iter().any(|r| r.matches(&inner))
 }
@@ -93,18 +94,17 @@ fn allow_git_c(ctx: &BashRuleContext) -> bool {
 #[cfg(test)]
 mod tests {
     use crate::prelude::*;
-    use dirs::home_dir;
 
     #[test]
     fn negation_overrides_earlier_trust() {
-        let settings = git_settings(&["/a/b/**", "!/a/b/forked/**"]);
+        let settings = Settings::with_git(&["/a/b/**", "!/a/b/forked/**"]);
         let reason = eval_skip("git -C /a/b/forked/repo status", settings);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn re_include_after_negation() {
-        let settings = git_settings(&[
+        let settings = Settings::with_git(&[
             "/home/user/repos/**",
             "!/home/user/repos/forked/**",
             "/home/user/repos/forked/this",
@@ -115,7 +115,7 @@ mod tests {
 
     #[test]
     fn re_include_does_not_affect_other_forked() {
-        let settings = git_settings(&[
+        let settings = Settings::with_git(&[
             "/home/user/repos/**",
             "!/home/user/repos/forked/**",
             "/home/user/repos/forked/this",
@@ -126,112 +126,112 @@ mod tests {
 
     #[test]
     fn no_patterns() {
-        let settings = git_settings(&[]);
+        let settings = Settings::with_git(&[]);
         let reason = eval_skip("git -C /home/user/repos/foo status", settings);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn single_trust_pattern() {
-        let settings = git_settings(&["/home/user/repos/**"]);
+        let settings = Settings::with_git(&["/home/user/repos/**"]);
         let outcome = eval_outcome("git -C /home/user/repos/foo status", settings);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn single_negation_only() {
-        let settings = git_settings(&["!/home/user/repos/**"]);
+        let settings = Settings::with_git(&["!/home/user/repos/**"]);
         let reason = eval_skip("git -C /home/user/repos/foo status", settings);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn path_outside_pattern() {
-        let settings = git_settings(&["/home/user/repos/**"]);
+        let settings = Settings::with_git(&["/home/user/repos/**"]);
         let reason = eval_skip("git -C /tmp/other status", settings);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn last_match_wins_trust_after_negate() {
-        let settings = git_settings(&["!/a/**", "/a/b/**"]);
+        let settings = Settings::with_git(&["!/a/**", "/a/b/**"]);
         let outcome = eval_outcome("git -C /a/b/repo status", settings);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn last_match_wins_negate_after_trust() {
-        let settings = git_settings(&["/a/**", "!/a/**"]);
+        let settings = Settings::with_git(&["/a/**", "!/a/**"]);
         let reason = eval_skip("git -C /a/repo status", settings);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn later_trust_overrides_earlier_negation() {
-        let settings = git_settings(&["!/a/**", "/a/**"]);
+        let settings = Settings::with_git(&["!/a/**", "/a/**"]);
         let outcome = eval_outcome("git -C /a/repo status", settings);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn three_layer_nesting() {
-        let settings = git_settings(&["/a/**", "!/a/b/**", "/a/b/c/**"]);
+        let settings = Settings::with_git(&["/a/**", "!/a/b/**", "/a/b/c/**"]);
         let outcome = eval_outcome("git -C /a/b/c/repo status", settings);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn three_layer_middle_excluded() {
-        let settings = git_settings(&["/a/**", "!/a/b/**", "/a/b/c/**"]);
+        let settings = Settings::with_git(&["/a/**", "!/a/b/**", "/a/b/c/**"]);
         let reason = eval_skip("git -C /a/b/other status", settings);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn three_layer_top_still_trusted() {
-        let settings = git_settings(&["/a/**", "!/a/b/**", "/a/b/c/**"]);
+        let settings = Settings::with_git(&["/a/**", "!/a/b/**", "/a/b/c/**"]);
         let outcome = eval_outcome("git -C /a/other status", settings);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn exact_path_trust() {
-        let settings = git_settings(&["/home/user/repos/exact"]);
+        let settings = Settings::with_git(&["/home/user/repos/exact"]);
         let outcome = eval_outcome("git -C /home/user/repos/exact status", settings);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn exact_path_negation() {
-        let settings = git_settings(&["/home/user/repos/**", "!/home/user/repos/banned"]);
+        let settings = Settings::with_git(&["/home/user/repos/**", "!/home/user/repos/banned"]);
         let reason = eval_skip("git -C /home/user/repos/banned status", settings);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn non_matching_negation_is_harmless() {
-        let settings = git_settings(&["/a/**", "!/b/**"]);
+        let settings = Settings::with_git(&["/a/**", "!/b/**"]);
         let outcome = eval_outcome("git -C /a/repo status", settings);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn duplicate_trust_patterns() {
-        let settings = git_settings(&["/a/**", "/a/**"]);
+        let settings = Settings::with_git(&["/a/**", "/a/**"]);
         let outcome = eval_outcome("git -C /a/repo status", settings);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn four_layer_alternating() {
-        let settings = git_settings(&["/a/**", "!/a/b/**", "/a/b/c/**", "!/a/b/c/d/**"]);
+        let settings = Settings::with_git(&["/a/**", "!/a/b/**", "/a/b/c/**", "!/a/b/c/d/**"]);
         let reason = eval_skip("git -C /a/b/c/d/repo status", settings);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn four_layer_third_level_trusted() {
-        let settings = git_settings(&["/a/**", "!/a/b/**", "/a/b/c/**", "!/a/b/c/d/**"]);
+        let settings = Settings::with_git(&["/a/**", "!/a/b/**", "/a/b/c/**", "!/a/b/c/d/**"]);
         let outcome = eval_outcome("git -C /a/b/c/other status", settings);
         assert_eq!(outcome.decision, Decision::Allow);
     }
@@ -514,7 +514,7 @@ mod tests {
     /// Tilde path in `git -C` matches a tilde settings pattern.
     #[test]
     fn tilde_path_trusted() {
-        let settings = git_settings(&["~/.config/worktrees/**"]);
+        let settings = Settings::with_git(&["~/.config/worktrees/**"]);
         let outcome = eval_outcome("git -C ~/.config/worktrees/my-project status", settings);
         assert_eq!(outcome.decision, Decision::Allow);
     }
@@ -522,9 +522,7 @@ mod tests {
     /// Tilde path in `git -C` matches an absolute settings pattern.
     #[test]
     fn tilde_path_absolute_pattern() {
-        let home = home_dir().expect("test requires home directory");
-        let pattern = format!("{home}/.config/worktrees/**", home = home.display());
-        let settings = git_settings(&[&pattern]);
+        let settings = Settings::with_git(&["/home/user/.config/worktrees/**"]);
         let outcome = eval_outcome(
             "git -C ~/.config/worktrees/my-project log --oneline",
             settings,
@@ -535,7 +533,7 @@ mod tests {
     /// Tilde path in `git -C` that doesn't match any pattern passes through.
     #[test]
     fn tilde_path_untrusted() {
-        let settings = git_settings(&["~/.config/worktrees/**"]);
+        let settings = Settings::with_git(&["~/.config/worktrees/**"]);
         let reason = eval_skip("git -C ~/.other/repo status", settings);
         assert_eq!(reason, SkipReason::NoMatches);
     }
@@ -543,7 +541,7 @@ mod tests {
     /// Destructive operation with tilde path is still denied.
     #[test]
     fn tilde_path_destructive() {
-        let settings = git_settings(&["~/.config/worktrees/**"]);
+        let settings = Settings::with_git(&["~/.config/worktrees/**"]);
         let outcome = eval_outcome(
             "git -C ~/.config/worktrees/my-project reset --hard",
             settings,
@@ -551,27 +549,13 @@ mod tests {
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
-    fn git_settings(paths: &[&str]) -> Settings {
-        Settings {
-            git: GitSettings {
-                paths: paths.iter().map(|s| String::from(*s)).collect(),
-            },
-            ..Default::default()
-        }
-    }
-
     fn eval_outcome(command: &str, settings: Settings) -> Outcome {
-        let _logger = init_test_logger();
-        BashEvaluator::new(settings)
-            .evaluate_str(command)
-            .expect("command should produce an outcome")
+        eval(command, settings).expect("command should produce an outcome")
     }
 
     #[expect(clippy::panic, reason = "test helper")]
     fn eval_skip(command: &str, settings: Settings) -> SkipReason {
-        let _logger = init_test_logger();
-        match BashEvaluator::new(settings)
-            .evaluate_str(command)
+        match eval(command, settings)
             .expect_err("command should not succeed")
             .current_context()
         {

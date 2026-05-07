@@ -3,14 +3,18 @@
 use crate::prelude::*;
 
 /// Evaluate Bash tool calls by parsing and matching against security rules.
-pub struct BashHandler;
+#[derive(FromServices)]
+pub struct BashHandler {
+    /// Rule evaluator for bash commands.
+    evaluator: Arc<BashEvaluator>,
+}
 
 impl Handler for BashHandler {
     type Input = BashInput;
 
-    fn run(input: Self::Input, settings: Settings) -> Option<Outcome> {
+    fn run(&self, input: Self::Input) -> Option<Outcome> {
         trace!(command = %input.command, "Handling bash command");
-        match BashEvaluator::new(settings).evaluate_str(&input.command) {
+        match self.evaluator.evaluate_str(&input.command) {
             Ok(outcome) => Some(outcome),
             Err(report) => {
                 if let ParseError::Skip(reason) = report.current_context() {

@@ -49,16 +49,18 @@ impl Cli {
     /// Main entrypoint for the hook binary.
     ///
     /// - Parse CLI arguments
+    /// - Build the service container
     /// - Dispatch to the appropriate handler
     /// - Print the result
     pub fn run() {
         let cli: Cli = from_env();
         let _logger = init_logger(cli.log_level);
+        let services = ServiceBuilder::new().with_app_services().build();
         let outcome = match cli.subcommand {
-            Subcommand::Bash(_) => run::<BashHandler>(),
-            Subcommand::Glob(_) => run::<GlobHandler>(),
-            Subcommand::Grep(_) => run::<GrepHandler>(),
-            Subcommand::Read(_) => run::<ReadHandler>(),
+            Subcommand::Bash(_) => services.dispatch::<BashHandler>(),
+            Subcommand::Glob(_) => services.dispatch::<GlobHandler>(),
+            Subcommand::Grep(_) => services.dispatch::<GrepHandler>(),
+            Subcommand::Read(_) => services.dispatch::<ReadHandler>(),
         };
         if let Some(outcome) = outcome {
             info!("{outcome}");

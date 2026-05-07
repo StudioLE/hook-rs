@@ -1,26 +1,21 @@
 //! Factory for building glob-based [`PathRule`] with tilde expansion.
 
 use crate::prelude::*;
-use dirs::home_dir;
 
 /// Build glob-based rules from patterns, expanding `~/` to a concrete home directory.
+#[derive(FromServices)]
 pub struct PathRuleFactory {
-    /// Home directory for tilde expansion.
-    home: PathBuf,
+    /// Host context providing the home directory for tilde expansion.
+    pub(crate) host: Arc<HostContext>,
 }
 
 impl PathRuleFactory {
-    /// Create a new [`PathRuleFactory`] with the given home directory for tilde expansion.
-    pub fn new(home: PathBuf) -> Self {
-        Self { home }
-    }
-
     /// Compile a pattern into a [`PathRule`].
     ///
     /// - Expands a leading `~/` to the home directory
     /// - Patterns without `/` match against the filename component only
     pub fn create(&self, pattern: impl Into<String>) -> PathRule {
-        let pattern = expand_tilde(pattern, &self.home);
+        let pattern = expand_tilde(pattern, &self.host.home_dir);
         let is_filename = !pattern.contains('/');
         let Some(matcher) = compile_path_glob(&pattern) else {
             return PathRule::new(Some(pattern), None, is_filename);
@@ -36,7 +31,7 @@ impl PathRuleFactory {
     /// - `!` prefix negates (untrusts)
     /// - No match returns `None`
     pub fn is_match(&self, path: &str, patterns: &[String]) -> Option<bool> {
-        let path = expand_tilde(path, &self.home);
+        let path = expand_tilde(path, &self.host.home_dir);
         for pattern in patterns.iter().rev() {
             let (negated, glob) = match pattern.strip_prefix('!') {
                 Some(rest) => (true, rest),
@@ -64,12 +59,14 @@ impl PathRuleFactory {
         }
         None
     }
-}
 
-impl Default for PathRuleFactory {
-    fn default() -> Self {
-        let home = home_dir().expect("home directory should be resolvable");
-        Self::new(home)
+    /// Deterministic factory for testing.
+    #[cfg(test)]
+    #[must_use]
+    pub fn mock() -> Self {
+        Self {
+            host: Arc::new(HostContext::mock()),
+        }
     }
 }
 
@@ -105,7 +102,7 @@ mod tests {
     }
 
     fn factory() -> PathRuleFactory {
-        PathRuleFactory::new(home())
+        PathRuleFactory::mock()
     }
 
     #[test]

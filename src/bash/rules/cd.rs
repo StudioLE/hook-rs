@@ -29,8 +29,7 @@ fn is_cd_path_trusted(ctx: &BashRuleContext) -> bool {
     let Some(path) = cd.operands.first() else {
         return false;
     };
-    let factory = PathRuleFactory::default();
-    if let Some(is_allowed) = factory.is_match(path, &ctx.settings.read.paths) {
+    if let Some(is_allowed) = ctx.paths.is_match(path, &ctx.settings.read.paths) {
         trace!(is_allowed, "Matched cd path");
         return is_allowed;
     }
@@ -56,42 +55,42 @@ mod tests {
 
     #[test]
     fn trusted_path() {
-        let settings = read_settings(&["/a/repos/**"]);
+        let settings = Settings::with_read(&["/a/repos/**"]);
         let outcome = eval_outcome("cd /a/repos/project", settings);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn untrusted_path() {
-        let settings = read_settings(&["/a/repos/**"]);
+        let settings = Settings::with_read(&["/a/repos/**"]);
         let reason = eval_skip("cd /tmp/sketchy", settings);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn negated_path() {
-        let settings = read_settings(&["/a/**", "!/a/secret/**"]);
+        let settings = Settings::with_read(&["/a/**", "!/a/secret/**"]);
         let reason = eval_skip("cd /a/secret/dir", settings);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn relative_path() {
-        let settings = read_settings(&["./**"]);
+        let settings = Settings::with_read(&["./**"]);
         let reason = eval_skip("cd ./subdir", settings);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn no_patterns() {
-        let settings = read_settings(&[]);
+        let settings = Settings::with_read(&[]);
         let reason = eval_skip("cd /a/repos/project", settings);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn with_flags_rejected() {
-        let settings = read_settings(&["/a/repos/**"]);
+        let settings = Settings::with_read(&["/a/repos/**"]);
         let reason = eval_skip("cd -P /a/repos/project", settings);
         assert_eq!(reason, SkipReason::NoMatches);
     }
@@ -99,7 +98,7 @@ mod tests {
     /// `cd` to a trusted path followed by `gh api` should allow the full chain.
     #[test]
     fn chained_with_gh_api() {
-        let settings = read_settings(&["/a/repos/**"]);
+        let settings = Settings::with_read(&["/a/repos/**"]);
         let outcome = eval_outcome("cd /a/repos/project && gh api repos/owner/repo", settings);
         assert_eq!(outcome.decision, Decision::Allow);
     }
@@ -107,7 +106,7 @@ mod tests {
     /// `cd` to a trusted path followed by `cargo test` should allow.
     #[test]
     fn chained_with_cargo() {
-        let settings = read_settings(&["/a/repos/**"]);
+        let settings = Settings::with_read(&["/a/repos/**"]);
         let outcome = eval_outcome("cd /a/repos/project && cargo test", settings);
         assert_eq!(outcome.decision, Decision::Allow);
     }
@@ -119,27 +118,15 @@ mod tests {
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
-    fn read_settings(paths: &[&str]) -> Settings {
-        Settings {
-            read: ReadSettings {
-                paths: paths.iter().map(|s| String::from(*s)).collect(),
-            },
-            ..Default::default()
-        }
-    }
-
     fn eval_outcome(command: &str, settings: Settings) -> Outcome {
         let _logger = init_test_logger();
-        BashEvaluator::new(settings)
-            .evaluate_str(command)
-            .expect("command should produce an outcome")
+        eval(command, settings).expect("command should produce an outcome")
     }
 
     #[expect(clippy::panic, reason = "test helper")]
     fn eval_skip(command: &str, settings: Settings) -> SkipReason {
         let _logger = init_test_logger();
-        match BashEvaluator::new(settings)
-            .evaluate_str(command)
+        match eval(command, settings)
             .expect_err("command should not succeed")
             .current_context()
         {

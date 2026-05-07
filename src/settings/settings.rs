@@ -1,11 +1,7 @@
-//! User-specific settings loaded from `~/.config/hook-rs/settings.yaml`.
+//! Root settings struct and file loading.
 
 use crate::prelude::*;
-use dirs::config_dir;
 use std::fs::read_to_string;
-
-const APP_NAME: &str = "hook-rs";
-const SETTINGS_FILE_NAME: &str = "settings.yaml";
 
 /// User-specific settings for rule evaluation.
 #[derive(Clone, Debug, Default, Deserialize)]
@@ -21,84 +17,19 @@ pub struct Settings {
     pub worktrees: WorktreeSettings,
 }
 
-/// Glob patterns for auto-allowing Read tool access to trusted paths.
-///
-/// Patterns starting with `~/` are expanded to `$HOME/`.
-#[derive(Clone, Debug, Default, Deserialize)]
-pub struct ReadSettings {
-    /// Glob patterns for paths that are safe to read without prompting.
-    #[serde(default)]
-    pub paths: Vec<String>,
-}
-
-/// Git path classification for `git -C` operations.
-///
-/// Ordered glob patterns following `.gitignore` semantics:
-///
-/// - Evaluated top-to-bottom, last match wins
-/// - Prefix with `!` to negate (untrust)
-/// - Paths matching no pattern are untrusted
-/// - Supports tilde expansion (`~/repos/**`)
-///
-/// ```yaml
-/// git:
-///   paths:
-///     - /home/user/repos/**
-///     - !/home/user/repos/forked/**
-///     - /home/user/repos/forked/this
-/// ```
-///
-/// See CVE-2025-59536 and CVE-2026-21852.
-#[derive(Clone, Debug, Default, Deserialize)]
-pub struct GitSettings {
-    /// Glob patterns for `git -C` trust classification.
-    ///
-    /// - Last matching pattern wins
-    /// - Prefix with `!` to negate
-    /// - Supports tilde expansion (`~/repos/**`)
-    #[serde(default)]
-    pub paths: Vec<String>,
-}
-
-/// Worktree path classification for `git worktree add` operations.
-///
-/// Ordered glob patterns following `.gitignore` semantics:
-///
-/// - Evaluated top-to-bottom, last match wins
-/// - Prefix with `!` to negate (untrust)
-/// - Paths matching no pattern are untrusted
-/// - Supports tilde expansion (`~/worktrees/**`)
-///
-/// ```yaml
-/// worktrees:
-///   paths:
-///     - /home/user/worktrees/**
-/// ```
-#[derive(Clone, Debug, Default, Deserialize)]
-pub struct WorktreeSettings {
-    /// Glob patterns for trusted worktree target directories.
-    ///
-    /// - Last matching pattern wins
-    /// - Prefix with `!` to negate
-    /// - Supports tilde expansion (`~/worktrees/**`)
-    #[serde(default)]
-    pub paths: Vec<String>,
-}
-
 impl Settings {
     /// Load settings from file.
-    ///
-    /// Returns `Settings::default()` if the file is missing.
-    pub fn load() -> Result<Self, Report<SettingsError>> {
-        let path = config_path();
+    pub fn from_file(path: &Path) -> Result<Self, Report<SettingsError>> {
         if !path.exists() {
-            warn!(path = %path.display(), "Settings file not found");
-            debug!("Using default settings");
-            return Ok(Self::default());
+            return Err(Report::new(SettingsError::NotFound).attach_path(path));
         }
-        let raw = read_to_string(&path).change_context(SettingsError::Read)?;
+        let raw = read_to_string(path)
+            .change_context(SettingsError::Read)
+            .attach_path(path)?;
         let yaml = quote_yaml_tags(&raw);
-        let settings: Settings = yaml_from_str(&yaml).change_context(SettingsError::Deserialize)?;
+        let settings: Settings = yaml_from_str(&yaml)
+            .change_context(SettingsError::Deserialize)
+            .attach_path(path)?;
         trace!(
             path = %path.display(),
             git_paths = settings.git.paths.len(),
@@ -109,37 +40,75 @@ impl Settings {
         Ok(settings)
     }
 
+    /// Create [`Settings`] with only [`GitSettings`].
+    #[cfg(test)]
+    #[must_use]
+    pub fn with_git(paths: &[&str]) -> Self {
+        Self {
+            git: GitSettings::new(paths),
+            ..Default::default()
+        }
+    }
+
+    /// Create [`Settings`] with only [`ReadSettings`].
+    #[cfg(test)]
+    #[must_use]
+    pub fn with_read(paths: &[&str]) -> Self {
+        Self {
+            read: ReadSettings::new(paths),
+            ..Default::default()
+        }
+    }
+
+    /// Create [`Settings`] with only [`WorktreeSettings`].
+    #[cfg(test)]
+    #[must_use]
+    pub fn with_worktrees(paths: &[&str]) -> Self {
+        Self {
+            worktrees: WorktreeSettings::new(paths),
+            ..Default::default()
+        }
+    }
+
     /// Mock settings for use in tests.
     #[cfg(test)]
     #[must_use]
     pub fn mock() -> Self {
         Self {
-            git: GitSettings {
-                paths: vec![
-                    "/home/user/repos/**".to_owned(),
-                    "!/home/user/repos/forked/**".to_owned(),
-                ],
-            },
-            read: ReadSettings {
-                paths: vec![
-                    "~/.cargo/registry/src/**".to_owned(),
-                    "~/.rustup/toolchains/**".to_owned(),
-                    "/path/to/repos/**".to_owned(),
-                    "README.md".to_owned(),
-                    "!.env".to_owned(),
-                    "!.env.*".to_owned(),
-                ],
-            },
-            worktrees: WorktreeSettings {
-                paths: vec!["/home/user/worktrees/**".to_owned()],
-            },
+            git: GitSettings::new(&["/home/user/repos/**", "!/home/user/repos/forked/**"]),
+            read: ReadSettings::new(&[
+                "~/.cargo/registry/src/**",
+                "~/.rustup/toolchains/**",
+                "/path/to/repos/**",
+                "README.md",
+                "!.env",
+                "!.env.*",
+            ]),
+            worktrees: WorktreeSettings::new(&["/home/user/worktrees/**"]),
         }
     }
 }
 
-/// Errors returned by [`Settings::load`].
+impl FromServices for Settings {
+    type Error = SettingsError;
+
+    fn from_services(services: &ServiceProvider) -> Result<Self, Report<Self::Error>> {
+        let host = services
+            .get::<HostContext>()
+            .change_context(SettingsError::Resolve)?;
+        Self::from_file(&host.config_file)
+    }
+}
+
+/// Errors returned by [`Settings`] construction.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Error)]
 pub enum SettingsError {
+    /// Failed to resolve host context.
+    #[error("Failed to resolve host context")]
+    Resolve,
+    /// Settings file not found at the expected path.
+    #[error("Failed to find settings file")]
+    NotFound,
     /// Failed to read the settings file from disk.
     #[error("Failed to read settings file")]
     Read,
@@ -182,14 +151,6 @@ fn quote_yaml_tags(yaml: &str) -> String {
         out.push('\n');
     }
     out
-}
-
-/// Path to the settings file.
-fn config_path() -> PathBuf {
-    config_dir()
-        .expect("config_dir should be valid")
-        .join(APP_NAME)
-        .join(SETTINGS_FILE_NAME)
 }
 
 #[cfg(test)]

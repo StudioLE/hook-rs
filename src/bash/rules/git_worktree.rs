@@ -53,8 +53,7 @@ fn is_worktree_path_trusted(ctx: &BashRuleContext) -> bool {
     let Some(path) = add.operands.first() else {
         return false;
     };
-    let factory = PathRuleFactory::default();
-    if let Some(is_allowed) = factory.is_match(path, &ctx.settings.worktrees.paths) {
+    if let Some(is_allowed) = ctx.paths.is_match(path, &ctx.settings.worktrees.paths) {
         trace!(is_allowed, "Matched worktree path");
         return is_allowed;
     }
@@ -102,49 +101,49 @@ mod tests {
 
     #[test]
     fn trusted_path() {
-        let settings = worktree_settings(&["/a/wt/**"]);
+        let settings = Settings::with_worktrees(&["/a/wt/**"]);
         let outcome = eval_outcome("git worktree add /a/wt/foo", settings);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn trusted_path_with_b() {
-        let settings = worktree_settings(&["/a/wt/**"]);
+        let settings = Settings::with_worktrees(&["/a/wt/**"]);
         let outcome = eval_outcome("git worktree add /a/wt/foo -b feat", settings);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn trusted_path_b_before_path() {
-        let settings = worktree_settings(&["/a/wt/**"]);
+        let settings = Settings::with_worktrees(&["/a/wt/**"]);
         let outcome = eval_outcome("git worktree add -b feat /a/wt/foo", settings);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn trusted_path_with_commit() {
-        let settings = worktree_settings(&["/a/wt/**"]);
+        let settings = Settings::with_worktrees(&["/a/wt/**"]);
         let outcome = eval_outcome("git worktree add /a/wt/foo main", settings);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn trusted_path_quoted() {
-        let settings = worktree_settings(&["/a/wt/**"]);
+        let settings = Settings::with_worktrees(&["/a/wt/**"]);
         let outcome = eval_outcome("git worktree add \"/a/wt/foo\" -b feat", settings);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn trusted_path_untrusted() {
-        let settings = worktree_settings(&["/a/wt/**"]);
+        let settings = Settings::with_worktrees(&["/a/wt/**"]);
         let reason = eval_skip("git worktree add /tmp/evil -b feat", settings);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn trusted_path_negated() {
-        let settings = worktree_settings(&["/a/**", "!/a/blocked/**"]);
+        let settings = Settings::with_worktrees(&["/a/**", "!/a/blocked/**"]);
         let reason = eval_skip("git worktree add /a/blocked/foo -b feat", settings);
         assert_eq!(reason, SkipReason::NoMatches);
     }
@@ -152,49 +151,49 @@ mod tests {
     /// Branch name matches trusted pattern but actual path is untrusted.
     #[test]
     fn trusted_path_b_value_resembles_path() {
-        let settings = worktree_settings(&["/a/wt/**"]);
+        let settings = Settings::with_worktrees(&["/a/wt/**"]);
         let reason = eval_skip("git worktree add -b /a/wt/decoy /tmp/evil", settings);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn trusted_path_no_patterns() {
-        let settings = worktree_settings(&[]);
+        let settings = Settings::with_worktrees(&[]);
         let reason = eval_skip("git worktree add /a/wt/foo -b feat", settings);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn unsupported_flags_detach() {
-        let settings = worktree_settings(&["/a/wt/**"]);
+        let settings = Settings::with_worktrees(&["/a/wt/**"]);
         let outcome = eval_outcome("git worktree add /a/wt/foo --detach", settings);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn unsupported_flags_force() {
-        let settings = worktree_settings(&["/a/wt/**"]);
+        let settings = Settings::with_worktrees(&["/a/wt/**"]);
         let outcome = eval_outcome("git worktree add /a/wt/foo --force", settings);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn unsupported_flags_capital_b() {
-        let settings = worktree_settings(&["/a/wt/**"]);
+        let settings = Settings::with_worktrees(&["/a/wt/**"]);
         let outcome = eval_outcome("git worktree add /a/wt/foo -B my-branch", settings);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn unsupported_flags_orphan() {
-        let settings = worktree_settings(&["/a/wt/**"]);
+        let settings = Settings::with_worktrees(&["/a/wt/**"]);
         let outcome = eval_outcome("git worktree add /a/wt/foo --orphan", settings);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn unsupported_flags_lock() {
-        let settings = worktree_settings(&["/a/wt/**"]);
+        let settings = Settings::with_worktrees(&["/a/wt/**"]);
         let outcome = eval_outcome("git worktree add --lock /a/wt/foo", settings);
         assert_eq!(outcome.decision, Decision::Deny);
     }
@@ -209,32 +208,20 @@ mod tests {
     /// Relative path is rejected by the operand schema.
     #[test]
     fn trusted_path_relative() {
-        let settings = worktree_settings(&["./**"]);
+        let settings = Settings::with_worktrees(&["./**"]);
         let outcome = eval_outcome("git worktree add ./worktree -b feat", settings);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
-    fn worktree_settings(paths: &[&str]) -> Settings {
-        Settings {
-            worktrees: WorktreeSettings {
-                paths: paths.iter().map(|s| String::from(*s)).collect(),
-            },
-            ..Default::default()
-        }
-    }
-
     fn eval_outcome(command: &str, settings: Settings) -> Outcome {
         let _logger = init_test_logger();
-        BashEvaluator::new(settings)
-            .evaluate_str(command)
-            .expect("command should produce an outcome")
+        eval(command, settings).expect("command should produce an outcome")
     }
 
     #[expect(clippy::panic, reason = "test helper")]
     fn eval_skip(command: &str, settings: Settings) -> SkipReason {
         let _logger = init_test_logger();
-        match BashEvaluator::new(settings)
-            .evaluate_str(command)
+        match eval(command, settings)
             .expect_err("command should not succeed")
             .current_context()
         {

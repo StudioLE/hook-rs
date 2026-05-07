@@ -13,4 +13,6 @@ pub struct BashRuleContext<'a> {
     pub complete: &'a CompleteContext,
     /// User settings.
     pub settings: &'a Settings,
+    /// Factory for building path-matching rules.
+    pub paths: &'a PathRuleFactory,
 }

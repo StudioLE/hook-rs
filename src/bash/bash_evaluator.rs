@@ -3,11 +3,14 @@
 use crate::prelude::*;
 
 /// Rule engine that evaluates parsed shell commands against registered security rules.
+#[derive(FromServices)]
 pub struct BashEvaluator {
     /// User settings for path classification and trusted directories.
-    settings: Settings,
+    settings: Arc<Settings>,
     /// Registered security rules for matching commands.
-    rules: Vec<BashRule>,
+    rules: Arc<BashRuleProvider>,
+    /// Factory for building path-matching rules.
+    paths: Arc<PathRuleFactory>,
 }
 
 impl BashEvaluator {
@@ -37,8 +40,9 @@ impl BashEvaluator {
                 simple: simple_context,
                 complete: complete_context,
                 settings: &self.settings,
+                paths: &self.paths,
             };
-            for rule in &self.rules {
+            for rule in self.rules.get() {
                 if rule.matches(&ctx) {
                     outcomes.push(rule.outcome.clone());
                 }
@@ -95,30 +99,11 @@ fn sort_outcomes(outcomes: Vec<Outcome>) -> HashMap<Decision, Vec<String>> {
     map
 }
 
+#[cfg(test)]
 impl BashEvaluator {
-    /// Create an evaluator with the given settings.
-    pub fn new(settings: Settings) -> Self {
-        let mut rules = Vec::new();
-        rules.extend(rm_rules());
-        rules.push(awk());
-        rules.extend(cargo_rules());
-        rules.extend(cd_rules());
-        rules.extend(curl_rules());
-        rules.extend(fd_rules());
-        rules.extend(find_rules());
-        rules.extend(gh_rules());
-        rules.extend(git_deny_rules());
-        rules.extend(git_allow_rules());
-        rules.extend(git_c_rules());
-        rules.extend(git_worktree_rules());
-        rules.extend(journalctl_rules());
-        rules.extend(cd_git_rules());
-        rules.extend(chained_push_rules());
-        rules.extend(python_rules());
-        rules.extend(sed_rules());
-        rules.extend(sops_rules());
-        rules.extend(read_only_rules());
-        Self { settings, rules }
+    /// Create an evaluator with the given settings for testing.
+    pub(crate) fn mock() -> Arc<Self> {
+        ServiceProvider::mock().expect()
     }
 }
 
@@ -126,7 +111,7 @@ impl BashEvaluator {
 /// Parse and evaluate `command`, expecting a successful [`Outcome`].
 pub(crate) fn evaluate_expect_outcome(command: &str) -> Outcome {
     let _logger = init_test_logger();
-    BashEvaluator::new(Settings::mock())
+    BashEvaluator::mock()
         .evaluate_str(command)
         .expect("command should produce an outcome")
 }
@@ -136,7 +121,7 @@ pub(crate) fn evaluate_expect_outcome(command: &str) -> Outcome {
 #[expect(clippy::panic, reason = "test helper")]
 pub(crate) fn evaluate_expect_skip(command: &str) -> SkipReason {
     let _logger = init_test_logger();
-    match BashEvaluator::new(Settings::mock())
+    match BashEvaluator::mock()
         .evaluate_str(command)
         .expect_err("command should not succeed")
         .current_context()
@@ -144,6 +129,17 @@ pub(crate) fn evaluate_expect_skip(command: &str) -> SkipReason {
         ParseError::Skip(reason) => *reason,
         other => panic!("expected Skip, got {other:?}"),
     }
+}
+
+/// Parse and evaluate `command` with custom [`Settings`].
+#[cfg(test)]
+pub(crate) fn eval(command: &str, settings: Settings) -> Result<Outcome, Report<ParseError>> {
+    let _logger = init_test_logger();
+    ServiceBuilder::mock()
+        .with_instance(settings)
+        .build()
+        .expect::<BashEvaluator>()
+        .evaluate_str(command)
 }
 
 #[cfg(test)]

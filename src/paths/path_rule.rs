@@ -71,8 +71,7 @@ mod tests {
     use super::*;
 
     fn rule(pattern: &str) -> PathRule {
-        let home = PathBuf::from("/home/user");
-        let factory = PathRuleFactory::new(home);
+        let factory = PathRuleFactory::mock();
         factory.create(pattern)
     }
 
