@@ -52,7 +52,7 @@ impl CommandParser {
 
 struct ParserState {
     queue: VecDeque<String>,
-    output: Vec<Subcommand>,
+    output: Vec<ParsedSubcommand>,
     current_options: Vec<ParsedOption>,
     current_operands: Vec<String>,
     after_separator: bool,
@@ -60,7 +60,7 @@ struct ParserState {
 }
 
 impl ParserState {
-    fn run(mut self) -> Result<Vec<Subcommand>, Report<CommandParseError>> {
+    fn run(mut self) -> Result<Vec<ParsedSubcommand>, Report<CommandParseError>> {
         while self.peek().is_some() {
             if self.after_separator {
                 let token = self.next().expect("peek confirmed token");
@@ -117,10 +117,10 @@ impl ParserState {
             .is_some_and(|s| s.starts_with('-') && s.len() >= 2 && !s.starts_with("--"))
     }
 
-    /// Emit a [`Subcommand`] for the current schema level and reset state.
+    /// Emit a [`ParsedSubcommand`] for the current schema level and reset state.
     fn flush_level(&mut self) -> Result<(), Report<CommandParseError>> {
         self.validate_level()?;
-        self.output.push(Subcommand {
+        self.output.push(ParsedSubcommand {
             name: self.current_schema.name.clone(),
             options: take(&mut self.current_options),
             operands: take(&mut self.current_operands),
