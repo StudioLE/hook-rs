@@ -1,8 +1,9 @@
 //! Common re-exports used across the crate.
 
+pub use crate::app::Cli;
+pub(crate) use crate::app::*;
 pub(crate) use crate::bash::*;
 pub(crate) use crate::paths::*;
-pub use crate::schema::Cli;
 pub(crate) use crate::schema::*;
 pub(crate) use crate::settings::*;
 pub(crate) use crate::utils::*;

@@ -14,15 +14,17 @@ pub(crate) trait ServiceBuilderExt {
 
 impl ServiceBuilderExt for ServiceBuilder {
     fn with_app_services(self) -> Self {
-        self.with_type::<PathRuleFactory>()
-            .with_type::<BashRuleProvider>()
-            .with_type::<BashEvaluator>()
+        self.with_type::<BashEvaluator>()
             .with_type::<BashHandler>()
+            .with_type::<BashRuleProvider>()
+            .with_type::<CliOptions>()
             .with_type::<GlobHandler>()
             .with_type::<GrepHandler>()
             .with_type::<HostContext>()
+            .with_type::<PathRuleFactory>()
             .with_type::<ReadHandler>()
             .with_type::<Settings>()
+            .with_type::<SubcommandHandler>()
     }
 
     #[cfg(test)]
