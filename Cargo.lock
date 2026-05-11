@@ -526,10 +526,10 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "studiole-di",
+ "studiole-logging",
  "studiole-report",
  "thiserror",
  "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -1064,9 +1064,9 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "studiole-di"
-version = "0.4.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b2e41da91c92daba207c4f02ed32f1f35141a70eb6b73368b0c2a4867332d0d"
+checksum = "88541cb396723b899edbde4deb165c8032ab5c552afaf3688f3bf07cc5e4fbe8"
 dependencies = [
  "studiole-di-macros",
  "studiole-report",
@@ -1076,13 +1076,27 @@ dependencies = [
 
 [[package]]
 name = "studiole-di-macros"
-version = "0.4.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6c4058668e9fee3eca31928fa271791c1cfd038b16d76cf0ff992230ac5faeb"
+checksum = "07d46f7b69f86442456f2ea916266111fc50781cf1ad1a87d49f27fa822ce007"
 dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "studiole-logging"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5fb1e5162618d1b4d6c589a5b07ec9654faca482c15d7b6a38777e992efb3142"
+dependencies = [
+ "serde",
+ "studiole-di",
+ "studiole-report",
+ "thiserror",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

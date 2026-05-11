@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 use argh::{FromArgs, from_env};
-use tracing::Level;
 
 /// Parsed CLI arguments.
 #[derive(FromArgs)]
@@ -13,7 +12,7 @@ pub struct CliOptions {
     pub subcommand: Subcommand,
     /// log level
     #[argh(option)]
-    pub log_level: Option<Level>,
+    pub log_level: Option<LogLevel>,
 }
 
 impl FromServices for CliOptions {

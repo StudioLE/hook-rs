@@ -18,11 +18,9 @@ impl Cli {
 
     /// Run the CLI to completion.
     pub fn run(&self) {
-        let cli_options = self
-            .services
-            .get::<CliOptions>()
-            .expect("should be able to resolve CliOptions");
-        let _logger = init_logger(cli_options.log_level);
+        self.services
+            .init()
+            .expect("should be able to init services");
         let handler = self
             .services
             .get::<SubcommandHandler>()

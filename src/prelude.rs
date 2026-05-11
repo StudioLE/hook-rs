@@ -25,6 +25,7 @@ pub(crate) use std::ops::Deref;
 pub(crate) use std::path::{Path, PathBuf};
 pub(crate) use std::sync::Arc;
 pub(crate) use studiole_di::prelude::*;
+pub(crate) use studiole_logging::prelude::*;
 pub(crate) use studiole_report::prelude::*;
 pub(crate) use thiserror::Error;
 pub(crate) use tracing::{debug, error, info, trace, warn};

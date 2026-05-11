@@ -14,7 +14,8 @@ pub(crate) trait ServiceBuilderExt {
 
 impl ServiceBuilderExt for ServiceBuilder {
     fn with_app_services(self) -> Self {
-        self.with_type::<BashEvaluator>()
+        self.with_logging(create_logger)
+            .with_type::<BashEvaluator>()
             .with_type::<BashHandler>()
             .with_type::<BashRuleProvider>()
             .with_type::<CliOptions>()
@@ -34,6 +35,17 @@ impl ServiceBuilderExt for ServiceBuilder {
             .with_instance(HostContext::mock())
             .with_instance(Settings::mock())
     }
+}
+
+/// Create a [`Logger`] by resolving [`CliOptions`] from the service container.
+fn create_logger(services: &ServiceProvider) -> Result<Logger, Report<ResolveError>> {
+    let cli = services.get::<CliOptions>()?;
+    let logger = LoggerBuilder::new()
+        .with_level(cli.log_level.unwrap_or_default())
+        .with_target("expansion", LogLevel::Info)
+        .with_target("parse", LogLevel::Info)
+        .build();
+    Ok(logger)
 }
 
 #[cfg(test)]

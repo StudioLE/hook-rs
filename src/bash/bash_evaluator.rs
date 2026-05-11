@@ -110,7 +110,6 @@ impl BashEvaluator {
 #[cfg(test)]
 /// Parse and evaluate `command`, expecting a successful [`Outcome`].
 pub(crate) fn evaluate_expect_outcome(command: &str) -> Outcome {
-    let _logger = init_test_logger();
     BashEvaluator::mock()
         .evaluate_str(command)
         .expect("command should produce an outcome")
@@ -120,7 +119,6 @@ pub(crate) fn evaluate_expect_outcome(command: &str) -> Outcome {
 /// Parse and evaluate `command`, expecting a [`SkipReason`].
 #[expect(clippy::panic, reason = "test helper")]
 pub(crate) fn evaluate_expect_skip(command: &str) -> SkipReason {
-    let _logger = init_test_logger();
     match BashEvaluator::mock()
         .evaluate_str(command)
         .expect_err("command should not succeed")
@@ -134,7 +132,6 @@ pub(crate) fn evaluate_expect_skip(command: &str) -> SkipReason {
 /// Parse and evaluate `command` with custom [`Settings`].
 #[cfg(test)]
 pub(crate) fn eval(command: &str, settings: Settings) -> Result<Outcome, Report<ParseError>> {
-    let _logger = init_test_logger();
     ServiceBuilder::mock()
         .with_instance(settings)
         .build()

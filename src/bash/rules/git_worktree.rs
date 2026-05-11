@@ -214,13 +214,11 @@ mod tests {
     }
 
     fn eval_outcome(command: &str, settings: Settings) -> Outcome {
-        let _logger = init_test_logger();
         eval(command, settings).expect("command should produce an outcome")
     }
 
     #[expect(clippy::panic, reason = "test helper")]
     fn eval_skip(command: &str, settings: Settings) -> SkipReason {
-        let _logger = init_test_logger();
         match eval(command, settings)
             .expect_err("command should not succeed")
             .current_context()
