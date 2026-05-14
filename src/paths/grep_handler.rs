@@ -30,9 +30,14 @@ mod tests {
     fn directory_via_prefix() {
         // Arrange
         let input = GrepInput::new("needle", "/opt/readonly");
+        let settings = Settings::with_read(&["/opt/readonly/**"]);
+        let handler = ServiceBuilder::mock()
+            .with_instance(settings)
+            .build()
+            .expect::<GrepHandler>();
 
         // Act
-        let outcome = handler(Settings::with_read(&["/opt/readonly/**"])).run(input);
+        let outcome = handler.run(input);
 
         // Assert
         assert_eq!(outcome.expect("should match").decision, Decision::Allow);
@@ -42,9 +47,14 @@ mod tests {
     fn file_path_directly() {
         // Arrange
         let input = GrepInput::new("needle", "/opt/readonly/src/lib.rs");
+        let settings = Settings::with_read(&["/opt/readonly/**"]);
+        let handler = ServiceBuilder::mock()
+            .with_instance(settings)
+            .build()
+            .expect::<GrepHandler>();
 
         // Act
-        let outcome = handler(Settings::with_read(&["/opt/readonly/**"])).run(input);
+        let outcome = handler.run(input);
 
         // Assert
         assert_eq!(outcome.expect("should match").decision, Decision::Allow);
@@ -54,9 +64,14 @@ mod tests {
     fn unrelated_directory() {
         // Arrange
         let input = GrepInput::new("needle", "/etc");
+        let settings = Settings::with_read(&["/opt/readonly/**"]);
+        let handler = ServiceBuilder::mock()
+            .with_instance(settings)
+            .build()
+            .expect::<GrepHandler>();
 
         // Act
-        let outcome = handler(Settings::with_read(&["/opt/readonly/**"])).run(input);
+        let outcome = handler.run(input);
 
         // Assert
         assert!(outcome.is_none());
@@ -66,9 +81,14 @@ mod tests {
     fn empty_settings() {
         // Arrange
         let input = GrepInput::new("needle", "/opt/readonly");
+        let settings = Settings::default();
+        let handler = ServiceBuilder::mock()
+            .with_instance(settings)
+            .build()
+            .expect::<GrepHandler>();
 
         // Act
-        let outcome = handler(Settings::default()).run(input);
+        let outcome = handler.run(input);
 
         // Assert
         assert!(outcome.is_none());
@@ -83,9 +103,13 @@ mod tests {
         };
         let cwd = cwd();
         let settings = Settings::with_read(&[&format!("{cwd}/**")]);
+        let handler = ServiceBuilder::mock()
+            .with_instance(settings)
+            .build()
+            .expect::<GrepHandler>();
 
         // Act
-        let outcome = handler(settings).run(input);
+        let outcome = handler.run(input);
 
         // Assert
         assert_eq!(outcome.expect("should match").decision, Decision::Allow);
@@ -96,18 +120,15 @@ mod tests {
         // Arrange
         let input = GrepInput::new("needle", "/opt/readonly/secret");
         let settings = Settings::with_read(&["/opt/readonly/**", "!/opt/readonly/secret/**"]);
+        let handler = ServiceBuilder::mock()
+            .with_instance(settings)
+            .build()
+            .expect::<GrepHandler>();
 
         // Act
-        let outcome = handler(settings).run(input);
+        let outcome = handler.run(input);
 
         // Assert
         assert!(outcome.is_none());
-    }
-
-    fn handler(settings: Settings) -> GrepHandler {
-        GrepHandler {
-            path_rule_factory: Arc::new(PathRuleFactory::mock()),
-            settings: Arc::new(settings),
-        }
     }
 }

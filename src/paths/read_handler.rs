@@ -29,13 +29,14 @@ mod tests {
     fn matching_path() {
         // Arrange
         let input = ReadInput::new("/opt/readonly/data/file.txt");
+        let settings = Settings::with_read(&["/opt/readonly/**", "/usr/share/doc/**"]);
+        let handler = ServiceBuilder::mock()
+            .with_instance(settings)
+            .build()
+            .expect::<ReadHandler>();
 
         // Act
-        let outcome = handler(Settings::with_read(&[
-            "/opt/readonly/**",
-            "/usr/share/doc/**",
-        ]))
-        .run(input);
+        let outcome = handler.run(input);
 
         // Assert
         assert_eq!(outcome.expect("should match").decision, Decision::Allow);
@@ -45,13 +46,14 @@ mod tests {
     fn second_pattern_match() {
         // Arrange
         let input = ReadInput::new("/usr/share/doc/rust/html/index.html");
+        let settings = Settings::with_read(&["/opt/readonly/**", "/usr/share/doc/**"]);
+        let handler = ServiceBuilder::mock()
+            .with_instance(settings)
+            .build()
+            .expect::<ReadHandler>();
 
         // Act
-        let outcome = handler(Settings::with_read(&[
-            "/opt/readonly/**",
-            "/usr/share/doc/**",
-        ]))
-        .run(input);
+        let outcome = handler.run(input);
 
         // Assert
         assert_eq!(outcome.expect("should match").decision, Decision::Allow);
@@ -61,13 +63,14 @@ mod tests {
     fn unrelated_path() {
         // Arrange
         let input = ReadInput::new("/etc/passwd");
+        let settings = Settings::with_read(&["/opt/readonly/**", "/usr/share/doc/**"]);
+        let handler = ServiceBuilder::mock()
+            .with_instance(settings)
+            .build()
+            .expect::<ReadHandler>();
 
         // Act
-        let outcome = handler(Settings::with_read(&[
-            "/opt/readonly/**",
-            "/usr/share/doc/**",
-        ]))
-        .run(input);
+        let outcome = handler.run(input);
 
         // Assert
         assert!(outcome.is_none());
@@ -77,9 +80,14 @@ mod tests {
     fn empty_settings() {
         // Arrange
         let input = ReadInput::new("/opt/readonly/file.txt");
+        let settings = Settings::default();
+        let handler = ServiceBuilder::mock()
+            .with_instance(settings)
+            .build()
+            .expect::<ReadHandler>();
 
         // Act
-        let outcome = handler(Settings::default()).run(input);
+        let outcome = handler.run(input);
 
         // Assert
         assert!(outcome.is_none());
@@ -92,9 +100,13 @@ mod tests {
             "/home/user/.cargo/registry/src/index.crates.io-xxx/serde-1.0.0/src/lib.rs",
         );
         let settings = Settings::with_read(&["~/.cargo/registry/src/**"]);
+        let handler = ServiceBuilder::mock()
+            .with_instance(settings)
+            .build()
+            .expect::<ReadHandler>();
 
         // Act
-        let outcome = handler(settings).run(input);
+        let outcome = handler.run(input);
 
         // Assert
         assert_eq!(outcome.expect("should match").decision, Decision::Allow);
@@ -105,9 +117,13 @@ mod tests {
         // Arrange
         let input = ReadInput::new("/opt/readonly/secret/key.pem");
         let settings = Settings::with_read(&["/opt/readonly/**", "!/opt/readonly/secret/**"]);
+        let handler = ServiceBuilder::mock()
+            .with_instance(settings)
+            .build()
+            .expect::<ReadHandler>();
 
         // Act
-        let outcome = handler(settings).run(input);
+        let outcome = handler.run(input);
 
         // Assert
         assert!(outcome.is_none());
@@ -122,9 +138,13 @@ mod tests {
             "!/opt/readonly/secret/**",
             "/opt/readonly/secret/public.txt",
         ]);
+        let handler = ServiceBuilder::mock()
+            .with_instance(settings)
+            .build()
+            .expect::<ReadHandler>();
 
         // Act
-        let outcome = handler(settings).run(input);
+        let outcome = handler.run(input);
 
         // Assert
         assert_eq!(outcome.expect("should match").decision, Decision::Allow);
@@ -137,9 +157,13 @@ mod tests {
         let input =
             ReadInput::new("~/.cargo/registry/src/index.crates.io-xxx/serde-1.0.0/src/lib.rs");
         let settings = Settings::with_read(&["~/.cargo/registry/src/**"]);
+        let handler = ServiceBuilder::mock()
+            .with_instance(settings)
+            .build()
+            .expect::<ReadHandler>();
 
         // Act
-        let outcome = handler(settings).run(input);
+        let outcome = handler.run(input);
 
         // Assert
         assert_eq!(outcome.expect("should match").decision, Decision::Allow);
@@ -152,9 +176,13 @@ mod tests {
         let input =
             ReadInput::new("~/.cargo/registry/src/index.crates.io-xxx/serde-1.0.0/src/lib.rs");
         let settings = Settings::with_read(&["/home/user/.cargo/registry/src/**"]);
+        let handler = ServiceBuilder::mock()
+            .with_instance(settings)
+            .build()
+            .expect::<ReadHandler>();
 
         // Act
-        let outcome = handler(settings).run(input);
+        let outcome = handler.run(input);
 
         // Assert
         assert_eq!(outcome.expect("should match").decision, Decision::Allow);
@@ -166,18 +194,15 @@ mod tests {
         // Arrange
         let input = ReadInput::new("~/.config/tools/cache/v1/data/file.md");
         let settings = Settings::with_read(&["~/.config/**"]);
+        let handler = ServiceBuilder::mock()
+            .with_instance(settings)
+            .build()
+            .expect::<ReadHandler>();
 
         // Act
-        let outcome = handler(settings).run(input);
+        let outcome = handler.run(input);
 
         // Assert
         assert_eq!(outcome.expect("should match").decision, Decision::Allow);
-    }
-
-    fn handler(settings: Settings) -> ReadHandler {
-        ReadHandler {
-            path_rule_factory: Arc::new(PathRuleFactory::mock()),
-            settings: Arc::new(settings),
-        }
     }
 }

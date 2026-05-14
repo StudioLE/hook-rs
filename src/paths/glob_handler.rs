@@ -30,9 +30,14 @@ mod tests {
     fn directory_via_prefix() {
         // Arrange
         let input = GlobInput::new("**/*.rs", Some("/opt/readonly".to_owned()));
+        let settings = Settings::with_read(&["/opt/readonly/**"]);
+        let handler = ServiceBuilder::mock()
+            .with_instance(settings)
+            .build()
+            .expect::<GlobHandler>();
 
         // Act
-        let outcome = handler(Settings::with_read(&["/opt/readonly/**"])).run(input);
+        let outcome = handler.run(input);
 
         // Assert
         assert_eq!(outcome.expect("should match").decision, Decision::Allow);
@@ -42,9 +47,14 @@ mod tests {
     fn file_path_directly() {
         // Arrange
         let input = GlobInput::new("**/*.rs", Some("/opt/readonly/src/lib.rs".to_owned()));
+        let settings = Settings::with_read(&["/opt/readonly/**"]);
+        let handler = ServiceBuilder::mock()
+            .with_instance(settings)
+            .build()
+            .expect::<GlobHandler>();
 
         // Act
-        let outcome = handler(Settings::with_read(&["/opt/readonly/**"])).run(input);
+        let outcome = handler.run(input);
 
         // Assert
         assert_eq!(outcome.expect("should match").decision, Decision::Allow);
@@ -54,9 +64,14 @@ mod tests {
     fn unrelated_directory() {
         // Arrange
         let input = GlobInput::new("**/*.rs", Some("/etc".to_owned()));
+        let settings = Settings::with_read(&["/opt/readonly/**"]);
+        let handler = ServiceBuilder::mock()
+            .with_instance(settings)
+            .build()
+            .expect::<GlobHandler>();
 
         // Act
-        let outcome = handler(Settings::with_read(&["/opt/readonly/**"])).run(input);
+        let outcome = handler.run(input);
 
         // Assert
         assert!(outcome.is_none());
@@ -66,9 +81,14 @@ mod tests {
     fn empty_settings() {
         // Arrange
         let input = GlobInput::new("**/*.rs", Some("/opt/readonly".to_owned()));
+        let settings = Settings::default();
+        let handler = ServiceBuilder::mock()
+            .with_instance(settings)
+            .build()
+            .expect::<GlobHandler>();
 
         // Act
-        let outcome = handler(Settings::default()).run(input);
+        let outcome = handler.run(input);
 
         // Assert
         assert!(outcome.is_none());
@@ -80,9 +100,13 @@ mod tests {
         let input = GlobInput::new("**/*.rs", None);
         let cwd = cwd();
         let settings = Settings::with_read(&[&format!("{cwd}/**")]);
+        let handler = ServiceBuilder::mock()
+            .with_instance(settings)
+            .build()
+            .expect::<GlobHandler>();
 
         // Act
-        let outcome = handler(settings).run(input);
+        let outcome = handler.run(input);
 
         // Assert
         assert_eq!(outcome.expect("should match").decision, Decision::Allow);
@@ -93,18 +117,15 @@ mod tests {
         // Arrange
         let input = GlobInput::new("**/*.rs", Some("/opt/readonly/secret".to_owned()));
         let settings = Settings::with_read(&["/opt/readonly/**", "!/opt/readonly/secret/**"]);
+        let handler = ServiceBuilder::mock()
+            .with_instance(settings)
+            .build()
+            .expect::<GlobHandler>();
 
         // Act
-        let outcome = handler(settings).run(input);
+        let outcome = handler.run(input);
 
         // Assert
         assert!(outcome.is_none());
-    }
-
-    fn handler(settings: Settings) -> GlobHandler {
-        GlobHandler {
-            path_rule_factory: Arc::new(PathRuleFactory::mock()),
-            settings: Arc::new(settings),
-        }
     }
 }

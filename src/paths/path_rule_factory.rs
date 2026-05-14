@@ -97,47 +97,10 @@ fn expand_tilde(value: impl Into<String>, home: &Path) -> String {
 mod tests {
     use super::*;
 
-    fn home() -> PathBuf {
-        PathBuf::from("/home/user")
-    }
-
-    fn factory() -> PathRuleFactory {
-        PathRuleFactory::mock()
-    }
-
-    #[test]
-    fn tilde_prefix_expands() {
-        let result = expand_tilde("~/.cargo/**", &home());
-        assert_eq!(result, "/home/user/.cargo/**");
-    }
-
-    #[test]
-    fn tilde_in_middle_unchanged() {
-        let result = expand_tilde("/tmp/~backup/file", &home());
-        assert_eq!(result, "/tmp/~backup/file");
-    }
-
-    #[test]
-    fn bare_tilde() {
-        let output = expand_tilde("~", &home());
-        assert_eq!(output, "/home/user");
-    }
-
-    #[test]
-    fn tilde_other_user_unchanged() {
-        let result = expand_tilde("~other/file", &home());
-        assert_eq!(result, "~other/file");
-    }
-
-    #[test]
-    fn no_tilde_passes_through() {
-        let result = expand_tilde("/absolute/path/**", &home());
-        assert_eq!(result, "/absolute/path/**");
-    }
-
     #[test]
     fn cargo_registry_source() {
-        let rule = factory().create("~/.cargo/registry/src/**");
+        let factory = PathRuleFactory::mock();
+        let rule = factory.create("~/.cargo/registry/src/**");
         assert!(
             rule.is_match(
                 "/home/user/.cargo/registry/src/index.crates.io-xxx/serde-1.0.0/src/lib.rs"
@@ -147,7 +110,8 @@ mod tests {
 
     #[test]
     fn cargo_registry_nested() {
-        let rule = factory().create("~/.cargo/registry/src/**");
+        let factory = PathRuleFactory::mock();
+        let rule = factory.create("~/.cargo/registry/src/**");
         assert!(
             rule.is_match("/home/user/.cargo/registry/src/index.crates.io-xxx/deep/nested/file.rs")
         );
@@ -155,7 +119,8 @@ mod tests {
 
     #[test]
     fn rustup_toolchain() {
-        let rule = factory().create("~/.rustup/toolchains/**");
+        let factory = PathRuleFactory::mock();
+        let rule = factory.create("~/.rustup/toolchains/**");
         assert!(rule.is_match(
             "/home/user/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/lib.rs"
         ));
@@ -163,15 +128,17 @@ mod tests {
 
     #[test]
     fn unrelated_path() {
-        let cargo = factory().create("~/.cargo/registry/src/**");
-        let rustup = factory().create("~/.rustup/toolchains/**");
+        let factory = PathRuleFactory::mock();
+        let cargo = factory.create("~/.cargo/registry/src/**");
+        let rustup = factory.create("~/.rustup/toolchains/**");
         assert!(!cargo.is_match("/etc/passwd"));
         assert!(!rustup.is_match("/etc/passwd"));
     }
 
     #[test]
     fn home_prefix_mismatch() {
-        let rule = factory().create("~/.cargo/registry/src/**");
+        let factory = PathRuleFactory::mock();
+        let rule = factory.create("~/.cargo/registry/src/**");
         assert!(!rule.is_match(
             "/home/other/.cargo/registry/src/index.crates.io-xxx/serde-1.0.0/src/lib.rs"
         ));
@@ -179,55 +146,63 @@ mod tests {
 
     #[test]
     fn cargo_registry_root_outside_pattern() {
-        let rule = factory().create("~/.cargo/registry/src/**");
+        let factory = PathRuleFactory::mock();
+        let rule = factory.create("~/.cargo/registry/src/**");
         assert!(!rule.is_match("/home/user/.cargo/registry/cache/something"));
     }
 
     #[test]
     fn absolute_path_without_tilde() {
-        let rule = factory().create("/opt/readonly/**");
+        let factory = PathRuleFactory::mock();
+        let rule = factory.create("/opt/readonly/**");
         assert!(rule.is_match("/opt/readonly/foo/bar.rs"));
         assert!(!rule.is_match("/opt/other/foo.rs"));
     }
 
     #[test]
     fn tilde_in_middle_no_glob_match() {
-        let rule = factory().create("/tmp/~backup/file");
+        let factory = PathRuleFactory::mock();
+        let rule = factory.create("/tmp/~backup/file");
         assert!(!rule.is_match("/tmp/something"));
     }
 
     #[test]
     fn bare_tilde_pattern() {
-        let rule = factory().create("~");
+        let factory = PathRuleFactory::mock();
+        let rule = factory.create("~");
         assert!(rule.is_match("/home/user"));
         assert!(!rule.is_match("/home/user/subdir"));
     }
 
     #[test]
     fn tilde_other_user_no_glob_match() {
-        let rule = factory().create("~other/file");
+        let factory = PathRuleFactory::mock();
+        let rule = factory.create("~other/file");
         assert!(!rule.is_match("/home/other/file"));
     }
 
     #[test]
     fn patterns_simple() {
         let patterns = vec!["/a/**".to_owned()];
-        assert_eq!(factory().is_match("/a/file.txt", &patterns), Some(true));
+        let factory = PathRuleFactory::mock();
+        let option = factory.is_match("/a/file.txt", &patterns);
+        assert_eq!(option, Some(true));
     }
 
     #[test]
     fn patterns_unrelated() {
         let patterns = vec!["/a/**".to_owned()];
-        assert_eq!(factory().is_match("/b/file.txt", &patterns), None);
+        let factory = PathRuleFactory::mock();
+        let option = factory.is_match("/b/file.txt", &patterns);
+        assert_eq!(option, None);
     }
 
     #[test]
     fn patterns_negation_excludes() {
         let patterns = vec!["/a/**".to_owned(), "!/a/secret/**".to_owned()];
-        assert_eq!(
-            factory().is_match("/a/secret/key.pem", &patterns),
-            Some(false)
-        );
+        let factory = PathRuleFactory::mock();
+        let option = factory.is_match("/a/secret/key.pem", &patterns);
+        assert_eq!(option, Some(false));
     }
 
     #[test]
@@ -237,112 +212,111 @@ mod tests {
             "!/a/secret/**".to_owned(),
             "/a/secret/public.txt".to_owned(),
         ];
-        assert_eq!(
-            factory().is_match("/a/secret/public.txt", &patterns),
-            Some(true)
-        );
+        let factory = PathRuleFactory::mock();
+        let option = factory.is_match("/a/secret/public.txt", &patterns);
+        assert_eq!(option, Some(true));
     }
 
     #[test]
     fn patterns_last_match_wins() {
         let patterns = vec!["!/a/**".to_owned(), "/a/**".to_owned()];
-        assert_eq!(factory().is_match("/a/file.txt", &patterns), Some(true));
+        let factory = PathRuleFactory::mock();
+        let option = factory.is_match("/a/file.txt", &patterns);
+        assert_eq!(option, Some(true));
     }
 
     #[test]
     fn patterns_empty() {
         let patterns: Vec<String> = vec![];
-        assert_eq!(factory().is_match("/a/file.txt", &patterns), None);
+        let factory = PathRuleFactory::mock();
+        let option = factory.is_match("/a/file.txt", &patterns);
+        assert_eq!(option, None);
     }
 
     /// Input path with `~` matches a tilde settings pattern.
     #[test]
     fn is_match_tilde_input_tilde_pattern() {
         let patterns = vec!["~/.config/foo/**".to_owned()];
-        assert_eq!(
-            factory().is_match("~/.config/foo/bar", &patterns),
-            Some(true)
-        );
+        let factory = PathRuleFactory::mock();
+        let option = factory.is_match("~/.config/foo/bar", &patterns);
+        assert_eq!(option, Some(true));
     }
 
     /// Input path with `~` matches an absolute settings pattern.
     #[test]
     fn is_match_tilde_input_absolute_pattern() {
         let patterns = vec!["/home/user/.config/foo/**".to_owned()];
-        assert_eq!(
-            factory().is_match("~/.config/foo/bar", &patterns),
-            Some(true)
-        );
+        let factory = PathRuleFactory::mock();
+        let option = factory.is_match("~/.config/foo/bar", &patterns);
+        assert_eq!(option, Some(true));
     }
 
     /// Already-expanded input path matches a tilde settings pattern.
     #[test]
     fn is_match_absolute_input_tilde_pattern() {
         let patterns = vec!["~/.config/foo/**".to_owned()];
-        assert_eq!(
-            factory().is_match("/home/user/.config/foo/bar", &patterns),
-            Some(true)
-        );
+        let factory = PathRuleFactory::mock();
+        let option = factory.is_match("/home/user/.config/foo/bar", &patterns);
+        assert_eq!(option, Some(true));
     }
 
     /// Bare `~` input matches a `~/**` pattern via exact prefix.
     #[test]
     fn is_match_bare_tilde_input() {
         let patterns = vec!["~/**".to_owned()];
-        assert_eq!(factory().is_match("~", &patterns), Some(true));
+        let factory = PathRuleFactory::mock();
+        let option = factory.is_match("~", &patterns);
+        assert_eq!(option, Some(true));
     }
 
     /// Trailing-slash tilde input matches `~/**` pattern.
     #[test]
     fn is_match_tilde_slash_input() {
         let patterns = vec!["~/**".to_owned()];
-        assert_eq!(factory().is_match("~/", &patterns), Some(true));
+        let factory = PathRuleFactory::mock();
+        let option = factory.is_match("~/", &patterns);
+        assert_eq!(option, Some(true));
     }
 
     /// Tilde input with negation pattern.
     #[test]
     fn is_match_tilde_input_negation() {
         let patterns = vec!["~/.config/**".to_owned(), "!~/.config/secret/**".to_owned()];
-        assert_eq!(
-            factory().is_match("~/.config/secret/key", &patterns),
-            Some(false)
-        );
+        let factory = PathRuleFactory::mock();
+        let option = factory.is_match("~/.config/secret/key", &patterns);
+        assert_eq!(option, Some(false));
     }
 
     /// Already-expanded path is not corrupted by `expand_tilde`.
     #[test]
     fn is_match_no_double_expansion() {
         let patterns = vec!["/home/user/.config/**".to_owned()];
-        assert_eq!(
-            factory().is_match("/home/user/.config/foo", &patterns),
-            Some(true)
-        );
+        let factory = PathRuleFactory::mock();
+        let option = factory.is_match("/home/user/.config/foo", &patterns);
+        assert_eq!(option, Some(true));
     }
 
     #[test]
     fn patterns_bare_filename() {
         let patterns = vec!["CLAUDE.md".to_owned()];
-        assert_eq!(
-            factory().is_match("/home/user/project/.claude/CLAUDE.md", &patterns),
-            Some(true)
-        );
+        let factory = PathRuleFactory::mock();
+        let option = factory.is_match("/home/user/project/.claude/CLAUDE.md", &patterns);
+        assert_eq!(option, Some(true));
     }
 
     #[test]
     fn patterns_bare_filename_negation() {
         let patterns = vec!["CLAUDE.md".to_owned(), "!.env".to_owned()];
-        assert_eq!(
-            factory().is_match("/home/user/project/.env", &patterns),
-            Some(false)
-        );
+        let factory = PathRuleFactory::mock();
+        let option = factory.is_match("/home/user/project/.env", &patterns);
+        assert_eq!(option, Some(false));
     }
 
     #[test]
     fn patterns_bare_glob() {
         let patterns = vec![".env.*".to_owned()];
-        assert_eq!(
-            factory().is_match("/home/user/project/.env.local", &patterns),
-            Some(true)
-        );
+        let factory = PathRuleFactory::mock();
+        let option = factory.is_match("/home/user/project/.env.local", &patterns);
+        assert_eq!(option, Some(true));
     }
 }

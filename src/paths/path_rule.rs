@@ -70,173 +70,195 @@ impl PathRule {
 mod tests {
     use super::*;
 
-    fn rule(pattern: &str) -> PathRule {
-        let factory = PathRuleFactory::mock();
-        factory.create(pattern)
-    }
-
     #[test]
     fn double_star_directory() {
-        let r = rule("/opt/data/**");
-        assert!(r.is_match("/opt/data"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("/opt/data/**");
+        assert!(rule.is_match("/opt/data"));
     }
 
     #[test]
     fn double_star_star_directory() {
-        let r = rule("/src/**/*");
-        assert!(r.is_match("/src"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("/src/**/*");
+        assert!(rule.is_match("/src"));
     }
 
     #[test]
     fn unrelated_directory_etc() {
-        let r = rule("/opt/data/**");
-        assert!(!r.is_match("/etc"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("/opt/data/**");
+        assert!(!rule.is_match("/etc"));
     }
 
     #[test]
     fn file_via_glob() {
-        let r = rule("/opt/data/**");
-        assert!(r.is_match("/opt/data/file.txt"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("/opt/data/**");
+        assert!(rule.is_match("/opt/data/file.txt"));
     }
 
     #[test]
     fn directory_via_prefix() {
-        let r = rule("/opt/data/**");
-        assert!(r.is_match("/opt/data"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("/opt/data/**");
+        assert!(rule.is_match("/opt/data"));
     }
 
     #[test]
     fn unrelated_passwd() {
-        let r = rule("/opt/data/**");
-        assert!(!r.is_match("/etc/passwd"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("/opt/data/**");
+        assert!(!rule.is_match("/etc/passwd"));
     }
 
     #[test]
     fn double_star_nested() {
-        let r = rule("/opt/data/**");
-        assert!(r.is_match("/opt/data/a/b/c/file.txt"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("/opt/data/**");
+        assert!(rule.is_match("/opt/data/a/b/c/file.txt"));
     }
 
     #[test]
     fn double_star_direct_child() {
-        let r = rule("/opt/data/**");
-        assert!(r.is_match("/opt/data/file.txt"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("/opt/data/**");
+        assert!(rule.is_match("/opt/data/file.txt"));
     }
 
     #[test]
     fn double_star_sibling() {
-        let r = rule("/opt/data/**");
-        assert!(!r.is_match("/opt/other/file.txt"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("/opt/data/**");
+        assert!(!rule.is_match("/opt/other/file.txt"));
     }
 
     #[test]
     fn single_star_one_level() {
-        let r = rule("/opt/*/file.txt");
-        assert!(r.is_match("/opt/data/file.txt"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("/opt/*/file.txt");
+        assert!(rule.is_match("/opt/data/file.txt"));
     }
 
     #[test]
     fn single_star_nested() {
-        let r = rule("/opt/*/file.txt");
-        assert!(!r.is_match("/opt/a/b/file.txt"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("/opt/*/file.txt");
+        assert!(!rule.is_match("/opt/a/b/file.txt"));
     }
 
     #[test]
     fn star_ext_in_dir() {
-        let r = rule("/tmp/*.rs");
-        assert!(r.is_match("/tmp/lib.rs"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("/tmp/*.rs");
+        assert!(rule.is_match("/tmp/lib.rs"));
     }
 
     #[test]
     fn star_ext_subdirectory() {
-        let r = rule("/tmp/*.rs");
-        assert!(!r.is_match("/tmp/src/lib.rs"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("/tmp/*.rs");
+        assert!(!rule.is_match("/tmp/src/lib.rs"));
     }
 
     #[test]
     fn star_ext_wrong_extension() {
-        let r = rule("/tmp/*.rs");
-        assert!(!r.is_match("/tmp/lib.toml"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("/tmp/*.rs");
+        assert!(!rule.is_match("/tmp/lib.toml"));
     }
 
     #[test]
     fn double_star_ext_nested() {
-        let r = rule("/src/**/*.rs");
-        assert!(r.is_match("/src/rules/read.rs"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("/src/**/*.rs");
+        assert!(rule.is_match("/src/rules/read.rs"));
     }
 
     #[test]
     fn double_star_ext_deep_nested() {
-        let r = rule("/src/**/*.rs");
-        assert!(r.is_match("/src/a/b/c/lib.rs"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("/src/**/*.rs");
+        assert!(rule.is_match("/src/a/b/c/lib.rs"));
     }
 
     #[test]
     fn double_star_ext_wrong_extension() {
-        let r = rule("/src/**/*.rs");
-        assert!(!r.is_match("/src/rules/read.toml"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("/src/**/*.rs");
+        assert!(!rule.is_match("/src/rules/read.toml"));
     }
 
     #[test]
     fn exact_path_same() {
-        let r = rule("/etc/hosts");
-        assert!(r.is_match("/etc/hosts"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("/etc/hosts");
+        assert!(rule.is_match("/etc/hosts"));
     }
 
     #[test]
     fn exact_path_different() {
-        let r = rule("/etc/hosts");
-        assert!(!r.is_match("/etc/passwd"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("/etc/hosts");
+        assert!(!rule.is_match("/etc/passwd"));
     }
 
     #[test]
     fn exact_path_nested() {
-        let r = rule("/etc/hosts");
-        assert!(!r.is_match("/etc/hosts/extra"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("/etc/hosts");
+        assert!(!rule.is_match("/etc/hosts/extra"));
     }
 
     #[test]
     fn bare_filename_anywhere() {
-        let r = rule("CLAUDE.md");
-        assert!(r.is_match("/home/user/project/.claude/CLAUDE.md"));
-        assert!(r.is_match("/tmp/CLAUDE.md"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("CLAUDE.md");
+        assert!(rule.is_match("/home/user/project/.claude/CLAUDE.md"));
+        assert!(rule.is_match("/tmp/CLAUDE.md"));
     }
 
     #[test]
     fn bare_filename_different_name() {
-        let r = rule("CLAUDE.md");
-        assert!(!r.is_match("/home/user/README.md"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("CLAUDE.md");
+        assert!(!rule.is_match("/home/user/README.md"));
     }
 
     #[test]
     fn bare_glob_basename() {
-        let r = rule("*.md");
-        assert!(r.is_match("/home/user/project/README.md"));
-        assert!(r.is_match("/tmp/CLAUDE.md"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("*.md");
+        assert!(rule.is_match("/home/user/project/README.md"));
+        assert!(rule.is_match("/tmp/CLAUDE.md"));
     }
 
     #[test]
     fn bare_glob_wrong_extension() {
-        let r = rule("*.md");
-        assert!(!r.is_match("/home/user/project/lib.rs"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create("*.md");
+        assert!(!rule.is_match("/home/user/project/lib.rs"));
     }
 
     #[test]
     fn bare_dotfile_pattern() {
-        let r = rule(".env");
-        assert!(r.is_match("/home/user/project/.env"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create(".env");
+        assert!(rule.is_match("/home/user/project/.env"));
     }
 
     #[test]
     fn bare_dotfile_glob() {
-        let r = rule(".env.*");
-        assert!(r.is_match("/home/user/project/.env.local"));
-        assert!(r.is_match("/tmp/.env.production"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create(".env.*");
+        assert!(rule.is_match("/home/user/project/.env.local"));
+        assert!(rule.is_match("/tmp/.env.production"));
     }
 
     #[test]
     fn bare_dotfile_glob_bare_env() {
-        let r = rule(".env.*");
-        assert!(!r.is_match("/home/user/project/.env"));
+        let factory = ServiceBuilder::mock().build().expect::<PathRuleFactory>();
+        let rule = factory.create(".env.*");
+        assert!(!rule.is_match("/home/user/project/.env"));
     }
 }
