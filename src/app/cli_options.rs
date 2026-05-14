@@ -22,3 +22,15 @@ impl FromServices for CliOptions {
         Ok(from_env())
     }
 }
+
+#[cfg(test)]
+impl CliOptions {
+    /// Deterministic [`CliOptions`] for testing.
+    #[must_use]
+    pub fn mock() -> Self {
+        Self {
+            subcommand: Subcommand::Bash(BashArgs {}),
+            log_level: Some(LogLevel::Trace),
+        }
+    }
+}
