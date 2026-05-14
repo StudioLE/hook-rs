@@ -1087,9 +1087,9 @@ dependencies = [
 
 [[package]]
 name = "studiole-logging"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fb1e5162618d1b4d6c589a5b07ec9654faca482c15d7b6a38777e992efb3142"
+checksum = "40281991be58027edfbe2a87464ae872fb5bb01b76e1bb26dd1f7ed753915d18"
 dependencies = [
  "serde",
  "studiole-di",

@@ -32,6 +32,7 @@ impl ServiceBuilderExt for ServiceBuilder {
     fn mock() -> ServiceBuilder {
         ServiceBuilder::new()
             .with_app_services()
+            .with_instance(CliOptions::mock())
             .with_instance(HostContext::mock())
             .with_instance(Settings::mock())
     }
@@ -57,6 +58,7 @@ mod tests {
     fn service_builder_mock_bash_evaluation() {
         // Arrange
         let services = ServiceBuilder::mock().build();
+        services.init().expect("should init");
         let handler = services.get::<BashHandler>().expect("should resolve");
         let input = BashInput {
             command: "git status".to_owned(),
