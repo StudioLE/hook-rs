@@ -24,35 +24,41 @@ mod tests {
     /// Two commands separated by `;`
     #[test]
     fn semicolon_two_commands() {
-        let outcome = evaluate_expect_outcome("git status ; echo hi");
+        let result = BashEvaluator::mock().evaluate_str("git status ; echo hi");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     /// Three commands separated by `;`
     #[test]
     fn semicolon_three_commands() {
-        let outcome = evaluate_expect_outcome("git status ; echo hi ; ls");
+        let result = BashEvaluator::mock().evaluate_str("git status ; echo hi ; ls");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     /// For loop semicolons are syntactic, not separators
     #[test]
     fn semicolon_for_loop() {
-        let outcome = evaluate_expect_outcome("for f in *.txt; do echo $f; done");
+        let result = BashEvaluator::mock().evaluate_str("for f in *.txt; do echo $f; done");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     /// `&&` followed by a for loop has no `Connector::Semi`
     #[test]
     fn semicolon_and_then_for_loop() {
-        let outcome = evaluate_expect_outcome("git status && for f in *.txt; do echo $f; done");
+        let result =
+            BashEvaluator::mock().evaluate_str("git status && for f in *.txt; do echo $f; done");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     /// `&&` is not `;`
     #[test]
     fn semicolon_and_connector() {
-        let outcome = evaluate_expect_outcome("git status && echo hi");
+        let result = BashEvaluator::mock().evaluate_str("git status && echo hi");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 }

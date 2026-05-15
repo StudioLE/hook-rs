@@ -50,249 +50,290 @@ mod tests {
 
     #[test]
     fn rm_r() {
-        let outcome = evaluate_expect_outcome("rm -r /path/to/dir");
+        let result = eval_rules(rm_rules(), "rm -r /path/to/dir");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_cap_r() {
-        let outcome = evaluate_expect_outcome("rm -R /path/to/dir");
+        let result = eval_rules(rm_rules(), "rm -R /path/to/dir");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_rf() {
-        let outcome = evaluate_expect_outcome("rm -rf /path/to/dir");
+        let result = eval_rules(rm_rules(), "rm -rf /path/to/dir");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_cap_rf() {
-        let outcome = evaluate_expect_outcome("rm -Rf /path/to/dir");
+        let result = eval_rules(rm_rules(), "rm -Rf /path/to/dir");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_fr() {
-        let outcome = evaluate_expect_outcome("rm -fr /path/to/dir");
+        let result = eval_rules(rm_rules(), "rm -fr /path/to/dir");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_f_cap_r() {
-        let outcome = evaluate_expect_outcome("rm -fR /path/to/dir");
+        let result = eval_rules(rm_rules(), "rm -fR /path/to/dir");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_recursive() {
-        let outcome = evaluate_expect_outcome("rm --recursive /path/to/dir");
+        let result = eval_rules(rm_rules(), "rm --recursive /path/to/dir");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_rfi() {
-        let outcome = evaluate_expect_outcome("rm -rfi /path/to/dir");
+        let result = eval_rules(rm_rules(), "rm -rfi /path/to/dir");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_ir() {
-        let outcome = evaluate_expect_outcome("rm -ir /path/to/dir");
+        let result = eval_rules(rm_rules(), "rm -ir /path/to/dir");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_single_file() {
-        let outcome = evaluate_expect_outcome("rm file.txt");
+        let result = eval_rules(rm_rules(), "rm file.txt");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_multiple_files() {
-        let outcome = evaluate_expect_outcome("rm file1.txt file2.txt");
+        let result = eval_rules(rm_rules(), "rm file1.txt file2.txt");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_f() {
-        let outcome = evaluate_expect_outcome("rm -f file.txt");
+        let result = eval_rules(rm_rules(), "rm -f file.txt");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_i() {
-        let outcome = evaluate_expect_outcome("rm -i file.txt");
+        let result = eval_rules(rm_rules(), "rm -i file.txt");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_with_path() {
-        let outcome = evaluate_expect_outcome("rm /path/to/file.txt");
+        let result = eval_rules(rm_rules(), "rm /path/to/file.txt");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_wildcard() {
-        let outcome = evaluate_expect_outcome("rm *.tmp");
+        let result = eval_rules(rm_rules(), "rm *.tmp");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_r_chained() {
-        let outcome = evaluate_expect_outcome("ls && rm -r /path");
+        let result = eval_rules(rm_rules(), "ls && rm -r /path");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_rf_or_chain() {
-        let outcome = evaluate_expect_outcome("false || rm -rf /tmp/nothing");
+        let result = eval_rules(rm_rules(), "false || rm -rf /tmp/nothing");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_r_semicolon() {
-        let outcome = evaluate_expect_outcome("echo hi ; rm -r /path");
+        let result = eval_rules(rm_rules(), "echo hi ; rm -r /path");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_chained_file() {
-        let outcome = evaluate_expect_outcome("ls && rm file.txt");
+        let result = eval_rules(rm_rules(), "ls && rm file.txt");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_for_do() {
-        let outcome = evaluate_expect_outcome("for f in *.tmp; do rm $f; done");
+        let result = eval_rules(rm_rules(), "for f in *.tmp; do rm $f; done");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_if_then() {
-        let reason = evaluate_expect_skip("if true; then rm file.txt; fi");
+        let result = eval_rules(rm_rules(), "if true; then rm file.txt; fi");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::UnsupportedCompound);
     }
 
     #[test]
     fn rm_if_else() {
-        let reason = evaluate_expect_skip("if false; then echo hi; else rm file.txt; fi");
+        let result = eval_rules(rm_rules(), "if false; then echo hi; else rm file.txt; fi");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::UnsupportedCompound);
     }
 
     #[test]
     fn rm_rf_while_do() {
-        let reason = evaluate_expect_skip("while true; do rm -rf /tmp/nothing; done");
+        let result = eval_rules(rm_rules(), "while true; do rm -rf /tmp/nothing; done");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::UnsupportedCompound);
     }
     #[test]
     fn rm_tmp_file() {
-        let outcome = evaluate_expect_outcome("rm /tmp/file.txt");
+        let result = eval_rules(rm_rules(), "rm /tmp/file.txt");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_f_tmp() {
-        let outcome = evaluate_expect_outcome("rm -f /tmp/file.txt");
+        let result = eval_rules(rm_rules(), "rm -f /tmp/file.txt");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_rf_tmp() {
-        let outcome = evaluate_expect_outcome("rm -rf /tmp/dir");
+        let result = eval_rules(rm_rules(), "rm -rf /tmp/dir");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_tmp_multiple() {
-        let outcome = evaluate_expect_outcome("rm /tmp/file1 /tmp/file2");
+        let result = eval_rules(rm_rules(), "rm /tmp/file1 /tmp/file2");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_tmp_path_traversal() {
-        let outcome = evaluate_expect_outcome("rm /tmp/../etc/passwd");
+        let result = eval_rules(rm_rules(), "rm /tmp/../etc/passwd");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn rm_tmp_mixed() {
-        let outcome = evaluate_expect_outcome("rm /tmp/file.txt /home/user/file.txt");
+        let result = eval_rules(rm_rules(), "rm /tmp/file.txt /home/user/file.txt");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn ls() {
-        let outcome = evaluate_expect_outcome("ls -la");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(rm_rules(), "ls -la");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_rm() {
-        let outcome = evaluate_expect_outcome("git rm file.txt");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(rm_rules(), "git rm file.txt");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_rm_r() {
-        let outcome = evaluate_expect_outcome("git rm -r dir/");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(rm_rules(), "git rm -r dir/");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn echo_rm() {
-        let outcome = evaluate_expect_outcome("echo rm is blocked");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(rm_rules(), "echo rm is blocked");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn rg_rm() {
-        let outcome = evaluate_expect_outcome("rg rm .");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(rm_rules(), "rg rm .");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn cat() {
-        let outcome = evaluate_expect_outcome("cat file.txt");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(rm_rules(), "cat file.txt");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn mv() {
-        let reason = evaluate_expect_skip("mv old.txt new.txt");
+        let result = eval_rules(rm_rules(), "mv old.txt new.txt");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn cargo_rm() {
-        let reason = evaluate_expect_skip("cargo rm some-dep");
+        let result = eval_rules(rm_rules(), "cargo rm some-dep");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn rm_snap_new() {
-        let outcome = evaluate_expect_outcome("rm path/to/foo.snap.new");
+        let result = eval_rules(rm_rules(), "rm path/to/foo.snap.new");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
         assert!(outcome.reason.contains("cargo insta"));
     }
 
     #[test]
     fn rm_snap_new_dot_suffix() {
-        let outcome = evaluate_expect_outcome("rm path/to/foo.snap.new.42");
+        let result = eval_rules(rm_rules(), "rm path/to/foo.snap.new.42");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
         assert!(outcome.reason.contains("cargo insta"));
     }
 
     #[test]
     fn rm_snap_new_glob() {
-        let outcome = evaluate_expect_outcome("rm crates/core/snapshots/foo__bar.snap.new");
+        let result = eval_rules(rm_rules(), "rm crates/core/snapshots/foo__bar.snap.new");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
         assert!(outcome.reason.contains("cargo insta"));
     }
 
     #[test]
     fn rm_snap_new_mixed_with_other() {
-        let outcome = evaluate_expect_outcome("rm foo.snap.new other.txt");
+        let result = eval_rules(rm_rules(), "rm foo.snap.new other.txt");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
         assert!(outcome.reason.contains("cargo insta"));
         assert!(!outcome.reason.contains("git clean"));
@@ -300,21 +341,24 @@ mod tests {
 
     #[test]
     fn rm_pending_snap_inline() {
-        let outcome = evaluate_expect_outcome("rm src/.foo.rs.pending-snap");
+        let result = eval_rules(rm_rules(), "rm src/.foo.rs.pending-snap");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
         assert!(outcome.reason.contains("cargo insta"));
     }
 
     #[test]
     fn rm_snap_not_new() {
-        let outcome = evaluate_expect_outcome("rm foo.snap");
+        let result = eval_rules(rm_rules(), "rm foo.snap");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
         assert!(outcome.reason.contains("git rm"));
     }
 
     #[test]
     fn xargs_rm() {
-        let reason = evaluate_expect_skip("echo file | xargs rm");
-        assert_eq!(reason, SkipReason::OnlyAllowAll);
+        let result = eval_rules(rm_rules(), "echo file | xargs rm");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 }

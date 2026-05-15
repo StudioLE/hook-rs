@@ -48,20 +48,23 @@ mod tests {
 
     #[test]
     fn diff_two_files() {
-        let outcome = evaluate_expect_outcome("diff a.snap a.snap.new");
+        let result = eval_rules(read_only_rules(), "diff a.snap a.snap.new");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn diff_piped_head() {
-        let outcome = evaluate_expect_outcome("diff a.snap a.snap.new | head -50");
+        let result = eval_rules(read_only_rules(), "diff a.snap a.snap.new | head -50");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn for_loop_rg_basename() {
         let cmd = r#"for f in src/bash/rules/snapshots/*git_deny*.snap; do echo "=== $(basename $f) ==="; rg "decision:" "$f"; done"#;
-        let outcome = evaluate_expect_outcome(cmd);
+        let result = eval_rules(read_only_rules(), cmd);
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 }

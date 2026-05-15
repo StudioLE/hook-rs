@@ -244,7 +244,8 @@ mod tests {
             "show",
             "status",
         ] {
-            let outcome = evaluate_expect_outcome(&format!("git {sub}"));
+            let result = eval_rules(git_allow_rules(), &format!("git {sub}"));
+            let outcome = expect_outcome(result);
             assert_eq!(outcome.decision, Decision::Allow, "git {sub}");
         }
     }
@@ -252,705 +253,849 @@ mod tests {
     /// Regex pattern with flags.
     #[test]
     fn git_grep() {
-        let outcome = evaluate_expect_outcome("git grep -E 'foo|bar'");
+        let result = eval_rules(git_allow_rules(), "git grep -E 'foo|bar'");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_log_args() {
-        let outcome = evaluate_expect_outcome("git log --oneline -5");
+        let result = eval_rules(git_allow_rules(), "git log --oneline -5");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_patch_id() {
-        let outcome = evaluate_expect_outcome("git patch-id --stable");
+        let result = eval_rules(git_allow_rules(), "git patch-id --stable");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_log_pipe_patch_id() {
-        let outcome = evaluate_expect_outcome("git log --format='%H' main | git patch-id --stable");
+        let result = eval_rules(
+            git_allow_rules(),
+            "git log --format='%H' main | git patch-id --stable",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_diff_head_1() {
-        let outcome = evaluate_expect_outcome("git diff HEAD~1");
+        let result = eval_rules(git_allow_rules(), "git diff HEAD~1");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_remote_show() {
-        let outcome = evaluate_expect_outcome("git remote show origin");
+        let result = eval_rules(git_allow_rules(), "git remote show origin");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_remote_get_url() {
-        let outcome = evaluate_expect_outcome("git remote get-url origin");
+        let result = eval_rules(git_allow_rules(), "git remote get-url origin");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_commit() {
-        let reason = evaluate_expect_skip("git commit -m 'test'");
+        let result = eval_rules(git_allow_rules(), "git commit -m 'test'");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_push() {
-        let reason = evaluate_expect_skip("git push origin main");
+        let result = eval_rules(git_allow_rules(), "git push origin main");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_add() {
-        let reason = evaluate_expect_skip("git add -A");
+        let result = eval_rules(git_allow_rules(), "git add -A");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_rebase() {
-        let reason = evaluate_expect_skip("git rebase main");
+        let result = eval_rules(git_allow_rules(), "git rebase main");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_reset_hard() {
-        let outcome = evaluate_expect_outcome("git reset --hard HEAD~1");
-        assert_eq!(outcome.decision, Decision::Deny);
+        let result = eval_rules(git_allow_rules(), "git reset --hard HEAD~1");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_checkout_discard() {
-        let outcome = evaluate_expect_outcome("git checkout -- file.txt");
-        assert_eq!(outcome.decision, Decision::Deny);
+        let result = eval_rules(git_allow_rules(), "git checkout -- file.txt");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_stash_pop() {
-        let outcome = evaluate_expect_outcome("git stash pop");
-        assert_eq!(outcome.decision, Decision::Deny);
+        let result = eval_rules(git_allow_rules(), "git stash pop");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_remote_add() {
-        let reason = evaluate_expect_skip("git remote add upstream https://example.com");
+        let result = eval_rules(
+            git_allow_rules(),
+            "git remote add upstream https://example.com",
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn ls() {
-        let outcome = evaluate_expect_outcome("ls -la");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(git_allow_rules(), "ls -la");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn cargo() {
-        let reason = evaluate_expect_skip("cargo publish");
+        let result = eval_rules(git_allow_rules(), "cargo publish");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn cat() {
-        let outcome = evaluate_expect_outcome("cat file.txt");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(git_allow_rules(), "cat file.txt");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_no_pager_log() {
-        let reason = evaluate_expect_skip("git --no-pager log");
+        let result = eval_rules(git_allow_rules(), "git --no-pager log");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_no_pager_diff() {
-        let reason = evaluate_expect_skip("git --no-pager diff HEAD~1");
+        let result = eval_rules(git_allow_rules(), "git --no-pager diff HEAD~1");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_c_config() {
-        let reason = evaluate_expect_skip("git -c core.pager= status");
+        let result = eval_rules(git_allow_rules(), "git -c core.pager= status");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn ls_git_status() {
-        let outcome = evaluate_expect_outcome("ls && git status");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(git_allow_rules(), "ls && git status");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::OnlyAllowAll);
     }
 
     #[test]
     fn git_add_commit() {
-        let reason = evaluate_expect_skip("git add file.txt && git commit -m 'test'");
+        let result = eval_rules(
+            git_allow_rules(),
+            "git add file.txt && git commit -m 'test'",
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_log_or_diff() {
-        let outcome = evaluate_expect_outcome("git log || git diff");
+        let result = eval_rules(git_allow_rules(), "git log || git diff");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_status_semicolon_log() {
-        let outcome = evaluate_expect_outcome("git status ; git log");
+        let result = eval_rules(git_allow_rules(), "git status ; git log");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_status_pipe() {
-        let outcome = evaluate_expect_outcome("git status | head -5");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(git_allow_rules(), "git status | head -5");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::OnlyAllowAll);
     }
 
     #[test]
     fn echo_git() {
-        let outcome = evaluate_expect_outcome("echo git status");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(git_allow_rules(), "echo git status");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_branch_bare() {
-        let outcome = evaluate_expect_outcome("git branch");
+        let result = eval_rules(git_allow_rules(), "git branch");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_branch_a() {
-        let outcome = evaluate_expect_outcome("git branch -a");
+        let result = eval_rules(git_allow_rules(), "git branch -a");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_branch_list() {
-        let outcome = evaluate_expect_outcome("git branch --list");
+        let result = eval_rules(git_allow_rules(), "git branch --list");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_branch_r() {
-        let outcome = evaluate_expect_outcome("git branch -r");
+        let result = eval_rules(git_allow_rules(), "git branch -r");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_branch_v() {
-        let outcome = evaluate_expect_outcome("git branch -v");
+        let result = eval_rules(git_allow_rules(), "git branch -v");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_branch_vv() {
-        let outcome = evaluate_expect_outcome("git branch -vv");
+        let result = eval_rules(git_allow_rules(), "git branch -vv");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_branch_contains() {
-        let outcome = evaluate_expect_outcome("git branch --contains");
+        let result = eval_rules(git_allow_rules(), "git branch --contains");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_branch_merged() {
-        let outcome = evaluate_expect_outcome("git branch --merged");
+        let result = eval_rules(git_allow_rules(), "git branch --merged");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_branch_no_merged() {
-        let outcome = evaluate_expect_outcome("git branch --no-merged");
+        let result = eval_rules(git_allow_rules(), "git branch --no-merged");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_branch_sort() {
-        let reason = evaluate_expect_skip("git branch --sort=committerdate");
+        let result = eval_rules(git_allow_rules(), "git branch --sort=committerdate");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_branch_format() {
-        let reason = evaluate_expect_skip("git branch --format='%(refname:short)'");
+        let result = eval_rules(git_allow_rules(), "git branch --format='%(refname:short)'");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_branch_show_current() {
-        let outcome = evaluate_expect_outcome("git branch --show-current");
+        let result = eval_rules(git_allow_rules(), "git branch --show-current");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_branch_points_at() {
-        let outcome = evaluate_expect_outcome("git branch --points-at HEAD");
+        let result = eval_rules(git_allow_rules(), "git branch --points-at HEAD");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_branch_combined() {
-        let outcome = evaluate_expect_outcome("git branch -a -v --sort=committerdate");
+        let result = eval_rules(git_allow_rules(), "git branch -a -v --sort=committerdate");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_branch_d() {
-        let reason = evaluate_expect_skip("git branch -d old-branch");
+        let result = eval_rules(git_allow_rules(), "git branch -d old-branch");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_branch_cap_d() {
-        let reason = evaluate_expect_skip("git branch -D old-branch");
+        let result = eval_rules(git_allow_rules(), "git branch -D old-branch");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_branch_m() {
-        let reason = evaluate_expect_skip("git branch -m old new");
+        let result = eval_rules(git_allow_rules(), "git branch -m old new");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_branch_cap_m() {
-        let reason = evaluate_expect_skip("git branch -M old new");
+        let result = eval_rules(git_allow_rules(), "git branch -M old new");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_branch_c() {
-        let reason = evaluate_expect_skip("git branch -c old new");
+        let result = eval_rules(git_allow_rules(), "git branch -c old new");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_branch_delete() {
-        let reason = evaluate_expect_skip("git branch --delete old-branch");
+        let result = eval_rules(git_allow_rules(), "git branch --delete old-branch");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_branch_move() {
-        let reason = evaluate_expect_skip("git branch --move old new");
+        let result = eval_rules(git_allow_rules(), "git branch --move old new");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_branch_copy() {
-        let reason = evaluate_expect_skip("git branch --copy old new");
+        let result = eval_rules(git_allow_rules(), "git branch --copy old new");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_branch_set_upstream() {
-        let reason = evaluate_expect_skip("git branch --set-upstream-to=origin/main");
+        let result = eval_rules(
+            git_allow_rules(),
+            "git branch --set-upstream-to=origin/main",
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_branch_unset_upstream() {
-        let reason = evaluate_expect_skip("git branch --unset-upstream");
+        let result = eval_rules(git_allow_rules(), "git branch --unset-upstream");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_tag_bare() {
-        let outcome = evaluate_expect_outcome("git tag");
+        let result = eval_rules(git_allow_rules(), "git tag");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_tag_l() {
-        let outcome = evaluate_expect_outcome("git tag -l");
+        let result = eval_rules(git_allow_rules(), "git tag -l");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_tag_list() {
-        let outcome = evaluate_expect_outcome("git tag --list");
+        let result = eval_rules(git_allow_rules(), "git tag --list");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_tag_n() {
-        let reason = evaluate_expect_skip("git tag -n");
+        let result = eval_rules(git_allow_rules(), "git tag -n");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_tag_n5() {
-        let reason = evaluate_expect_skip("git tag -n5");
+        let result = eval_rules(git_allow_rules(), "git tag -n5");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_tag_contains() {
-        let outcome = evaluate_expect_outcome("git tag --contains");
+        let result = eval_rules(git_allow_rules(), "git tag --contains");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_tag_contains_commit() {
-        let outcome = evaluate_expect_outcome("git tag --contains f4ce32b");
+        let result = eval_rules(git_allow_rules(), "git tag --contains f4ce32b");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_tag_merged() {
-        let outcome = evaluate_expect_outcome("git tag --merged");
+        let result = eval_rules(git_allow_rules(), "git tag --merged");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_tag_merged_commit() {
-        let outcome = evaluate_expect_outcome("git tag --merged main");
+        let result = eval_rules(git_allow_rules(), "git tag --merged main");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_tag_no_merged() {
-        let outcome = evaluate_expect_outcome("git tag --no-merged");
+        let result = eval_rules(git_allow_rules(), "git tag --no-merged");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_tag_no_merged_commit() {
-        let outcome = evaluate_expect_outcome("git tag --no-merged main");
+        let result = eval_rules(git_allow_rules(), "git tag --no-merged main");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_tag_list_pattern() {
-        let outcome = evaluate_expect_outcome("git tag -l 'v1.*'");
+        let result = eval_rules(git_allow_rules(), "git tag -l 'v1.*'");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_tag_sort() {
-        let outcome = evaluate_expect_outcome("git tag --sort=version:refname");
+        let result = eval_rules(git_allow_rules(), "git tag --sort=version:refname");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_tag_sort_negative() {
-        let outcome = evaluate_expect_outcome("git tag --sort=-creatordate");
+        let result = eval_rules(git_allow_rules(), "git tag --sort=-creatordate");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     /// Space-separated value; `--sort` alone triggers the `with_any` match.
     #[test]
     fn git_tag_sort_space_separated() {
-        let outcome = evaluate_expect_outcome("git tag --sort -creatordate");
+        let result = eval_rules(git_allow_rules(), "git tag --sort -creatordate");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_tag_verify() {
-        let outcome = evaluate_expect_outcome("git tag -v v1.0");
+        let result = eval_rules(git_allow_rules(), "git tag -v v1.0");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_tag_verify_long() {
-        let outcome = evaluate_expect_outcome("git tag --verify v1.0");
+        let result = eval_rules(git_allow_rules(), "git tag --verify v1.0");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_tag_d() {
-        let reason = evaluate_expect_skip("git tag -d v1.0");
+        let result = eval_rules(git_allow_rules(), "git tag -d v1.0");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_tag_a() {
-        let reason = evaluate_expect_skip("git tag -a v1.0 -m 'release'");
+        let result = eval_rules(git_allow_rules(), "git tag -a v1.0 -m 'release'");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_tag_s() {
-        let reason = evaluate_expect_skip("git tag -s v1.0");
+        let result = eval_rules(git_allow_rules(), "git tag -s v1.0");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_tag_f() {
-        let reason = evaluate_expect_skip("git tag -f v1.0");
+        let result = eval_rules(git_allow_rules(), "git tag -f v1.0");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_tag_m() {
-        let reason = evaluate_expect_skip("git tag -m 'release'");
+        let result = eval_rules(git_allow_rules(), "git tag -m 'release'");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_tag_positional() {
-        let reason = evaluate_expect_skip("git tag v1.0");
+        let result = eval_rules(git_allow_rules(), "git tag v1.0");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_tag_delete() {
-        let reason = evaluate_expect_skip("git tag --delete v1.0");
+        let result = eval_rules(git_allow_rules(), "git tag --delete v1.0");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_remote_bare() {
-        let outcome = evaluate_expect_outcome("git remote");
+        let result = eval_rules(git_allow_rules(), "git remote");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_remote_v() {
-        let outcome = evaluate_expect_outcome("git remote -v");
+        let result = eval_rules(git_allow_rules(), "git remote -v");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_remote_verbose() {
-        let outcome = evaluate_expect_outcome("git remote --verbose");
+        let result = eval_rules(git_allow_rules(), "git remote --verbose");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_remote_show_origin() {
-        let outcome = evaluate_expect_outcome("git remote show origin");
+        let result = eval_rules(git_allow_rules(), "git remote show origin");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_remote_get_url_origin() {
-        let outcome = evaluate_expect_outcome("git remote get-url origin");
+        let result = eval_rules(git_allow_rules(), "git remote get-url origin");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_remote_add_upstream() {
-        let reason = evaluate_expect_skip("git remote add upstream https://example.com");
+        let result = eval_rules(
+            git_allow_rules(),
+            "git remote add upstream https://example.com",
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_remote_remove() {
-        let reason = evaluate_expect_skip("git remote remove upstream");
+        let result = eval_rules(git_allow_rules(), "git remote remove upstream");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_remote_rename() {
-        let reason = evaluate_expect_skip("git remote rename origin upstream");
+        let result = eval_rules(git_allow_rules(), "git remote rename origin upstream");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_remote_set_url() {
-        let reason = evaluate_expect_skip("git remote set-url origin https://example.com");
+        let result = eval_rules(
+            git_allow_rules(),
+            "git remote set-url origin https://example.com",
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_remote_set_head() {
-        let reason = evaluate_expect_skip("git remote set-head origin main");
+        let result = eval_rules(git_allow_rules(), "git remote set-head origin main");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_remote_set_branches() {
-        let reason = evaluate_expect_skip("git remote set-branches origin main");
+        let result = eval_rules(git_allow_rules(), "git remote set-branches origin main");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_remote_prune() {
-        let reason = evaluate_expect_skip("git remote prune origin");
+        let result = eval_rules(git_allow_rules(), "git remote prune origin");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_blame() {
-        let outcome = evaluate_expect_outcome("git blame file.txt");
+        let result = eval_rules(git_allow_rules(), "git blame file.txt");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_blame_line_range() {
-        let outcome = evaluate_expect_outcome("git blame file.txt -L 15,45");
+        let result = eval_rules(git_allow_rules(), "git blame file.txt -L 15,45");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_worktree_list() {
-        let outcome = evaluate_expect_outcome("git worktree list");
+        let result = eval_rules(git_allow_rules(), "git worktree list");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_worktree_list_porcelain() {
-        let outcome = evaluate_expect_outcome("git worktree list --porcelain");
+        let result = eval_rules(git_allow_rules(), "git worktree list --porcelain");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_worktree_remove() {
-        let reason = evaluate_expect_skip("git worktree remove ../foo");
+        let result = eval_rules(git_allow_rules(), "git worktree remove ../foo");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_worktree_prune() {
-        let reason = evaluate_expect_skip("git worktree prune");
+        let result = eval_rules(git_allow_rules(), "git worktree prune");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_worktree_move() {
-        let reason = evaluate_expect_skip("git worktree move ../foo ../bar");
+        let result = eval_rules(git_allow_rules(), "git worktree move ../foo ../bar");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_worktree_lock() {
-        let reason = evaluate_expect_skip("git worktree lock ../foo");
+        let result = eval_rules(git_allow_rules(), "git worktree lock ../foo");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_worktree_unlock() {
-        let reason = evaluate_expect_skip("git worktree unlock ../foo");
+        let result = eval_rules(git_allow_rules(), "git worktree unlock ../foo");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_worktree_repair() {
-        let reason = evaluate_expect_skip("git worktree repair");
+        let result = eval_rules(git_allow_rules(), "git worktree repair");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_worktree_bare() {
-        let reason = evaluate_expect_skip("git worktree");
+        let result = eval_rules(git_allow_rules(), "git worktree");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_config_list() {
-        let outcome = evaluate_expect_outcome("git config list");
+        let result = eval_rules(git_allow_rules(), "git config list");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_config_get() {
-        let outcome = evaluate_expect_outcome("git config get core.hooksPath");
+        let result = eval_rules(git_allow_rules(), "git config get core.hooksPath");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_config_list_long() {
-        let outcome = evaluate_expect_outcome("git config --list");
+        let result = eval_rules(git_allow_rules(), "git config --list");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_config_l() {
-        let outcome = evaluate_expect_outcome("git config -l");
+        let result = eval_rules(git_allow_rules(), "git config -l");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_config_get_flag() {
-        let outcome = evaluate_expect_outcome("git config --get core.hooksPath");
+        let result = eval_rules(git_allow_rules(), "git config --get core.hooksPath");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_config_get_all() {
-        let outcome = evaluate_expect_outcome("git config --get-all remote.origin.fetch");
+        let result = eval_rules(
+            git_allow_rules(),
+            "git config --get-all remote.origin.fetch",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_config_get_regexp() {
-        let outcome = evaluate_expect_outcome("git config --get-regexp '^remote\\.'");
+        let result = eval_rules(git_allow_rules(), "git config --get-regexp '^remote\\.'");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_config_get_urlmatch() {
-        let outcome = evaluate_expect_outcome("git config --get-urlmatch http https://example.com");
+        let result = eval_rules(
+            git_allow_rules(),
+            "git config --get-urlmatch http https://example.com",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_config_get_colorbool() {
-        let outcome = evaluate_expect_outcome("git config --get-colorbool color.diff");
+        let result = eval_rules(git_allow_rules(), "git config --get-colorbool color.diff");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_config_set() {
-        let reason = evaluate_expect_skip("git config set user.name foo");
+        let result = eval_rules(git_allow_rules(), "git config set user.name foo");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_config_unset() {
-        let reason = evaluate_expect_skip("git config unset user.name");
+        let result = eval_rules(git_allow_rules(), "git config unset user.name");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_config_set_flag() {
-        let reason = evaluate_expect_skip("git config --set user.name foo");
+        let result = eval_rules(git_allow_rules(), "git config --set user.name foo");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_config_add() {
-        let reason = evaluate_expect_skip("git config --add remote.origin.fetch refs/foo");
+        let result = eval_rules(
+            git_allow_rules(),
+            "git config --add remote.origin.fetch refs/foo",
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_config_unset_flag() {
-        let reason = evaluate_expect_skip("git config --unset user.name");
+        let result = eval_rules(git_allow_rules(), "git config --unset user.name");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_config_replace_all() {
-        let reason = evaluate_expect_skip("git config --replace-all user.name foo");
+        let result = eval_rules(git_allow_rules(), "git config --replace-all user.name foo");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_config_edit() {
-        let reason = evaluate_expect_skip("git config edit");
+        let result = eval_rules(git_allow_rules(), "git config edit");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_config_remove_section() {
-        let reason = evaluate_expect_skip("git config remove-section user");
+        let result = eval_rules(git_allow_rules(), "git config remove-section user");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_config_rename_section() {
-        let reason = evaluate_expect_skip("git config rename-section foo bar");
+        let result = eval_rules(git_allow_rules(), "git config rename-section foo bar");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     /// Bare `git config <key> <value>` writes the value; must not be allowed.
     #[test]
     fn git_config_bare_set() {
-        let reason = evaluate_expect_skip("git config user.name foo");
+        let result = eval_rules(git_allow_rules(), "git config user.name foo");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 }

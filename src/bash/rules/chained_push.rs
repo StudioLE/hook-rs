@@ -29,92 +29,118 @@ mod tests {
 
     #[test]
     fn add_commit_push() {
-        let outcome =
-            evaluate_expect_outcome("git add file.txt && git commit -m 'msg' && git push");
+        let result = eval_rules(
+            chained_push_rules(),
+            "git add file.txt && git commit -m 'msg' && git push",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn commit_push_no_space() {
-        let outcome = evaluate_expect_outcome("git commit -m 'msg'&& git push");
+        let result = eval_rules(chained_push_rules(), "git commit -m 'msg'&& git push");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn commit_push_with_remote() {
-        let outcome = evaluate_expect_outcome("git commit -m 'msg' && git push origin main");
+        let result = eval_rules(
+            chained_push_rules(),
+            "git commit -m 'msg' && git push origin main",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn pull_push() {
-        let outcome = evaluate_expect_outcome("git pull && git push");
+        let result = eval_rules(chained_push_rules(), "git pull && git push");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn commit_or_push() {
-        let outcome = evaluate_expect_outcome("git commit -m 'msg' || git push");
+        let result = eval_rules(chained_push_rules(), "git commit -m 'msg' || git push");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn commit_semicolon_push() {
-        let outcome = evaluate_expect_outcome("git commit -m 'msg' ; git push");
+        let result = eval_rules(chained_push_rules(), "git commit -m 'msg' ; git push");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn standalone_push() {
-        let reason = evaluate_expect_skip("git push");
+        let result = eval_rules(chained_push_rules(), "git push");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn push_origin_main() {
-        let reason = evaluate_expect_skip("git push origin main");
+        let result = eval_rules(chained_push_rules(), "git push origin main");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn push_u() {
-        let reason = evaluate_expect_skip("git push -u origin feature-branch");
+        let result = eval_rules(chained_push_rules(), "git push -u origin feature-branch");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn push_set_upstream() {
-        let reason = evaluate_expect_skip("git push --set-upstream origin branch");
+        let result = eval_rules(
+            chained_push_rules(),
+            "git push --set-upstream origin branch",
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn push_force_with_lease() {
-        let reason = evaluate_expect_skip("git push --force-with-lease");
+        let result = eval_rules(chained_push_rules(), "git push --force-with-lease");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_status() {
-        let outcome = evaluate_expect_outcome("git status");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(chained_push_rules(), "git status");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn commit_with_push_in_message() {
-        let reason = evaluate_expect_skip("git commit -m 'push changes'");
+        let result = eval_rules(chained_push_rules(), "git commit -m 'push changes'");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn echo_git_push() {
-        let outcome = evaluate_expect_outcome("echo git push");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(chained_push_rules(), "echo git push");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn push_with_substitution() {
-        let reason = evaluate_expect_skip("git push origin \"$(git branch --show-current)\"");
-        assert_eq!(reason, SkipReason::OnlyAllowAll);
+        let result = eval_rules(
+            chained_push_rules(),
+            "git push origin \"$(git branch --show-current)\"",
+        );
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 }

@@ -154,147 +154,187 @@ mod tests {
 
     #[test]
     fn sops_exec_env_dump_env() {
-        let outcome = evaluate_expect_outcome("sops exec-env secrets.yaml 'env | grep TOKEN'");
+        let result = eval_rules(
+            sops_rules(),
+            "sops exec-env secrets.yaml 'env | grep TOKEN'",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn sops_exec_env_bare_env() {
-        let outcome = evaluate_expect_outcome("sops exec-env secrets.yaml env");
+        let result = eval_rules(sops_rules(), "sops exec-env secrets.yaml env");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn sops_exec_env_printenv() {
-        let outcome = evaluate_expect_outcome("sops exec-env secrets.yaml printenv");
+        let result = eval_rules(sops_rules(), "sops exec-env secrets.yaml printenv");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn sops_exec_env_echo_var() {
-        let outcome = evaluate_expect_outcome("sops exec-env secrets.yaml 'echo $TOKEN'");
+        let result = eval_rules(sops_rules(), "sops exec-env secrets.yaml 'echo $TOKEN'");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn sops_exec_env_redirect_to_file() {
-        let outcome = evaluate_expect_outcome("sops exec-env secrets.yaml 'mycmd > /tmp/leak.txt'");
+        let result = eval_rules(
+            sops_rules(),
+            "sops exec-env secrets.yaml 'mycmd > /tmp/leak.txt'",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn sops_exec_env_substitution() {
-        let outcome = evaluate_expect_outcome("sops exec-env secrets.yaml 'mycmd $(env)'");
+        let result = eval_rules(sops_rules(), "sops exec-env secrets.yaml 'mycmd $(env)'");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn sops_exec_env_curl_with_token() {
-        let outcome = evaluate_expect_outcome(
+        let result = eval_rules(
+            sops_rules(),
             "sops exec-env secrets.yaml 'curl -H \"Authorization: Bearer $TOKEN\" https://example.com'",
         );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Ask);
     }
 
     #[test]
     fn sops_exec_file_cat_placeholder() {
-        let outcome = evaluate_expect_outcome("sops exec-file secrets.yaml 'cat {}'");
+        let result = eval_rules(sops_rules(), "sops exec-file secrets.yaml 'cat {}'");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn sops_exec_file_apply_placeholder() {
-        let outcome = evaluate_expect_outcome("sops exec-file secrets.yaml 'kubectl apply -f {}'");
+        let result = eval_rules(
+            sops_rules(),
+            "sops exec-file secrets.yaml 'kubectl apply -f {}'",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Ask);
     }
 
     #[test]
     fn sops_decrypt() {
-        let outcome = evaluate_expect_outcome("sops decrypt secrets.yaml");
+        let result = eval_rules(sops_rules(), "sops decrypt secrets.yaml");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn sops_d() {
-        let outcome = evaluate_expect_outcome("sops -d secrets.yaml");
+        let result = eval_rules(sops_rules(), "sops -d secrets.yaml");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn sops_decrypt_long_flag() {
-        let outcome = evaluate_expect_outcome("sops --decrypt secrets.yaml");
+        let result = eval_rules(sops_rules(), "sops --decrypt secrets.yaml");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn sops_decrypt_chained() {
-        let outcome = evaluate_expect_outcome("sops decrypt secrets.yaml | grep token");
+        let result = eval_rules(sops_rules(), "sops decrypt secrets.yaml | grep token");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn sops_decrypt_in_chain() {
-        let outcome = evaluate_expect_outcome("git pull && sops decrypt secrets.yaml");
+        let result = eval_rules(sops_rules(), "git pull && sops decrypt secrets.yaml");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn sops_d_output_file() {
-        let outcome = evaluate_expect_outcome("sops --decrypt --output /tmp/x.yaml secrets.yaml");
+        let result = eval_rules(
+            sops_rules(),
+            "sops --decrypt --output /tmp/x.yaml secrets.yaml",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn sops_encrypt() {
-        let reason = evaluate_expect_skip("sops encrypt secrets.yaml");
+        let result = eval_rules(sops_rules(), "sops encrypt secrets.yaml");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn sops_edit() {
-        let reason = evaluate_expect_skip("sops edit secrets.yaml");
+        let result = eval_rules(sops_rules(), "sops edit secrets.yaml");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn sops_updatekeys() {
-        let reason = evaluate_expect_skip("sops updatekeys secrets.yaml");
+        let result = eval_rules(sops_rules(), "sops updatekeys secrets.yaml");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn sops_rotate() {
-        let reason = evaluate_expect_skip("sops rotate -i secrets.yaml");
+        let result = eval_rules(sops_rules(), "sops rotate -i secrets.yaml");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn sops_set() {
-        let reason = evaluate_expect_skip("sops set secrets.yaml '[\"key\"]' '\"value\"'");
+        let result = eval_rules(
+            sops_rules(),
+            "sops set secrets.yaml '[\"key\"]' '\"value\"'",
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn sops_publish() {
-        let reason = evaluate_expect_skip("sops publish secrets.yaml");
+        let result = eval_rules(sops_rules(), "sops publish secrets.yaml");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn sops_bare() {
-        let reason = evaluate_expect_skip("sops");
+        let result = eval_rules(sops_rules(), "sops");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn echo_sops_decrypt() {
-        let outcome = evaluate_expect_outcome("echo sops decrypt is blocked");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(sops_rules(), "echo sops decrypt is blocked");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn rg_sops_decrypt() {
-        let outcome = evaluate_expect_outcome("rg 'sops decrypt' README.md");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(sops_rules(), "rg 'sops decrypt' README.md");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 }

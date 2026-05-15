@@ -98,7 +98,9 @@ mod tests {
     #[test]
     fn negation_overrides_earlier_trust() {
         let settings = Settings::with_git(&["/a/b/**", "!/a/b/forked/**"]);
-        let reason = eval_skip("git -C /a/b/forked/repo status", settings);
+        let result =
+            eval_rules_with_settings(git_c_rules(), "git -C /a/b/forked/repo status", settings);
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
@@ -109,7 +111,12 @@ mod tests {
             "!/home/user/repos/forked/**",
             "/home/user/repos/forked/this",
         ]);
-        let outcome = eval_outcome("git -C /home/user/repos/forked/this status", settings);
+        let result = eval_rules_with_settings(
+            git_c_rules(),
+            "git -C /home/user/repos/forked/this status",
+            settings,
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
@@ -120,402 +127,574 @@ mod tests {
             "!/home/user/repos/forked/**",
             "/home/user/repos/forked/this",
         ]);
-        let reason = eval_skip("git -C /home/user/repos/forked/other status", settings);
+        let result = eval_rules_with_settings(
+            git_c_rules(),
+            "git -C /home/user/repos/forked/other status",
+            settings,
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn no_patterns() {
         let settings = Settings::with_git(&[]);
-        let reason = eval_skip("git -C /home/user/repos/foo status", settings);
+        let result = eval_rules_with_settings(
+            git_c_rules(),
+            "git -C /home/user/repos/foo status",
+            settings,
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn single_trust_pattern() {
         let settings = Settings::with_git(&["/home/user/repos/**"]);
-        let outcome = eval_outcome("git -C /home/user/repos/foo status", settings);
+        let result = eval_rules_with_settings(
+            git_c_rules(),
+            "git -C /home/user/repos/foo status",
+            settings,
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn single_negation_only() {
         let settings = Settings::with_git(&["!/home/user/repos/**"]);
-        let reason = eval_skip("git -C /home/user/repos/foo status", settings);
+        let result = eval_rules_with_settings(
+            git_c_rules(),
+            "git -C /home/user/repos/foo status",
+            settings,
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn path_outside_pattern() {
         let settings = Settings::with_git(&["/home/user/repos/**"]);
-        let reason = eval_skip("git -C /tmp/other status", settings);
+        let result = eval_rules_with_settings(git_c_rules(), "git -C /tmp/other status", settings);
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn last_match_wins_trust_after_negate() {
         let settings = Settings::with_git(&["!/a/**", "/a/b/**"]);
-        let outcome = eval_outcome("git -C /a/b/repo status", settings);
+        let result = eval_rules_with_settings(git_c_rules(), "git -C /a/b/repo status", settings);
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn last_match_wins_negate_after_trust() {
         let settings = Settings::with_git(&["/a/**", "!/a/**"]);
-        let reason = eval_skip("git -C /a/repo status", settings);
+        let result = eval_rules_with_settings(git_c_rules(), "git -C /a/repo status", settings);
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn later_trust_overrides_earlier_negation() {
         let settings = Settings::with_git(&["!/a/**", "/a/**"]);
-        let outcome = eval_outcome("git -C /a/repo status", settings);
+        let result = eval_rules_with_settings(git_c_rules(), "git -C /a/repo status", settings);
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn three_layer_nesting() {
         let settings = Settings::with_git(&["/a/**", "!/a/b/**", "/a/b/c/**"]);
-        let outcome = eval_outcome("git -C /a/b/c/repo status", settings);
+        let result = eval_rules_with_settings(git_c_rules(), "git -C /a/b/c/repo status", settings);
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn three_layer_middle_excluded() {
         let settings = Settings::with_git(&["/a/**", "!/a/b/**", "/a/b/c/**"]);
-        let reason = eval_skip("git -C /a/b/other status", settings);
+        let result = eval_rules_with_settings(git_c_rules(), "git -C /a/b/other status", settings);
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn three_layer_top_still_trusted() {
         let settings = Settings::with_git(&["/a/**", "!/a/b/**", "/a/b/c/**"]);
-        let outcome = eval_outcome("git -C /a/other status", settings);
+        let result = eval_rules_with_settings(git_c_rules(), "git -C /a/other status", settings);
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn exact_path_trust() {
         let settings = Settings::with_git(&["/home/user/repos/exact"]);
-        let outcome = eval_outcome("git -C /home/user/repos/exact status", settings);
+        let result = eval_rules_with_settings(
+            git_c_rules(),
+            "git -C /home/user/repos/exact status",
+            settings,
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn exact_path_negation() {
         let settings = Settings::with_git(&["/home/user/repos/**", "!/home/user/repos/banned"]);
-        let reason = eval_skip("git -C /home/user/repos/banned status", settings);
+        let result = eval_rules_with_settings(
+            git_c_rules(),
+            "git -C /home/user/repos/banned status",
+            settings,
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn non_matching_negation_is_harmless() {
         let settings = Settings::with_git(&["/a/**", "!/b/**"]);
-        let outcome = eval_outcome("git -C /a/repo status", settings);
+        let result = eval_rules_with_settings(git_c_rules(), "git -C /a/repo status", settings);
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn duplicate_trust_patterns() {
         let settings = Settings::with_git(&["/a/**", "/a/**"]);
-        let outcome = eval_outcome("git -C /a/repo status", settings);
+        let result = eval_rules_with_settings(git_c_rules(), "git -C /a/repo status", settings);
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn four_layer_alternating() {
         let settings = Settings::with_git(&["/a/**", "!/a/b/**", "/a/b/c/**", "!/a/b/c/d/**"]);
-        let reason = eval_skip("git -C /a/b/c/d/repo status", settings);
+        let result =
+            eval_rules_with_settings(git_c_rules(), "git -C /a/b/c/d/repo status", settings);
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn four_layer_third_level_trusted() {
         let settings = Settings::with_git(&["/a/**", "!/a/b/**", "/a/b/c/**", "!/a/b/c/d/**"]);
-        let outcome = eval_outcome("git -C /a/b/c/other status", settings);
+        let result =
+            eval_rules_with_settings(git_c_rules(), "git -C /a/b/c/other status", settings);
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn trusted_path_status() {
-        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project status");
+        let result = eval_rules(git_c_rules(), "git -C /home/user/repos/my-project status");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn trusted_path_log() {
-        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project log --oneline");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/my-project log --oneline",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn trusted_subdir_diff() {
-        let outcome = evaluate_expect_outcome("git -C /home/user/repos/foo/bar diff");
+        let result = eval_rules(git_c_rules(), "git -C /home/user/repos/foo/bar diff");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn double_quoted_trusted_path() {
-        let outcome = evaluate_expect_outcome("git -C \"/home/user/repos/my-project\" status");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C \"/home/user/repos/my-project\" status",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn single_quoted_trusted_path() {
-        let outcome = evaluate_expect_outcome("git -C '/home/user/repos/my-project' status");
+        let result = eval_rules(git_c_rules(), "git -C '/home/user/repos/my-project' status");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn trailing_slash_trusted_path() {
-        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project/ status");
+        let result = eval_rules(git_c_rules(), "git -C /home/user/repos/my-project/ status");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn forked_status() {
-        let reason = evaluate_expect_skip("git -C /home/user/repos/forked/some-repo status");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/forked/some-repo status",
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn forked_log() {
-        let reason = evaluate_expect_skip("git -C /home/user/repos/forked/some-repo log");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/forked/some-repo log",
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn unknown_status() {
-        let reason = evaluate_expect_skip("git -C /tmp/sketchy-repo status");
+        let result = eval_rules(git_c_rules(), "git -C /tmp/sketchy-repo status");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn unknown_diff() {
-        let reason = evaluate_expect_skip("git -C /home/other/repo diff");
+        let result = eval_rules(git_c_rules(), "git -C /home/other/repo diff");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn trusted_path_commit() {
-        let reason = evaluate_expect_skip("git -C /home/user/repos/my-project commit -m 'test'");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/my-project commit -m 'test'",
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn trusted_path_push() {
-        let reason = evaluate_expect_skip("git -C /home/user/repos/my-project push origin main");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/my-project push origin main",
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn trusted_path_add() {
-        let reason = evaluate_expect_skip("git -C /home/user/repos/my-project add -A");
+        let result = eval_rules(git_c_rules(), "git -C /home/user/repos/my-project add -A");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn unknown_commit() {
-        let reason = evaluate_expect_skip("git -C /tmp/sketchy commit -m 'evil'");
+        let result = eval_rules(git_c_rules(), "git -C /tmp/sketchy commit -m 'evil'");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn branch_trusted_path() {
-        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project branch -a");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/my-project branch -a",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn tag_trusted_path() {
-        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project tag -l");
+        let result = eval_rules(git_c_rules(), "git -C /home/user/repos/my-project tag -l");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn remote_trusted_path() {
-        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project remote -v");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/my-project remote -v",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn branch_forked_path() {
-        let reason = evaluate_expect_skip("git -C /home/user/repos/forked/repo branch");
+        let result = eval_rules(git_c_rules(), "git -C /home/user/repos/forked/repo branch");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn branch_delete_with_path() {
-        let reason = evaluate_expect_skip("git -C /home/user/repos/my-project branch -d old");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/my-project branch -d old",
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn c_path_reset_hard() {
-        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project reset --hard");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/my-project reset --hard",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_reset_hard_head() {
-        let outcome =
-            evaluate_expect_outcome("git -C /home/user/repos/my-project reset --hard HEAD~1");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/my-project reset --hard HEAD~1",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_quoted_reset_hard() {
-        let outcome =
-            evaluate_expect_outcome("git -C \"/home/user/repos/my-project\" reset --hard");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C \"/home/user/repos/my-project\" reset --hard",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_reset_soft() {
-        let reason = evaluate_expect_skip("git -C /home/user/repos/my-project reset --soft HEAD~1");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/my-project reset --soft HEAD~1",
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn c_path_stash_pop() {
-        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project stash pop");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/my-project stash pop",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_stash_drop() {
-        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project stash drop");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/my-project stash drop",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_quoted_stash_pop() {
-        let outcome = evaluate_expect_outcome("git -C \"/home/user/repos/my-project\" stash pop");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C \"/home/user/repos/my-project\" stash pop",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_stash_apply() {
-        let reason = evaluate_expect_skip("git -C /home/user/repos/my-project stash apply");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/my-project stash apply",
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn c_path_stash_bare() {
-        let reason = evaluate_expect_skip("git -C /home/user/repos/my-project stash");
+        let result = eval_rules(git_c_rules(), "git -C /home/user/repos/my-project stash");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn c_path_checkout_discard_file() {
-        let outcome =
-            evaluate_expect_outcome("git -C /home/user/repos/my-project checkout -- file.txt");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/my-project checkout -- file.txt",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_checkout_head_file() {
-        let outcome =
-            evaluate_expect_outcome("git -C /home/user/repos/my-project checkout HEAD -- file.txt");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/my-project checkout HEAD -- file.txt",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_quoted_checkout_discard() {
-        let outcome =
-            evaluate_expect_outcome("git -C \"/home/user/repos/my-project\" checkout -- .");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C \"/home/user/repos/my-project\" checkout -- .",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_checkout_branch() {
-        let reason = evaluate_expect_skip("git -C /home/user/repos/my-project checkout main");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/my-project checkout main",
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn c_path_clean_fd() {
-        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project clean -fd");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/my-project clean -fd",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_clean_fxd() {
-        let outcome = evaluate_expect_outcome("git -C /home/user/repos/my-project clean -fxd");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/my-project clean -fxd",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_quoted_clean_fd() {
-        let outcome = evaluate_expect_outcome("git -C \"/home/user/repos/my-project\" clean -fd");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C \"/home/user/repos/my-project\" clean -fd",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn c_path_clean_f_with_file() {
-        let reason = evaluate_expect_skip("git -C /home/user/repos/my-project clean -f file.txt");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/my-project clean -f file.txt",
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn forked_reset_hard() {
-        let outcome = evaluate_expect_outcome("git -C /home/user/repos/forked/repo reset --hard");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/forked/repo reset --hard",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn forked_stash_pop() {
-        let outcome = evaluate_expect_outcome("git -C /home/user/repos/forked/repo stash pop");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/forked/repo stash pop",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn forked_clean_fd() {
-        let outcome = evaluate_expect_outcome("git -C /home/user/repos/forked/repo clean -fd");
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/forked/repo clean -fd",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn unknown_reset_hard() {
-        let outcome = evaluate_expect_outcome("git -C /tmp/sketchy reset --hard");
+        let result = eval_rules(git_c_rules(), "git -C /tmp/sketchy reset --hard");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn unknown_stash_pop() {
-        let outcome = evaluate_expect_outcome("git -C /tmp/sketchy stash pop");
+        let result = eval_rules(git_c_rules(), "git -C /tmp/sketchy stash pop");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn unknown_stash_clear() {
-        let outcome = evaluate_expect_outcome("git -C /tmp/repo stash clear");
+        let result = eval_rules(git_c_rules(), "git -C /tmp/repo stash clear");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn unknown_clean_fd() {
-        let outcome = evaluate_expect_outcome("git -C /tmp/sketchy clean -fd");
+        let result = eval_rules(git_c_rules(), "git -C /tmp/sketchy clean -fd");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn chained_git_c_push() {
-        let reason = evaluate_expect_skip("git status && git -C /tmp/evil push");
-        assert_eq!(reason, SkipReason::OnlyAllowAll);
+        let result = eval_rules(git_c_rules(), "git status && git -C /tmp/evil push");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn echo_git_c_quoted() {
-        let outcome = evaluate_expect_outcome("echo 'git -C /path status'");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(git_c_rules(), "echo 'git -C /path status'");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     /// Tilde path in `git -C` matches a tilde settings pattern.
     #[test]
     fn tilde_path_trusted() {
         let settings = Settings::with_git(&["~/.config/worktrees/**"]);
-        let outcome = eval_outcome("git -C ~/.config/worktrees/my-project status", settings);
+        let result = eval_rules_with_settings(
+            git_c_rules(),
+            "git -C ~/.config/worktrees/my-project status",
+            settings,
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
@@ -523,10 +702,12 @@ mod tests {
     #[test]
     fn tilde_path_absolute_pattern() {
         let settings = Settings::with_git(&["/home/user/.config/worktrees/**"]);
-        let outcome = eval_outcome(
+        let result = eval_rules_with_settings(
+            git_c_rules(),
             "git -C ~/.config/worktrees/my-project log --oneline",
             settings,
         );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
@@ -534,7 +715,9 @@ mod tests {
     #[test]
     fn tilde_path_untrusted() {
         let settings = Settings::with_git(&["~/.config/worktrees/**"]);
-        let reason = eval_skip("git -C ~/.other/repo status", settings);
+        let result =
+            eval_rules_with_settings(git_c_rules(), "git -C ~/.other/repo status", settings);
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
@@ -542,25 +725,12 @@ mod tests {
     #[test]
     fn tilde_path_destructive() {
         let settings = Settings::with_git(&["~/.config/worktrees/**"]);
-        let outcome = eval_outcome(
+        let result = eval_rules_with_settings(
+            git_c_rules(),
             "git -C ~/.config/worktrees/my-project reset --hard",
             settings,
         );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
-    }
-
-    fn eval_outcome(command: &str, settings: Settings) -> Outcome {
-        eval(command, settings).expect("command should produce an outcome")
-    }
-
-    #[expect(clippy::panic, reason = "test helper")]
-    fn eval_skip(command: &str, settings: Settings) -> SkipReason {
-        match eval(command, settings)
-            .expect_err("command should not succeed")
-            .current_context()
-        {
-            ParseError::Skip(reason) => *reason,
-            other => panic!("expected Skip, got {other:?}"),
-        }
     }
 }

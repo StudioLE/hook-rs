@@ -56,80 +56,79 @@ mod tests {
     #[test]
     fn trusted_path() {
         let settings = Settings::with_read(&["/a/repos/**"]);
-        let outcome = eval_outcome("cd /a/repos/project", settings);
+        let result = eval_rules_with_settings(cd_rules(), "cd /a/repos/project", settings);
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn untrusted_path() {
         let settings = Settings::with_read(&["/a/repos/**"]);
-        let reason = eval_skip("cd /tmp/sketchy", settings);
+        let result = eval_rules_with_settings(cd_rules(), "cd /tmp/sketchy", settings);
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn negated_path() {
         let settings = Settings::with_read(&["/a/**", "!/a/secret/**"]);
-        let reason = eval_skip("cd /a/secret/dir", settings);
+        let result = eval_rules_with_settings(cd_rules(), "cd /a/secret/dir", settings);
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn relative_path() {
         let settings = Settings::with_read(&["./**"]);
-        let reason = eval_skip("cd ./subdir", settings);
+        let result = eval_rules_with_settings(cd_rules(), "cd ./subdir", settings);
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn no_patterns() {
         let settings = Settings::with_read(&[]);
-        let reason = eval_skip("cd /a/repos/project", settings);
+        let result = eval_rules_with_settings(cd_rules(), "cd /a/repos/project", settings);
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn with_flags_rejected() {
         let settings = Settings::with_read(&["/a/repos/**"]);
-        let reason = eval_skip("cd -P /a/repos/project", settings);
+        let result = eval_rules_with_settings(cd_rules(), "cd -P /a/repos/project", settings);
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
-    /// `cd` to a trusted path followed by `gh api` should allow the full chain.
+    /// `cd` to a trusted path followed by an unmatched command.
     #[test]
     fn chained_with_gh_api() {
         let settings = Settings::with_read(&["/a/repos/**"]);
-        let outcome = eval_outcome("cd /a/repos/project && gh api repos/owner/repo", settings);
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules_with_settings(
+            cd_rules(),
+            "cd /a/repos/project && gh api repos/owner/repo",
+            settings,
+        );
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::OnlyAllowAll);
     }
 
-    /// `cd` to a trusted path followed by `cargo test` should allow.
+    /// `cd` to a trusted path followed by an unmatched command.
     #[test]
     fn chained_with_cargo() {
         let settings = Settings::with_read(&["/a/repos/**"]);
-        let outcome = eval_outcome("cd /a/repos/project && cargo test", settings);
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result =
+            eval_rules_with_settings(cd_rules(), "cd /a/repos/project && cargo test", settings);
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::OnlyAllowAll);
     }
 
     /// Mock settings should allow `cd` to paths covered by read globs.
     #[test]
     fn mock_settings() {
-        let outcome = evaluate_expect_outcome("cd /path/to/repos/project");
+        let result = eval_rules(cd_rules(), "cd /path/to/repos/project");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
-    }
-
-    fn eval_outcome(command: &str, settings: Settings) -> Outcome {
-        eval(command, settings).expect("command should produce an outcome")
-    }
-
-    #[expect(clippy::panic, reason = "test helper")]
-    fn eval_skip(command: &str, settings: Settings) -> SkipReason {
-        match eval(command, settings)
-            .expect_err("command should not succeed")
-            .current_context()
-        {
-            ParseError::Skip(reason) => *reason,
-            other => panic!("expected Skip, got {other:?}"),
-        }
     }
 }

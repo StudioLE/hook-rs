@@ -67,37 +67,43 @@ mod tests {
 
     #[test]
     fn python_inline() {
-        let outcome = evaluate_expect_outcome("python -c 'print(1)'");
+        let result = eval_rules(python_rules(), "python -c 'print(1)'");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn python3_inline() {
-        let outcome = evaluate_expect_outcome("python3 -c 'print(1)'");
+        let result = eval_rules(python_rules(), "python3 -c 'print(1)'");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn python3_script() {
-        let outcome = evaluate_expect_outcome("python3 /tmp/script.py");
+        let result = eval_rules(python_rules(), "python3 /tmp/script.py");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn python3_module() {
-        let outcome = evaluate_expect_outcome("python3 -m http.server 8080");
+        let result = eval_rules(python_rules(), "python3 -m http.server 8080");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn python3_heredoc() {
-        let outcome = evaluate_expect_outcome("python3 << 'EOF'\nprint('hello')\nEOF");
+        let result = eval_rules(python_rules(), "python3 << 'EOF'\nprint('hello')\nEOF");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn python3_bare() {
-        let outcome = evaluate_expect_outcome("python3");
+        let result = eval_rules(python_rules(), "python3");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
@@ -118,69 +124,80 @@ mod tests {
 
     #[test]
     fn long_heredoc_25_lines() {
-        let outcome = evaluate_expect_outcome(&make_heredoc(25));
+        let result = eval_rules(python_rules(), &make_heredoc(25));
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn long_heredoc_python2() {
         let cmd = make_heredoc(25).replace("python3", "python");
-        let outcome = evaluate_expect_outcome(&cmd);
+        let result = eval_rules(python_rules(), &cmd);
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn long_c_1001_chars() {
-        let outcome = evaluate_expect_outcome(&make_long_c(979));
+        let result = eval_rules(python_rules(), &make_long_c(979));
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn short_heredoc() {
-        let outcome = evaluate_expect_outcome(&make_heredoc(5));
+        let result = eval_rules(python_rules(), &make_heredoc(5));
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn short_c() {
-        let outcome = evaluate_expect_outcome("python3 -c 'print(\"hello\")'");
+        let result = eval_rules(python_rules(), "python3 -c 'print(\"hello\")'");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn long_non_python() {
         let long_bash = format!("bash -c 'echo {}'", "x".repeat(1100));
-        let reason = evaluate_expect_skip(&long_bash);
+        let result = eval_rules(python_rules(), &long_bash);
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn ls() {
-        let outcome = evaluate_expect_outcome("ls -la");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(python_rules(), "ls -la");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn boundary_exactly_20_lines() {
-        let outcome = evaluate_expect_outcome(&make_heredoc(18));
+        let result = eval_rules(python_rules(), &make_heredoc(18));
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn boundary_21_lines() {
-        let outcome = evaluate_expect_outcome(&make_heredoc(19));
+        let result = eval_rules(python_rules(), &make_heredoc(19));
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn boundary_exactly_1000_chars() {
-        let outcome = evaluate_expect_outcome(&make_long_c(978));
+        let result = eval_rules(python_rules(), &make_long_c(978));
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn boundary_1001_chars() {
-        let outcome = evaluate_expect_outcome(&make_long_c(979));
+        let result = eval_rules(python_rules(), &make_long_c(979));
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
@@ -192,7 +209,8 @@ mod tests {
             write!(cmd, "\nprint('line {i}')").expect("write to String should not fail");
         }
         cmd.push_str("\nEOF");
-        let outcome = evaluate_expect_outcome(&cmd);
+        let result = eval_rules(python_rules(), &cmd);
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 }

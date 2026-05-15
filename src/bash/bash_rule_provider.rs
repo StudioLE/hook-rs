@@ -42,6 +42,14 @@ impl BashRuleProvider {
     }
 }
 
+#[cfg(test)]
+impl BashRuleProvider {
+    /// Create a provider with specific rules for testing.
+    pub(crate) fn new(rules: Vec<BashRule>) -> Self {
+        Self { rules }
+    }
+}
+
 impl FromServices for BashRuleProvider {
     type Error = Infallible;
 

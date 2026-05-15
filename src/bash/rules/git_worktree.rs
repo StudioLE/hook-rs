@@ -102,49 +102,81 @@ mod tests {
     #[test]
     fn trusted_path() {
         let settings = Settings::with_worktrees(&["/a/wt/**"]);
-        let outcome = eval_outcome("git worktree add /a/wt/foo", settings);
+        let result =
+            eval_rules_with_settings(git_worktree_rules(), "git worktree add /a/wt/foo", settings);
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn trusted_path_with_b() {
         let settings = Settings::with_worktrees(&["/a/wt/**"]);
-        let outcome = eval_outcome("git worktree add /a/wt/foo -b feat", settings);
+        let result = eval_rules_with_settings(
+            git_worktree_rules(),
+            "git worktree add /a/wt/foo -b feat",
+            settings,
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn trusted_path_b_before_path() {
         let settings = Settings::with_worktrees(&["/a/wt/**"]);
-        let outcome = eval_outcome("git worktree add -b feat /a/wt/foo", settings);
+        let result = eval_rules_with_settings(
+            git_worktree_rules(),
+            "git worktree add -b feat /a/wt/foo",
+            settings,
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn trusted_path_with_commit() {
         let settings = Settings::with_worktrees(&["/a/wt/**"]);
-        let outcome = eval_outcome("git worktree add /a/wt/foo main", settings);
+        let result = eval_rules_with_settings(
+            git_worktree_rules(),
+            "git worktree add /a/wt/foo main",
+            settings,
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn trusted_path_quoted() {
         let settings = Settings::with_worktrees(&["/a/wt/**"]);
-        let outcome = eval_outcome("git worktree add \"/a/wt/foo\" -b feat", settings);
+        let result = eval_rules_with_settings(
+            git_worktree_rules(),
+            "git worktree add \"/a/wt/foo\" -b feat",
+            settings,
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn trusted_path_untrusted() {
         let settings = Settings::with_worktrees(&["/a/wt/**"]);
-        let reason = eval_skip("git worktree add /tmp/evil -b feat", settings);
+        let result = eval_rules_with_settings(
+            git_worktree_rules(),
+            "git worktree add /tmp/evil -b feat",
+            settings,
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn trusted_path_negated() {
         let settings = Settings::with_worktrees(&["/a/**", "!/a/blocked/**"]);
-        let reason = eval_skip("git worktree add /a/blocked/foo -b feat", settings);
+        let result = eval_rules_with_settings(
+            git_worktree_rules(),
+            "git worktree add /a/blocked/foo -b feat",
+            settings,
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
@@ -152,56 +184,94 @@ mod tests {
     #[test]
     fn trusted_path_b_value_resembles_path() {
         let settings = Settings::with_worktrees(&["/a/wt/**"]);
-        let reason = eval_skip("git worktree add -b /a/wt/decoy /tmp/evil", settings);
+        let result = eval_rules_with_settings(
+            git_worktree_rules(),
+            "git worktree add -b /a/wt/decoy /tmp/evil",
+            settings,
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn trusted_path_no_patterns() {
         let settings = Settings::with_worktrees(&[]);
-        let reason = eval_skip("git worktree add /a/wt/foo -b feat", settings);
+        let result = eval_rules_with_settings(
+            git_worktree_rules(),
+            "git worktree add /a/wt/foo -b feat",
+            settings,
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn unsupported_flags_detach() {
         let settings = Settings::with_worktrees(&["/a/wt/**"]);
-        let outcome = eval_outcome("git worktree add /a/wt/foo --detach", settings);
+        let result = eval_rules_with_settings(
+            git_worktree_rules(),
+            "git worktree add /a/wt/foo --detach",
+            settings,
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn unsupported_flags_force() {
         let settings = Settings::with_worktrees(&["/a/wt/**"]);
-        let outcome = eval_outcome("git worktree add /a/wt/foo --force", settings);
+        let result = eval_rules_with_settings(
+            git_worktree_rules(),
+            "git worktree add /a/wt/foo --force",
+            settings,
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn unsupported_flags_capital_b() {
         let settings = Settings::with_worktrees(&["/a/wt/**"]);
-        let outcome = eval_outcome("git worktree add /a/wt/foo -B my-branch", settings);
+        let result = eval_rules_with_settings(
+            git_worktree_rules(),
+            "git worktree add /a/wt/foo -B my-branch",
+            settings,
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn unsupported_flags_orphan() {
         let settings = Settings::with_worktrees(&["/a/wt/**"]);
-        let outcome = eval_outcome("git worktree add /a/wt/foo --orphan", settings);
+        let result = eval_rules_with_settings(
+            git_worktree_rules(),
+            "git worktree add /a/wt/foo --orphan",
+            settings,
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn unsupported_flags_lock() {
         let settings = Settings::with_worktrees(&["/a/wt/**"]);
-        let outcome = eval_outcome("git worktree add --lock /a/wt/foo", settings);
+        let result = eval_rules_with_settings(
+            git_worktree_rules(),
+            "git worktree add --lock /a/wt/foo",
+            settings,
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn trusted_path_mock_settings() {
-        let outcome =
-            evaluate_expect_outcome("git worktree add /home/user/worktrees/my-project -b feat");
+        let result = eval_rules(
+            git_worktree_rules(),
+            "git worktree add /home/user/worktrees/my-project -b feat",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
@@ -209,22 +279,12 @@ mod tests {
     #[test]
     fn trusted_path_relative() {
         let settings = Settings::with_worktrees(&["./**"]);
-        let outcome = eval_outcome("git worktree add ./worktree -b feat", settings);
+        let result = eval_rules_with_settings(
+            git_worktree_rules(),
+            "git worktree add ./worktree -b feat",
+            settings,
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
-    }
-
-    fn eval_outcome(command: &str, settings: Settings) -> Outcome {
-        eval(command, settings).expect("command should produce an outcome")
-    }
-
-    #[expect(clippy::panic, reason = "test helper")]
-    fn eval_skip(command: &str, settings: Settings) -> SkipReason {
-        match eval(command, settings)
-            .expect_err("command should not succeed")
-            .current_context()
-        {
-            ParseError::Skip(reason) => *reason,
-            other => panic!("expected Skip, got {other:?}"),
-        }
     }
 }

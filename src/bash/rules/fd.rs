@@ -48,67 +48,78 @@ mod tests {
 
     #[test]
     fn fd_exec_rm() {
-        let outcome = evaluate_expect_outcome("fd -e tmp -x rm");
+        let result = eval_rules(fd_rules(), "fd -e tmp -x rm");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn fd_exec_rm_long() {
-        let outcome = evaluate_expect_outcome("fd -e tmp --exec rm");
+        let result = eval_rules(fd_rules(), "fd -e tmp --exec rm");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn fd_exec_batch_rm() {
-        let outcome = evaluate_expect_outcome("fd -e tmp -X rm");
+        let result = eval_rules(fd_rules(), "fd -e tmp -X rm");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn fd_exec_batch_rm_long() {
-        let outcome = evaluate_expect_outcome("fd -e tmp --exec-batch rm");
+        let result = eval_rules(fd_rules(), "fd -e tmp --exec-batch rm");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn fd_exec_rm_chained() {
-        let outcome = evaluate_expect_outcome("ls && fd -e tmp -x rm");
+        let result = eval_rules(fd_rules(), "ls && fd -e tmp -x rm");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn fd_read_only() {
-        let outcome = evaluate_expect_outcome("fd -e rs");
+        let result = eval_rules(fd_rules(), "fd -e rs");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn fd_read_only_pattern() {
-        let outcome = evaluate_expect_outcome("fd 'test.*' src/");
+        let result = eval_rules(fd_rules(), "fd 'test.*' src/");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn fd_read_only_piped() {
-        let outcome = evaluate_expect_outcome("fd -e rs | head -20");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(fd_rules(), "fd -e rs | head -20");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::OnlyAllowAll);
     }
 
     #[test]
     fn fd_exec_ls() {
-        let reason = evaluate_expect_skip("fd -e rs -x ls");
+        let result = eval_rules(fd_rules(), "fd -e rs -x ls");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn fd_exec_cat() {
-        let reason = evaluate_expect_skip("fd -e txt --exec cat");
+        let result = eval_rules(fd_rules(), "fd -e txt --exec cat");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn echo_fd() {
-        let outcome = evaluate_expect_outcome("echo 'fd -x rm is dangerous'");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(fd_rules(), "echo 'fd -x rm is dangerous'");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 }

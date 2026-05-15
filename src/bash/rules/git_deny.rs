@@ -94,398 +94,478 @@ mod tests {
 
     #[test]
     fn git_reset_hard() {
-        let outcome = evaluate_expect_outcome("git reset --hard");
+        let result = eval_rules(git_deny_rules(), "git reset --hard");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_reset_hard_head() {
-        let outcome = evaluate_expect_outcome("git reset --hard HEAD");
+        let result = eval_rules(git_deny_rules(), "git reset --hard HEAD");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_reset_hard_head_1() {
-        let outcome = evaluate_expect_outcome("git reset --hard HEAD~1");
+        let result = eval_rules(git_deny_rules(), "git reset --hard HEAD~1");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_reset_hard_origin_main() {
-        let outcome = evaluate_expect_outcome("git reset --hard origin/main");
+        let result = eval_rules(git_deny_rules(), "git reset --hard origin/main");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_reset_hard_chained() {
-        let outcome = evaluate_expect_outcome("git fetch && git reset --hard origin/main");
+        let result = eval_rules(
+            git_deny_rules(),
+            "git fetch && git reset --hard origin/main",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_reset_hard_in_chain() {
-        let outcome = evaluate_expect_outcome("git stash && git reset --hard && git stash pop");
+        let result = eval_rules(
+            git_deny_rules(),
+            "git stash && git reset --hard && git stash pop",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_reset() {
-        let reason = evaluate_expect_skip("git reset");
+        let result = eval_rules(git_deny_rules(), "git reset");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_reset_head() {
-        let reason = evaluate_expect_skip("git reset HEAD");
+        let result = eval_rules(git_deny_rules(), "git reset HEAD");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_reset_soft() {
-        let reason = evaluate_expect_skip("git reset --soft HEAD~1");
+        let result = eval_rules(git_deny_rules(), "git reset --soft HEAD~1");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_reset_mixed() {
-        let reason = evaluate_expect_skip("git reset --mixed HEAD~1");
+        let result = eval_rules(git_deny_rules(), "git reset --mixed HEAD~1");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_reset_file() {
-        let reason = evaluate_expect_skip("git reset HEAD -- file.txt");
+        let result = eval_rules(git_deny_rules(), "git reset HEAD -- file.txt");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_status() {
-        let outcome = evaluate_expect_outcome("git status");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(git_deny_rules(), "git status");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn echo_reset_hard() {
-        let outcome = evaluate_expect_outcome("echo git reset --hard is dangerous");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(git_deny_rules(), "echo git reset --hard is dangerous");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn rg_reset_hard() {
-        let outcome = evaluate_expect_outcome("rg 'git reset --hard' README.md");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(git_deny_rules(), "rg 'git reset --hard' README.md");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_stash_pop() {
-        let outcome = evaluate_expect_outcome("git stash pop");
+        let result = eval_rules(git_deny_rules(), "git stash pop");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_stash_pop_ref() {
-        let outcome = evaluate_expect_outcome("git stash pop stash@{0}");
+        let result = eval_rules(git_deny_rules(), "git stash pop stash@{0}");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_stash_pop_index() {
-        let outcome = evaluate_expect_outcome("git stash pop --index");
+        let result = eval_rules(git_deny_rules(), "git stash pop --index");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_stash_pop_chained() {
-        let outcome = evaluate_expect_outcome("git stash && git pull && git stash pop");
+        let result = eval_rules(git_deny_rules(), "git stash && git pull && git stash pop");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_stash_drop() {
-        let outcome = evaluate_expect_outcome("git stash drop");
+        let result = eval_rules(git_deny_rules(), "git stash drop");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_stash_drop_ref() {
-        let outcome = evaluate_expect_outcome("git stash drop stash@{0}");
+        let result = eval_rules(git_deny_rules(), "git stash drop stash@{0}");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_stash_drop_stash_2() {
-        let outcome = evaluate_expect_outcome("git stash drop stash@{2}");
+        let result = eval_rules(git_deny_rules(), "git stash drop stash@{2}");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_stash_drop_chained() {
-        let outcome = evaluate_expect_outcome("git stash list && git stash drop");
+        let result = eval_rules(git_deny_rules(), "git stash list && git stash drop");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_stash_clear() {
-        let outcome = evaluate_expect_outcome("git stash clear");
+        let result = eval_rules(git_deny_rules(), "git stash clear");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_stash_clear_chained() {
-        let outcome = evaluate_expect_outcome("false || git stash clear");
+        let result = eval_rules(git_deny_rules(), "false || git stash clear");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_stash() {
-        let reason = evaluate_expect_skip("git stash");
+        let result = eval_rules(git_deny_rules(), "git stash");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_stash_push() {
-        let reason = evaluate_expect_skip("git stash push");
+        let result = eval_rules(git_deny_rules(), "git stash push");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_stash_push_m() {
-        let reason = evaluate_expect_skip("git stash push -m 'wip'");
+        let result = eval_rules(git_deny_rules(), "git stash push -m 'wip'");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_stash_apply() {
-        let reason = evaluate_expect_skip("git stash apply");
+        let result = eval_rules(git_deny_rules(), "git stash apply");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_stash_apply_ref() {
-        let reason = evaluate_expect_skip("git stash apply stash@{0}");
+        let result = eval_rules(git_deny_rules(), "git stash apply stash@{0}");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_stash_list() {
-        let reason = evaluate_expect_skip("git stash list");
+        let result = eval_rules(git_deny_rules(), "git stash list");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_stash_show() {
-        let reason = evaluate_expect_skip("git stash show");
+        let result = eval_rules(git_deny_rules(), "git stash show");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_stash_show_p() {
-        let reason = evaluate_expect_skip("git stash show -p");
+        let result = eval_rules(git_deny_rules(), "git stash show -p");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_stash_branch() {
-        let reason = evaluate_expect_skip("git stash branch newbranch");
+        let result = eval_rules(git_deny_rules(), "git stash branch newbranch");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn echo_stash_pop() {
-        let outcome = evaluate_expect_outcome("echo git stash pop is blocked");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(git_deny_rules(), "echo git stash pop is blocked");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn rg_stash_drop() {
-        let outcome = evaluate_expect_outcome("rg 'git stash drop' file.txt");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(git_deny_rules(), "rg 'git stash drop' file.txt");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn cat_stash_clear() {
-        let outcome = evaluate_expect_outcome("cat stash-clear-notes.txt");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(git_deny_rules(), "cat stash-clear-notes.txt");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_clean_d_fd() {
-        let outcome = evaluate_expect_outcome("git clean -fd");
+        let result = eval_rules(git_deny_rules(), "git clean -fd");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_clean_d_fxd() {
-        let outcome = evaluate_expect_outcome("git clean -fxd");
+        let result = eval_rules(git_deny_rules(), "git clean -fxd");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_clean_d() {
-        let outcome = evaluate_expect_outcome("git clean -d");
+        let result = eval_rules(git_deny_rules(), "git clean -d");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_clean_d_df() {
-        let outcome = evaluate_expect_outcome("git clean -df");
+        let result = eval_rules(git_deny_rules(), "git clean -df");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_clean_d_dxf() {
-        let outcome = evaluate_expect_outcome("git clean -dxf");
+        let result = eval_rules(git_deny_rules(), "git clean -dxf");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_clean_d_chained() {
-        let outcome = evaluate_expect_outcome("ls && git clean -fd");
+        let result = eval_rules(git_deny_rules(), "ls && git clean -fd");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_clean_f() {
-        let reason = evaluate_expect_skip("git clean -f file.txt");
+        let result = eval_rules(git_deny_rules(), "git clean -f file.txt");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_clean_fx() {
-        let reason = evaluate_expect_skip("git clean -fx file.txt");
+        let result = eval_rules(git_deny_rules(), "git clean -fx file.txt");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_clean_fx_dash_filename() {
-        let reason = evaluate_expect_skip("git clean -fx /path/to/some-dash-delimited-file.sh");
+        let result = eval_rules(
+            git_deny_rules(),
+            "git clean -fx /path/to/some-dash-delimited-file.sh",
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_clean_f_dash_path() {
-        let reason = evaluate_expect_skip("git clean -f /path/dir-name/file.txt");
+        let result = eval_rules(git_deny_rules(), "git clean -f /path/dir-name/file.txt");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_clean_n() {
-        let reason = evaluate_expect_skip("git clean -n");
+        let result = eval_rules(git_deny_rules(), "git clean -n");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn echo_git_clean() {
-        let outcome = evaluate_expect_outcome("echo git clean -fxd");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(git_deny_rules(), "echo git clean -fxd");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_checkout_discard_head_file() {
-        let outcome = evaluate_expect_outcome("git checkout HEAD -- file.txt");
+        let result = eval_rules(git_deny_rules(), "git checkout HEAD -- file.txt");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_checkout_discard_head_dot() {
-        let outcome = evaluate_expect_outcome("git checkout HEAD -- .");
+        let result = eval_rules(git_deny_rules(), "git checkout HEAD -- .");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_checkout_discard_head_src() {
-        let outcome = evaluate_expect_outcome("git checkout HEAD -- src/");
+        let result = eval_rules(git_deny_rules(), "git checkout HEAD -- src/");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_checkout_discard_head_multiple() {
-        let outcome = evaluate_expect_outcome("git checkout HEAD -- file1.txt file2.txt");
+        let result = eval_rules(git_deny_rules(), "git checkout HEAD -- file1.txt file2.txt");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_checkout_discard_chained_head() {
-        let outcome = evaluate_expect_outcome("git status && git checkout HEAD -- file.txt");
+        let result = eval_rules(
+            git_deny_rules(),
+            "git status && git checkout HEAD -- file.txt",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_checkout_discard_head_in_chain() {
-        let outcome =
-            evaluate_expect_outcome("git stash && git checkout HEAD -- . && git stash pop");
+        let result = eval_rules(
+            git_deny_rules(),
+            "git stash && git checkout HEAD -- . && git stash pop",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_checkout_discard_file() {
-        let outcome = evaluate_expect_outcome("git checkout -- file.txt");
+        let result = eval_rules(git_deny_rules(), "git checkout -- file.txt");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_checkout_discard_dot() {
-        let outcome = evaluate_expect_outcome("git checkout -- .");
+        let result = eval_rules(git_deny_rules(), "git checkout -- .");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_checkout_discard_src() {
-        let outcome = evaluate_expect_outcome("git checkout -- src/");
+        let result = eval_rules(git_deny_rules(), "git checkout -- src/");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_checkout_discard_chained() {
-        let outcome = evaluate_expect_outcome("git status && git checkout -- file.txt");
+        let result = eval_rules(git_deny_rules(), "git status && git checkout -- file.txt");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_checkout_branch() {
-        let reason = evaluate_expect_skip("git checkout main");
+        let result = eval_rules(git_deny_rules(), "git checkout main");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_checkout_b() {
-        let reason = evaluate_expect_skip("git checkout -b new-branch");
+        let result = eval_rules(git_deny_rules(), "git checkout -b new-branch");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_checkout_head_1() {
-        let reason = evaluate_expect_skip("git checkout HEAD~1");
+        let result = eval_rules(git_deny_rules(), "git checkout HEAD~1");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_checkout_head_caret() {
-        let reason = evaluate_expect_skip("git checkout HEAD^");
+        let result = eval_rules(git_deny_rules(), "git checkout HEAD^");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn echo_checkout_head() {
-        let outcome = evaluate_expect_outcome("echo git checkout HEAD -- is dangerous");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(git_deny_rules(), "echo git checkout HEAD -- is dangerous");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn echo_checkout_discard() {
-        let outcome = evaluate_expect_outcome("echo git checkout -- is dangerous");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(git_deny_rules(), "echo git checkout -- is dangerous");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn rg_checkout_head() {
-        let outcome = evaluate_expect_outcome("rg 'git checkout HEAD --' README.md");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(git_deny_rules(), "rg 'git checkout HEAD --' README.md");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn rg_checkout_discard() {
-        let outcome = evaluate_expect_outcome("rg 'git checkout --' README.md");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(git_deny_rules(), "rg 'git checkout --' README.md");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 }

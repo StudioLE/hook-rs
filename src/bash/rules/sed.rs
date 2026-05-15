@@ -37,19 +37,22 @@ mod tests {
 
     #[test]
     fn sed_in_place_short() {
-        let outcome = evaluate_expect_outcome("sed -i 's/foo/bar/' file.txt");
+        let result = eval_rules(sed_rules(), "sed -i 's/foo/bar/' file.txt");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn sed_in_place_long() {
-        let outcome = evaluate_expect_outcome("sed --in-place 's/foo/bar/' file.txt");
+        let result = eval_rules(sed_rules(), "sed --in-place 's/foo/bar/' file.txt");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn sed_read_only() {
-        let outcome = evaluate_expect_outcome("sed -n '1,10p' file.txt");
+        let result = eval_rules(sed_rules(), "sed -n '1,10p' file.txt");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 }

@@ -81,145 +81,174 @@ mod tests {
 
     #[test]
     fn curl_bare_get() {
-        let outcome = evaluate_expect_outcome("curl https://example.com");
+        let result = eval_rules(curl_rules(), "curl https://example.com");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn curl_silent_pipe_jq() {
-        let outcome = evaluate_expect_outcome(
+        let result = eval_rules(
+            curl_rules(),
             "curl -s https://crates.io/api/v1/crates/serde | jq '.crate.description, .versions[0].features'",
         );
-        assert_eq!(outcome.decision, Decision::Allow);
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::OnlyAllowAll);
     }
 
     #[test]
     fn curl_silent_pipe_jq_with_stderr_dev_null() {
-        let outcome = evaluate_expect_outcome(
+        let result = eval_rules(
+            curl_rules(),
             "curl -s https://crates.io/api/v1/crates/serde | jq '.crate.description' 2>/dev/null",
         );
-        assert_eq!(outcome.decision, Decision::Allow);
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::OnlyAllowAll);
     }
 
     #[test]
     fn curl_explicit_get() {
-        let outcome = evaluate_expect_outcome("curl -X GET https://example.com");
+        let result = eval_rules(curl_rules(), "curl -X GET https://example.com");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn curl_explicit_head() {
-        let outcome = evaluate_expect_outcome("curl -X HEAD https://example.com");
+        let result = eval_rules(curl_rules(), "curl -X HEAD https://example.com");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn curl_with_header() {
-        let outcome = evaluate_expect_outcome(
+        let result = eval_rules(
+            curl_rules(),
             "curl -H 'Accept: application/json' https://api.example.com/users",
         );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn curl_follow_redirects() {
-        let outcome = evaluate_expect_outcome("curl -L https://example.com");
+        let result = eval_rules(curl_rules(), "curl -L https://example.com");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn curl_post_method() {
-        let reason = evaluate_expect_skip("curl -X POST https://example.com");
+        let result = eval_rules(curl_rules(), "curl -X POST https://example.com");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn curl_put_method() {
-        let reason = evaluate_expect_skip("curl --request PUT https://example.com");
+        let result = eval_rules(curl_rules(), "curl --request PUT https://example.com");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn curl_delete_method() {
-        let reason = evaluate_expect_skip("curl -X DELETE https://example.com/items/1");
+        let result = eval_rules(curl_rules(), "curl -X DELETE https://example.com/items/1");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn curl_data_flag() {
-        let reason = evaluate_expect_skip("curl -d @body.json https://example.com");
+        let result = eval_rules(curl_rules(), "curl -d @body.json https://example.com");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn curl_data_raw() {
-        let reason = evaluate_expect_skip("curl --data-raw 'x=1' https://example.com");
+        let result = eval_rules(curl_rules(), "curl --data-raw 'x=1' https://example.com");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn curl_json_flag() {
-        let reason = evaluate_expect_skip("curl --json '{\"x\":1}' https://example.com");
+        let result = eval_rules(curl_rules(), "curl --json '{\"x\":1}' https://example.com");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn curl_form_flag() {
-        let reason = evaluate_expect_skip("curl -F file=@a.txt https://example.com");
+        let result = eval_rules(curl_rules(), "curl -F file=@a.txt https://example.com");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn curl_upload_file() {
-        let reason = evaluate_expect_skip("curl -T file.txt https://example.com");
+        let result = eval_rules(curl_rules(), "curl -T file.txt https://example.com");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn curl_output_flag() {
-        let reason = evaluate_expect_skip("curl -o out.html https://example.com");
+        let result = eval_rules(curl_rules(), "curl -o out.html https://example.com");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn curl_remote_name() {
-        let reason = evaluate_expect_skip("curl -O https://example.com/file.zip");
+        let result = eval_rules(curl_rules(), "curl -O https://example.com/file.zip");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn curl_output_dir() {
-        let reason = evaluate_expect_skip("curl --output-dir ./downloads -O https://example.com/x");
+        let result = eval_rules(
+            curl_rules(),
+            "curl --output-dir ./downloads -O https://example.com/x",
+        );
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn curl_cookie_jar() {
-        let reason = evaluate_expect_skip("curl -c cookies.txt https://example.com");
+        let result = eval_rules(curl_rules(), "curl -c cookies.txt https://example.com");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn curl_dump_header() {
-        let reason = evaluate_expect_skip("curl -D headers.txt https://example.com");
+        let result = eval_rules(curl_rules(), "curl -D headers.txt https://example.com");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn curl_config_flag() {
-        let reason = evaluate_expect_skip("curl -K my.cfg https://example.com");
+        let result = eval_rules(curl_rules(), "curl -K my.cfg https://example.com");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn curl_quote_command() {
-        let reason = evaluate_expect_skip("curl -Q 'DELE old.txt' ftp://example.com/");
+        let result = eval_rules(curl_rules(), "curl -Q 'DELE old.txt' ftp://example.com/");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn curl_redirect_to_file() {
-        let reason = evaluate_expect_skip("curl https://example.com > /tmp/out.html");
+        let result = eval_rules(curl_rules(), "curl https://example.com > /tmp/out.html");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::UnsafeRedirect);
     }
 }

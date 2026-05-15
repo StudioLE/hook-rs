@@ -42,92 +42,118 @@ mod tests {
 
     #[test]
     fn cd_and_git_status() {
-        let outcome = evaluate_expect_outcome("cd /home/user/repos/my-project && git status");
+        let result = eval_rules(
+            cd_git_rules(),
+            "cd /home/user/repos/my-project && git status",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn cd_and_git_commit() {
-        let outcome =
-            evaluate_expect_outcome("cd /home/user/repos/my-project && git commit -m 'msg'");
+        let result = eval_rules(
+            cd_git_rules(),
+            "cd /home/user/repos/my-project && git commit -m 'msg'",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn cd_untrusted_and_git() {
-        let outcome = evaluate_expect_outcome("cd /tmp/sketchy && git log");
+        let result = eval_rules(cd_git_rules(), "cd /tmp/sketchy && git log");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn cd_relative_and_git() {
-        let outcome = evaluate_expect_outcome("cd ../relative/path && git diff");
+        let result = eval_rules(cd_git_rules(), "cd ../relative/path && git diff");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn cd_forked_and_git() {
-        let outcome = evaluate_expect_outcome("cd /home/user/repos/forked/repo && git status");
+        let result = eval_rules(
+            cd_git_rules(),
+            "cd /home/user/repos/forked/repo && git status",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn cd_semicolon_git() {
-        let outcome = evaluate_expect_outcome("cd /path ; git status");
+        let result = eval_rules(cd_git_rules(), "cd /path ; git status");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn cd_or_git() {
-        let outcome = evaluate_expect_outcome("cd /path || git status");
+        let result = eval_rules(cd_git_rules(), "cd /path || git status");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn cd_cmd_git() {
-        let outcome = evaluate_expect_outcome("cd /path && ls && git status");
+        let result = eval_rules(cd_git_rules(), "cd /path && ls && git status");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn cd_multiple_git() {
-        let outcome = evaluate_expect_outcome("cd /path && git fetch && git rebase origin/main");
+        let result = eval_rules(
+            cd_git_rules(),
+            "cd /path && git fetch && git rebase origin/main",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_then_cd() {
-        let reason = evaluate_expect_skip("git status && cd /path");
-        assert_eq!(reason, SkipReason::OnlyAllowAll);
+        let result = eval_rules(cd_git_rules(), "git status && cd /path");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn cd_alone() {
-        let reason = evaluate_expect_skip("cd /home/user/repos/my-project");
+        let result = eval_rules(cd_git_rules(), "cd /home/user/repos/my-project");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_alone() {
-        let outcome = evaluate_expect_outcome("git status");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(cd_git_rules(), "git status");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_log() {
-        let outcome = evaluate_expect_outcome("git log --oneline -5");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(cd_git_rules(), "git log --oneline -5");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn non_cd_compound() {
-        let outcome = evaluate_expect_outcome("ls -la && git status");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(cd_git_rules(), "ls -la && git status");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn echo_cd_compound() {
-        let outcome = evaluate_expect_outcome("echo cd /path && git status");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(cd_git_rules(), "echo cd /path && git status");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 }

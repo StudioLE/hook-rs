@@ -19,55 +19,64 @@ mod tests {
 
     #[test]
     fn awk_field_extract() {
-        let outcome = evaluate_expect_outcome("awk '{print $2}' file.txt");
+        let result = eval_rules(vec![awk()], "awk '{print $2}' file.txt");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn awk_line_range() {
-        let outcome = evaluate_expect_outcome("awk 'NR>=10 && NR<=20' file.rs");
+        let result = eval_rules(vec![awk()], "awk 'NR>=10 && NR<=20' file.rs");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn awk_in_pipe() {
-        let outcome = evaluate_expect_outcome("ps aux | awk '{print $1}'");
+        let result = eval_rules(vec![awk()], "ps aux | awk '{print $1}'");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn awk_chained() {
-        let outcome = evaluate_expect_outcome("awk '{print}' a.txt; awk '{print}' b.txt");
+        let result = eval_rules(vec![awk()], "awk '{print}' a.txt; awk '{print}' b.txt");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn awk_system() {
-        let outcome = evaluate_expect_outcome("awk 'BEGIN { system(\"rm -rf /\") }'");
+        let result = eval_rules(vec![awk()], "awk 'BEGIN { system(\"rm -rf /\") }'");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn awk_dash_f() {
-        let outcome = evaluate_expect_outcome("awk -f script.awk file.txt");
+        let result = eval_rules(vec![awk()], "awk -f script.awk file.txt");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn awk_bare() {
-        let outcome = evaluate_expect_outcome("awk");
+        let result = eval_rules(vec![awk()], "awk");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn echo_awk() {
-        let outcome = evaluate_expect_outcome("echo awk is denied");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(vec![awk()], "echo awk is denied");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn rg_awk() {
-        let outcome = evaluate_expect_outcome("rg awk .");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(vec![awk()], "rg awk .");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 }

@@ -65,85 +65,99 @@ mod tests {
 
     #[test]
     fn find_delete() {
-        let outcome = evaluate_expect_outcome("find . -name '*.tmp' -delete");
+        let result = eval_rules(find_rules(), "find . -name '*.tmp' -delete");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn find_delete_path() {
-        let outcome = evaluate_expect_outcome("find /path -type f -delete");
+        let result = eval_rules(find_rules(), "find /path -type f -delete");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn find_delete_redirect() {
-        let outcome = evaluate_expect_outcome("find . -name .lock -delete 2>/dev/null");
+        let result = eval_rules(find_rules(), "find . -name .lock -delete 2>/dev/null");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn find_exec_rm() {
-        let outcome = evaluate_expect_outcome("find . -name '*.tmp' -exec rm {} \\;");
+        let result = eval_rules(find_rules(), "find . -name '*.tmp' -exec rm {} \\;");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn find_exec_rm_f() {
-        let outcome = evaluate_expect_outcome("find . -type f -exec rm -f {} +");
+        let result = eval_rules(find_rules(), "find . -type f -exec rm -f {} +");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn find_exec_rm_execdir() {
-        let outcome = evaluate_expect_outcome("find . -name '*.log' -execdir rm {} \\;");
+        let result = eval_rules(find_rules(), "find . -name '*.log' -execdir rm {} \\;");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn find_delete_chained() {
-        let outcome = evaluate_expect_outcome("ls && find . -delete");
+        let result = eval_rules(find_rules(), "ls && find . -delete");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn find_delete_semicolon() {
-        let outcome = evaluate_expect_outcome("echo test ; find . -name '*.tmp' -delete");
+        let result = eval_rules(find_rules(), "echo test ; find . -name '*.tmp' -delete");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn find_name() {
-        let outcome = evaluate_expect_outcome("find . -name '*.rs'");
+        let result = eval_rules(find_rules(), "find . -name '*.rs'");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn find_print() {
-        let outcome = evaluate_expect_outcome("find . -type f -print");
+        let result = eval_rules(find_rules(), "find . -type f -print");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn find_maxdepth() {
-        let outcome = evaluate_expect_outcome("find /path -maxdepth 1");
+        let result = eval_rules(find_rules(), "find /path -maxdepth 1");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn find_exec_ls() {
-        let reason = evaluate_expect_skip("find . -name '*.tmp' -exec ls {} \\;");
+        let result = eval_rules(find_rules(), "find . -name '*.tmp' -exec ls {} \\;");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn find_exec_cat() {
-        let reason = evaluate_expect_skip("find . -name '*.txt' -exec cat {} +");
+        let result = eval_rules(find_rules(), "find . -name '*.txt' -exec cat {} +");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn echo_find_delete() {
-        let outcome = evaluate_expect_outcome("echo 'find -delete is dangerous'");
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(find_rules(), "echo 'find -delete is dangerous'");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 }

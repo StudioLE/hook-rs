@@ -77,134 +77,159 @@ mod tests {
 
     #[test]
     fn cargo_doc() {
-        let outcome = evaluate_expect_outcome("cargo doc");
+        let result = eval_rules(cargo_rules(), "cargo doc");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn cargo_doc_with_flags() {
-        let outcome = evaluate_expect_outcome("cargo doc --no-deps --all-features --workspace");
+        let result = eval_rules(
+            cargo_rules(),
+            "cargo doc --no-deps --all-features --workspace",
+        );
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn cargo_doc_with_env_prefix() {
         let cmd = r#"RUSTDOCFLAGS="-W missing-docs" cargo doc --no-deps --all-features --workspace 2>&1 | rg -B 1 "missing documentation" | head -200"#;
-        let outcome = evaluate_expect_outcome(cmd);
-        assert_eq!(outcome.decision, Decision::Allow);
+        let result = eval_rules(cargo_rules(), cmd);
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::OnlyAllowAll);
     }
 
     #[test]
     fn cargo_build() {
-        let outcome = evaluate_expect_outcome("cargo build");
+        let result = eval_rules(cargo_rules(), "cargo build");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn cargo_check() {
-        let outcome = evaluate_expect_outcome("cargo check --all-targets");
+        let result = eval_rules(cargo_rules(), "cargo check --all-targets");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn cargo_clippy() {
-        let outcome = evaluate_expect_outcome("cargo clippy --all-targets --all-features");
+        let result = eval_rules(cargo_rules(), "cargo clippy --all-targets --all-features");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn cargo_test() {
-        let outcome = evaluate_expect_outcome("cargo test");
+        let result = eval_rules(cargo_rules(), "cargo test");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn cargo_doc_target_dir() {
-        let reason = evaluate_expect_skip("cargo doc --target-dir /tmp/docs");
+        let result = eval_rules(cargo_rules(), "cargo doc --target-dir /tmp/docs");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn cargo_doc_target_dir_equals() {
-        let reason = evaluate_expect_skip("cargo doc --target-dir=/tmp/docs");
+        let result = eval_rules(cargo_rules(), "cargo doc --target-dir=/tmp/docs");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn cargo_build_out_dir() {
-        let reason = evaluate_expect_skip("cargo build --out-dir ./bin");
+        let result = eval_rules(cargo_rules(), "cargo build --out-dir ./bin");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn cargo_install() {
-        let reason = evaluate_expect_skip("cargo install --path .");
+        let result = eval_rules(cargo_rules(), "cargo install --path .");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn cargo_publish() {
-        let reason = evaluate_expect_skip("cargo publish");
+        let result = eval_rules(cargo_rules(), "cargo publish");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn cargo_run_release() {
-        let reason = evaluate_expect_skip("cargo run --release");
+        let result = eval_rules(cargo_rules(), "cargo run --release");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn cargo_insta_test() {
-        let outcome = evaluate_expect_outcome("cargo insta test");
+        let result = eval_rules(cargo_rules(), "cargo insta test");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn cargo_insta_review() {
-        let outcome = evaluate_expect_outcome("cargo insta review");
+        let result = eval_rules(cargo_rules(), "cargo insta review");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn cargo_insta_accept() {
-        let outcome = evaluate_expect_outcome("cargo insta accept");
+        let result = eval_rules(cargo_rules(), "cargo insta accept");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn cargo_insta_pending_snapshots() {
-        let outcome = evaluate_expect_outcome("cargo insta pending-snapshots");
+        let result = eval_rules(cargo_rules(), "cargo insta pending-snapshots");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn cargo_insta_test_target_dir() {
-        let reason = evaluate_expect_skip("cargo insta test --target-dir /tmp/x");
+        let result = eval_rules(cargo_rules(), "cargo insta test --target-dir /tmp/x");
+        let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn cargo_insta_review_heredoc_single_quoted() {
-        let outcome = evaluate_expect_outcome("cargo insta review 2>&1 <<'EOF'\na\nEOF");
+        let result = eval_rules(cargo_rules(), "cargo insta review 2>&1 <<'EOF'\na\nEOF");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn cargo_insta_review_heredoc_unquoted() {
-        let outcome = evaluate_expect_outcome("cargo insta review <<EOF\na\nEOF");
+        let result = eval_rules(cargo_rules(), "cargo insta review <<EOF\na\nEOF");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn cargo_insta_review_heredoc_double_quoted() {
-        let outcome = evaluate_expect_outcome("cargo insta review <<\"EOF\"\na\nEOF");
+        let result = eval_rules(cargo_rules(), "cargo insta review <<\"EOF\"\na\nEOF");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn cargo_insta_review_heredoc_dash() {
-        let outcome = evaluate_expect_outcome("cargo insta review <<-EOF\na\nEOF");
+        let result = eval_rules(cargo_rules(), "cargo insta review <<-EOF\na\nEOF");
+        let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 }
