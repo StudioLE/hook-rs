@@ -18,15 +18,15 @@ regex = { version = "1.12.3" }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.149" }
 serde_yaml = { version = "0.9.34" }
-studiole-di = { version = "0.5.1" }
-studiole-logging = { version = "0.2.0" }
+studiole-di = { version = "0.6.0" }
+studiole-logging = { version = "0.4.0" }
 studiole-report = { version = "0.4.0", features = ["render"] }
 thiserror = { version = "2.0.18" }
 tracing = { version = "0.1.44" }
 
 [dev-dependencies]
 insta = { version = "1.47.2", features = ["yaml"] }
-studiole-logging = { version = "0.2.0", features = ["testing"] }
+studiole-logging = { version = "0.4.0", features = ["testing"] }
 
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }

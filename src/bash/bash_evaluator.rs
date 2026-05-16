@@ -103,7 +103,7 @@ fn sort_outcomes(outcomes: Vec<Outcome>) -> HashMap<Decision, Vec<String>> {
 impl BashEvaluator {
     /// Create an evaluator with the given settings for testing.
     pub(crate) fn mock() -> Arc<Self> {
-        ServiceProvider::mock().expect()
+        ServiceBuilder::mock().build().expect::<BashEvaluator>()
     }
 }
 

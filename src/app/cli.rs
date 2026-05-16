@@ -12,19 +12,16 @@ impl Cli {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            services: ServiceBuilder::new().with_app_services().build(),
+            services: ServiceBuilder::new()
+                .with_app_services()
+                .build()
+                .expect_init(),
         }
     }
 
     /// Run the CLI to completion.
     pub fn run(&self) {
-        self.services
-            .init()
-            .expect("should be able to init services");
-        let handler = self
-            .services
-            .get::<SubcommandHandler>()
-            .expect("should be able to resolve SubcommandHandler");
+        let handler = self.services.expect::<SubcommandHandler>();
         let outcome = handler.run();
         if let Some(outcome) = outcome {
             info!("{outcome}");

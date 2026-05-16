@@ -1064,9 +1064,9 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "studiole-di"
-version = "0.5.1"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88541cb396723b899edbde4deb165c8032ab5c552afaf3688f3bf07cc5e4fbe8"
+checksum = "8b79e765871555bc67bb34dd5fe7bc5a18f2312b88c48af14dcc3a43b35c5e8b"
 dependencies = [
  "studiole-di-macros",
  "studiole-report",
@@ -1076,9 +1076,9 @@ dependencies = [
 
 [[package]]
 name = "studiole-di-macros"
-version = "0.5.1"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07d46f7b69f86442456f2ea916266111fc50781cf1ad1a87d49f27fa822ce007"
+checksum = "b3ef0d445bb6dea3b557a13f5d5cfc766f1d3a0ba4a0077f5a8de9e2d2e8befe"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1087,9 +1087,9 @@ dependencies = [
 
 [[package]]
 name = "studiole-logging"
-version = "0.2.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40281991be58027edfbe2a87464ae872fb5bb01b76e1bb26dd1f7ed753915d18"
+checksum = "42e70061a15f2c090af3e30b2ba9323b26e79a57189bb0c759c0183950d6c257"
 dependencies = [
  "serde",
  "studiole-di",
@@ -1097,6 +1097,7 @@ dependencies = [
  "thiserror",
  "tracing",
  "tracing-subscriber",
+ "tracing-wasm",
 ]
 
 [[package]]
@@ -1257,6 +1258,17 @@ dependencies = [
  "thread_local",
  "tracing-core",
  "tracing-log",
+]
+
+[[package]]
+name = "tracing-wasm"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4575c663a174420fa2d78f4108ff68f65bf2fbb7dd89f33749b6e826b3626e07"
+dependencies = [
+ "tracing",
+ "tracing-subscriber",
+ "wasm-bindgen",
 ]
 
 [[package]]

@@ -57,9 +57,8 @@ mod tests {
     #[test]
     fn service_builder_mock_bash_evaluation() {
         // Arrange
-        let services = ServiceBuilder::mock().build();
-        services.init().expect("should init");
-        let handler = services.get::<BashHandler>().expect("should resolve");
+        let services = ServiceBuilder::mock().build().expect_init();
+        let handler = services.expect::<BashHandler>();
         let input = BashInput {
             command: "git status".to_owned(),
         };
