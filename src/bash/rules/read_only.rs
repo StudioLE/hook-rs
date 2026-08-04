@@ -4,7 +4,7 @@ use crate::prelude::*;
 
 const READ_ONLY_COMMANDS: &[&str] = &[
     "base64", "basename", "cat", "column", "command", "cut", "diff", "dirname", "echo", "file",
-    "fmt", "grep", "head", "jq", "less", "ls", "readlink", "realpath", "rg", "stat", "tail", "tr",
+    "fmt", "grep", "head", "jq", "less", "ls", "readlink", "realpath", "stat", "tail", "tr",
     "tree", "type", "uniq", "wc", "which", "xxd",
 ];
 
@@ -61,8 +61,8 @@ mod tests {
     }
 
     #[test]
-    fn for_loop_rg_basename() {
-        let cmd = r#"for f in src/bash/rules/snapshots/*git_deny*.snap; do echo "=== $(basename $f) ==="; rg "decision:" "$f"; done"#;
+    fn for_loop_grep_basename() {
+        let cmd = r#"for f in src/bash/rules/snapshots/*git_deny*.snap; do echo "=== $(basename $f) ==="; grep "decision:" "$f"; done"#;
         let result = eval_rules(read_only_rules(), cmd);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);

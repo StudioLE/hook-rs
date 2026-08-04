@@ -35,6 +35,7 @@ impl BashRuleProvider {
         rules.extend(cd_git_rules());
         rules.extend(chained_push_rules());
         rules.extend(python_rules());
+        rules.extend(rg_rules());
         rules.extend(sed_rules());
         rules.extend(sops_rules());
         rules.extend(read_only_rules());
