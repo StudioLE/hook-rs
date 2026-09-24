@@ -24,15 +24,15 @@ use crate::prelude::*;
 const DECRYPT_REASON: &str = "`sops` decryption is blocked. Exposes secrets";
 
 const EXEC_DENY_REASON: &str = "`sops exec-env` / `sops exec-file` with a command that would expose secrets is blocked. \
-                                Reading the env (`env`, `printenv`, `set`, `export`), printing the file (`cat`, `echo`, `printf`, `head`, `tail`, `od`, `xxd`, `strings`, `base64`), redirecting output (`>`, `>>`, `tee`), or substituting (`$(...)`, backticks) would surface plaintext to context";
+                                Reading the env (`env`, `printenv`, `set`, `export`), printing the file (`bat`, `cat`, `echo`, `printf`, `head`, `tail`, `od`, `xxd`, `strings`, `base64`), redirecting output (`>`, `>>`, `tee`), or substituting (`$(...)`, backticks) would surface plaintext to context";
 
 const EXEC_ASK_REASON: &str = "`sops exec-env` / `sops exec-file` requires approval. The wrapped command receives plaintext secrets";
 
 /// Tokens that, if used as the program name inside the wrapped command,
 /// indicate an attempt to read decrypted secrets.
 const READ_TOOLS: &[&str] = &[
-    "env", "printenv", "set", "export", "cat", "echo", "printf", "head", "tail", "less", "more",
-    "od", "xxd", "strings", "base64", "tee",
+    "env", "printenv", "set", "export", "bat", "cat", "echo", "printf", "head", "tail", "less",
+    "more", "od", "xxd", "strings", "base64", "tee",
 ];
 
 /// Build all `sops` rules.
@@ -213,6 +213,13 @@ mod tests {
     #[test]
     fn sops_exec_file_cat_placeholder() {
         let result = eval_rules(sops_rules(), "sops exec-file secrets.yaml 'cat {}'");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Deny);
+    }
+
+    #[test]
+    fn sops_exec_file_bat_placeholder() {
+        let result = eval_rules(sops_rules(), "sops exec-file secrets.yaml 'bat {}'");
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
