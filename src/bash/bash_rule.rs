@@ -53,53 +53,64 @@ impl BashRule {
     ///
     /// Single-char short flags (e.g. `-d`) also match inside bundled args (e.g. `-fd`).
     pub fn matches(&self, ctx: &BashRuleContext) -> bool {
-        let mut parts = self.command.split_whitespace();
-        let Some(name) = parts.next() else {
+        let Some(leading_count) = self.get_leading_count(ctx) else {
             return false;
         };
-        if ctx.simple.name != name {
-            return false;
-        }
-        let leading_args: Vec<&str> = parts.collect();
-        if !ctx
+        let args: Vec<&str> = ctx
             .simple
             .args
-            .iter()
-            .zip(&leading_args)
-            .all(|(actual, expected)| actual == expected)
-            || ctx.simple.args.len() < leading_args.len()
-        {
-            return false;
-        }
-        let remaining_args: Vec<&str> = ctx
-            .simple
-            .args
-            .get(leading_args.len()..)
-            .unwrap_or_default()
+            .get(leading_count..)
+            .expect("leading count should not exceed args")
             .iter()
             .map(String::as_str)
             .collect();
-        if let Some(with) = &self.with_any
-            && !with.iter().any(|a| a.is_present(&remaining_args))
-        {
-            return false;
-        }
-        if let Some(all) = &self.with_all
-            && !all.iter().all(|a| a.is_present(&remaining_args))
-        {
-            return false;
-        }
-        if let Some(without) = &self.without_any
-            && without.iter().any(|a| a.is_present(&remaining_args))
-        {
-            return false;
-        }
-        if let Some(condition) = &self.condition
-            && !condition(ctx)
+        if !(self.matches_with_any(&args)
+            && self.matches_with_all(&args)
+            && self.matches_without_any(&args)
+            && self.matches_condition(ctx))
         {
             return false;
         }
         debug!(id = %self.id, decision = %self.outcome.decision, command = %ctx.simple.name, "Matched bash rule");
         true
+    }
+
+    /// Count of leading args matching [`BashRule::command`].
+    ///
+    /// - `None` if the command name or leading args don't match
+    fn get_leading_count(&self, ctx: &BashRuleContext) -> Option<usize> {
+        let mut words = self.command.split_whitespace();
+        if words.next()? != ctx.simple.name {
+            return None;
+        }
+        let leading: Vec<&str> = words.collect();
+        let actual = ctx.simple.args.get(..leading.len())?;
+        (actual == leading.as_slice()).then_some(leading.len())
+    }
+
+    /// Is any `with_any` arg present?
+    fn matches_with_any(&self, args: &[&str]) -> bool {
+        self.with_any
+            .as_ref()
+            .is_none_or(|with| with.iter().any(|a| a.is_present(args)))
+    }
+
+    /// Are all `with_all` args present?
+    fn matches_with_all(&self, args: &[&str]) -> bool {
+        self.with_all
+            .as_ref()
+            .is_none_or(|all| all.iter().all(|a| a.is_present(args)))
+    }
+
+    /// Are all `without_any` args absent?
+    fn matches_without_any(&self, args: &[&str]) -> bool {
+        self.without_any
+            .as_ref()
+            .is_none_or(|without| !without.iter().any(|a| a.is_present(args)))
+    }
+
+    /// Does the command satisfy `condition`?
+    fn matches_condition(&self, ctx: &BashRuleContext) -> bool {
+        self.condition.is_none_or(|condition| condition(ctx))
     }
 }
