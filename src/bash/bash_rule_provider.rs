@@ -25,6 +25,7 @@ impl BashRuleProvider {
         rules.extend(cd_rules());
         rules.extend(curl_rules());
         rules.extend(date_rules());
+        rules.extend(docker_compose_rules());
         rules.extend(fd_rules());
         rules.extend(find_rules());
         rules.extend(gh_rules());
