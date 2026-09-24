@@ -11,6 +11,7 @@ pub fn git_deny_rules() -> Vec<BashRule> {
         git_stash_clear(),
         git_clean_d(),
         git_checkout_discard(),
+        git_worktree_remove_force(),
     ]
 }
 
@@ -83,6 +84,23 @@ fn git_checkout_discard() -> BashRule {
         outcome: Outcome::deny(
             "`git checkout --` is blocked. Do not discard changes to revert mistakes; \
              fix the code instead",
+        ),
+        ..Default::default()
+    }
+}
+
+/// Deny `git worktree remove --force`.
+///
+/// - `--f*` also catches git's long option abbreviations such as `--forc`
+fn git_worktree_remove_force() -> BashRule {
+    BashRule {
+        id: "git_worktree_remove_force".to_owned(),
+        command: "git worktree remove".to_owned(),
+        with_any: Some(vec![ArgMatcher::new("-f"), ArgMatcher::new("--f*")]),
+        outcome: Outcome::deny(
+            "`git worktree remove --force` is blocked. Deletes modified and untracked files. \
+             Alternatives: `git -C <worktree> clean -f <file>` for each untracked file, \
+             then `git worktree remove <worktree>`",
         ),
         ..Default::default()
     }
@@ -565,6 +583,35 @@ mod tests {
     #[test]
     fn rg_checkout_discard() {
         let result = eval_rules(git_deny_rules(), "rg 'git checkout --' README.md");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn git_worktree_remove_force() {
+        let result = eval_rules(git_deny_rules(), "git worktree remove --force /a/wt");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Deny);
+    }
+
+    #[test]
+    fn git_worktree_remove_force_short() {
+        let result = eval_rules(git_deny_rules(), "git worktree remove -f /a/wt");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Deny);
+    }
+
+    /// Git accepts `--forc` as an abbreviation of `--force`.
+    #[test]
+    fn git_worktree_remove_force_abbreviated() {
+        let result = eval_rules(git_deny_rules(), "git worktree remove --forc /a/wt");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Deny);
+    }
+
+    #[test]
+    fn git_worktree_remove() {
+        let result = eval_rules(git_deny_rules(), "git worktree remove /a/wt");
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }

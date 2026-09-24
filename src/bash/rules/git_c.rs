@@ -625,6 +625,16 @@ mod tests {
     }
 
     #[test]
+    fn c_path_worktree_remove_force() {
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/my-project worktree remove --force /home/user/wt/foo",
+        );
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Deny);
+    }
+
+    #[test]
     fn forked_reset_hard() {
         let result = eval_rules(
             git_c_rules(),
