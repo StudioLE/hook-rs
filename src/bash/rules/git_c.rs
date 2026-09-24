@@ -304,6 +304,16 @@ mod tests {
     }
 
     #[test]
+    fn trusted_path_ls_files_and_grep() {
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/my-project ls-files src Cargo.toml && git -C /home/user/repos/my-project grep -n -i \"example\" -- '*.rs' '*.toml'",
+        );
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
     fn trusted_subdir_diff() {
         let result = eval_rules(git_c_rules(), "git -C /home/user/repos/foo/bar diff");
         let outcome = expect_outcome(result);

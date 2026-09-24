@@ -3,6 +3,14 @@
 use crate::prelude::*;
 
 /// Git subcommands that only read (no filesystem or `.git/` writes).
+///
+/// Known gaps, accepted as unlikely agent behavior:
+/// - `grep -O<pager>` / `--open-files-in-pager=<pager>` runs an arbitrary program
+///   - Git accepts unique long-option prefixes, so `--op=<pager>` also works
+/// - `grep --no-index`, `--untracked --no-exclude-standard`, and `-f <file>` read
+///   gitignored or untracked files, which may expose secrets like `.env`
+/// - `ls-remote --upload-pack=<exec>` runs `<exec>` locally for local-path and `file://` repositories
+/// - `ls-remote <url>` contacts the network, so data encoded in the URL can leak
 pub(crate) const READ_ONLY_SUBCOMMANDS: &[&str] = &[
     "blame",
     "check-ignore",
@@ -10,6 +18,8 @@ pub(crate) const READ_ONLY_SUBCOMMANDS: &[&str] = &[
     "diff",
     "grep",
     "log",
+    "ls-files",
+    "ls-remote",
     "ls-tree",
     "merge-base",
     "patch-id",
@@ -236,6 +246,8 @@ mod tests {
             "fetch",
             "grep",
             "log",
+            "ls-files",
+            "ls-remote",
             "ls-tree",
             "merge-base",
             "mv",
@@ -254,6 +266,25 @@ mod tests {
     #[test]
     fn git_grep() {
         let result = eval_rules(git_allow_rules(), "git grep -E 'foo|bar'");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    /// Known gap: `--op` abbreviates `--open-files-in-pager`, which runs `echo` as the pager.
+    #[test]
+    fn git_grep_open_files_in_pager_abbreviated() {
+        let result = eval_rules(git_allow_rules(), "git grep --op='echo exploited' -l foo");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    /// Known gap: `--upload-pack` runs `echo` locally for a local-path repository.
+    #[test]
+    fn git_ls_remote_upload_pack() {
+        let result = eval_rules(
+            git_allow_rules(),
+            "git ls-remote --upload-pack='echo exploited >&2 #' /tmp/repo",
+        );
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
