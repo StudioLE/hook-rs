@@ -4,7 +4,7 @@ use crate::prelude::*;
 
 const READ_ONLY_COMMANDS: &[&str] = &[
     "base64", "basename", "cat", "column", "command", "cut", "diff", "dirname", "echo", "file",
-    "fmt", "grep", "head", "jq", "less", "ls", "readlink", "realpath", "stat", "tail", "tr",
+    "fmt", "grep", "head", "jq", "less", "ls", "pwd", "readlink", "realpath", "stat", "tail", "tr",
     "tree", "type", "uniq", "wc", "which", "xxd",
 ];
 
@@ -149,6 +149,13 @@ mod tests {
     #[test]
     fn diff_piped_head() {
         let result = eval_rules(read_only_rules(), "diff a.snap a.snap.new | head -50");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn pwd_chained() {
+        let result = eval_rules(read_only_rules(), "pwd && ls -la");
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
