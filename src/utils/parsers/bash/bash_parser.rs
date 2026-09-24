@@ -22,6 +22,7 @@ impl BashParser {
     ///
     /// - Returns `Err(ParseError::Skip)` for unsupported constructs so the
     ///   caller can fall through to the default approval flow
+    /// - Returns `Err(ParseError::Deny)` for constructs that must be denied
     /// - Returns `Err` for genuine parse failures (malformed syntax)
     pub fn parse(&mut self, command: &str) -> Result<CompleteContext, Report<ParseError>> {
         trace!(command, "Parsing");
@@ -267,8 +268,10 @@ fn extract_substitutions(word: &str) -> Result<Vec<String>, Report<ParseError>> 
 
 /// Recursively collect command substitution strings from parsed word pieces.
 ///
-/// Returns `Err(ParameterSubstitution)` if a parameter expansion could
-/// contain substitutions in its opaque string fields.
+/// - Returns `Err(ParameterSubstitution)` if a parameter expansion could
+///   contain substitutions in its opaque string fields
+/// - Returns `Err(DollarQuote)` for `$'…'` and `$"…"` since their decoded
+///   value is hidden from rules
 fn collect_substitutions(
     pieces: &[WordPieceWithSource],
     out: &mut Vec<String>,
@@ -278,9 +281,13 @@ fn collect_substitutions(
             WordPiece::CommandSubstitution(s) | WordPiece::BackquotedCommandSubstitution(s) => {
                 out.push(s.clone());
             }
-            WordPiece::DoubleQuotedSequence(inner)
-            | WordPiece::GettextDoubleQuotedSequence(inner) => {
+            WordPiece::DoubleQuotedSequence(inner) => {
                 collect_substitutions(inner, out)?;
+            }
+            // `AnsiCQuotedText` is `$'…'`, which decodes escapes like `\x2d` to `-`
+            // `GettextDoubleQuotedSequence` is `$"…"`, which translates via locale
+            WordPiece::AnsiCQuotedText(_) | WordPiece::GettextDoubleQuotedSequence(_) => {
+                return Err(ParseError::deny(DenyReason::DollarQuote));
             }
             WordPiece::ArithmeticExpression(_) => {
                 return Err(ParseError::skip(SkipReason::ArithmeticSubstitution));
@@ -290,7 +297,6 @@ fn collect_substitutions(
             )
             | WordPiece::Text(_)
             | WordPiece::SingleQuotedText(_)
-            | WordPiece::AnsiCQuotedText(_)
             | WordPiece::TildeExpansion(_)
             | WordPiece::EscapeSequence(_) => {}
             WordPiece::ParameterExpansion(_) => {
@@ -319,12 +325,20 @@ pub enum ParseError {
     /// Command was parsed successfully but skipped.
     #[error("Skipped: {0}")]
     Skip(SkipReason),
+    /// Command was denied before rule evaluation.
+    #[error("Denied: {0}")]
+    Deny(DenyReason),
 }
 
 impl ParseError {
     /// Wrap a [`SkipReason`] in a [`Report`] for early return.
     pub(crate) fn skip(reason: SkipReason) -> Report<Self> {
         Report::new(Self::Skip(reason))
+    }
+
+    /// Wrap a [`DenyReason`] in a [`Report`] for early return.
+    pub(crate) fn deny(reason: DenyReason) -> Report<Self> {
+        Report::new(Self::Deny(reason))
     }
 }
 

@@ -1,0 +1,6 @@
+---
+source: src/bash/bash_handler.rs
+expression: outcome
+---
+decision: deny
+reason: "`$'…'` and `$\"…\"` quoting is blocked. Use plain single or double quotes"
