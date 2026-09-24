@@ -1,15 +1,21 @@
 //! Rules for cargo subcommands.
 //!
-//! Allows read-only subcommands and `cargo insta` subcommands that confine
-//! writes to the project's default `target/` directory. The `--target-dir`
-//! and `--out-dir` flags exclude a command from the allow list.
+//! Allows subcommands and `cargo insta` subcommands that write build output
+//! to the project's default `target/` directory. The `--target-dir` and
+//! `--out-dir` flags exclude a command from the allow list.
+//!
+//! Not all allowed commands are read-only. These rewrite sources in place:
+//! - `cargo clippy --fix` applies lint suggestions
+//! - `cargo fmt` formats sources, excluding rustfmt pass-through args after `--`
 //!
 //! Also denies `cargo insta review` with heredoc input, since heredocs fake
 //! interactive accept/reject keystrokes.
 
 use crate::prelude::*;
 
-/// Subcommands that only read sources and write under `target/`.
+/// Subcommands that write build output under `target/`.
+///
+/// - `clippy --fix` also rewrites sources in place
 const SAFE_SUBCOMMANDS: &[&str] = &["build", "check", "clippy", "doc", "test"];
 
 /// `cargo insta` subcommands that read snapshots or run tests under `target/`.
@@ -27,8 +33,24 @@ pub fn cargo_rules() -> Vec<BashRule> {
             .iter()
             .map(|sub| cargo_insta_subcommand(sub)),
     );
+    rules.push(cargo_fmt());
     rules.push(cargo_insta_review__heredoc());
     rules
+}
+
+/// Allow `cargo fmt` without rustfmt pass-through args.
+///
+/// - Rewrites sources in place, so is not read-only
+/// - Excludes `--` since rustfmt accepts extra file paths,
+///   `--print-config <PATH>`, and `--backup`
+fn cargo_fmt() -> BashRule {
+    BashRule {
+        id: "cargo_fmt".to_owned(),
+        command: "cargo fmt".to_owned(),
+        without_any: Some(vec![ArgMatcher::new("--")]),
+        outcome: Outcome::allow("`cargo fmt` rewrites sources in place"),
+        ..Default::default()
+    }
 }
 
 fn cargo_subcommand(sub: &str) -> BashRule {
@@ -126,6 +148,34 @@ mod tests {
         let result = eval_rules(cargo_rules(), "cargo test");
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn cargo_fmt() {
+        let result = eval_rules(
+            cargo_rules(),
+            "cargo fmt --manifest-path /tmp/x/Cargo.toml --all",
+        );
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn cargo_fmt_check() {
+        let result = eval_rules(cargo_rules(), "cargo fmt --all --check");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    /// Args after `--` reach rustfmt, which can write arbitrary paths.
+    #[test]
+    fn cargo_fmt_rustfmt_passthrough() {
+        let result = eval_rules(
+            cargo_rules(),
+            "cargo fmt -- --print-config default /tmp/rustfmt.toml",
+        );
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
