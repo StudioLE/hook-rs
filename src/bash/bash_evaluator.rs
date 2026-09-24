@@ -43,8 +43,8 @@ impl BashEvaluator {
                 paths: &self.paths,
             };
             for rule in self.rules.get() {
-                if rule.matches(&ctx) {
-                    outcomes.push(rule.outcome.clone());
+                if let Some(outcome) = rule.get_outcome(&ctx) {
+                    outcomes.push(outcome);
                 }
             }
             if outcomes.is_empty() {
@@ -428,5 +428,57 @@ mod tests {
         let result = BashEvaluator::mock().evaluate_str("for f in *.txt; do cargo publish; done");
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn variable_find_exec() {
+        let outcome = evaluate_variable("for x in -exec; do find . $x rm {} +; done");
+        assert_variable_deny(&outcome);
+    }
+
+    #[test]
+    fn variable_sed_in_place() {
+        let outcome = evaluate_variable("for x in -i; do sed $x s/a/b/ f.txt; done");
+        assert_variable_deny(&outcome);
+    }
+
+    #[test]
+    fn variable_cargo_target_dir() {
+        let outcome = evaluate_variable("for x in --target-dir=/tmp/evil; do cargo build $x; done");
+        assert_variable_deny(&outcome);
+    }
+
+    #[test]
+    fn variable_find_braced() {
+        let outcome = evaluate_variable("find . ${x} rm {} +");
+        assert_variable_deny(&outcome);
+    }
+
+    /// A variable in a command that matches no rule falls through to the default prompt.
+    #[test]
+    fn variable_cargo_subcommand() {
+        let result = BashEvaluator::mock().evaluate_str("cargo $sub");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    /// Rules that ignore arguments still allow a variable argument.
+    #[test]
+    fn variable_cat_loop() {
+        let outcome = evaluate_variable(r#"for f in *.snap; do cat "$f"; done"#);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    fn evaluate_variable(command: &str) -> Outcome {
+        expect_outcome(BashEvaluator::mock().evaluate_str(command))
+    }
+
+    fn assert_variable_deny(outcome: &Outcome) {
+        assert_eq!(outcome.decision, Decision::Deny);
+        assert!(
+            outcome
+                .reason
+                .contains(&DenyReason::VariableArg.to_string())
+        );
     }
 }

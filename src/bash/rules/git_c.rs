@@ -43,6 +43,7 @@ fn get_context_without_c(context: &SimpleContext) -> SimpleContext {
         args: context.args.get(2..).unwrap_or_default().to_vec(),
         has_heredoc: context.has_heredoc,
         contains_substitution: context.contains_substitution,
+        has_variable: context.has_variable,
         nesting: context.nesting.clone(),
         env_vars: context.env_vars.clone(),
     }

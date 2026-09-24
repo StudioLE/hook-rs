@@ -1,5 +1,5 @@
 ---
-source: src/bash/bash_parser.rs
+source: src/utils/parsers/bash/bash_parser.rs
 expression: context
 ---
 raw: for f in *.tmp; do echo $f; done
@@ -8,5 +8,6 @@ children:
       - name: echo
         args:
           - $f
+        has_variable: true
         nesting:
           - For

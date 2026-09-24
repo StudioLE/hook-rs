@@ -56,6 +56,24 @@ impl BashRule {
         let Some(leading_count) = self.get_leading_count(ctx) else {
             return false;
         };
+        self.matches_args(ctx, leading_count)
+    }
+
+    /// Get the outcome of this rule for the given command.
+    ///
+    /// - Returns the [`DenyReason::VariableArg`] deny if the command has a variable
+    ///   and this rule checks arguments, since the variable's value is unknown
+    /// - Returns [`BashRule::outcome`] if the rule matches
+    pub fn get_outcome(&self, ctx: &BashRuleContext) -> Option<Outcome> {
+        let leading_count = self.get_leading_count(ctx)?;
+        if ctx.simple.has_variable && self.has_arg_checks() {
+            return Some(Outcome::deny(DenyReason::VariableArg.to_string()));
+        }
+        self.matches_args(ctx, leading_count)
+            .then(|| self.outcome.clone())
+    }
+
+    fn matches_args(&self, ctx: &BashRuleContext, leading_count: usize) -> bool {
         let args: Vec<&str> = ctx
             .simple
             .args
@@ -86,6 +104,11 @@ impl BashRule {
         let leading: Vec<&str> = words.collect();
         let actual = ctx.simple.args.get(..leading.len())?;
         (actual == leading.as_slice()).then_some(leading.len())
+    }
+
+    /// Does this rule check arguments with `with_any`, `with_all`, or `without_any`?
+    fn has_arg_checks(&self) -> bool {
+        self.with_any.is_some() || self.with_all.is_some() || self.without_any.is_some()
     }
 
     /// Is any `with_any` arg present?

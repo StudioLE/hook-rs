@@ -1,5 +1,5 @@
 ---
-source: src/bash/bash_parser.rs
+source: src/utils/parsers/bash/bash_parser.rs
 expression: context
 ---
 raw: echo $var
@@ -8,3 +8,4 @@ children:
       - name: echo
         args:
           - $var
+        has_variable: true

@@ -178,6 +178,7 @@ impl BashParser {
             args: Vec::new(),
             has_heredoc: false,
             contains_substitution: false,
+            has_variable: contains_variable(&word.value)?,
             nesting: self.nesting.clone(),
             env_vars: Vec::new(),
         };
@@ -192,6 +193,9 @@ impl BashParser {
                         for sub in &subs {
                             inner_commands.extend(self.parse_substitution(sub)?);
                         }
+                    }
+                    if contains_variable(&w.value)? {
+                        context.has_variable = true;
                     }
                     context.args.push(w.value.clone());
                 }
@@ -305,6 +309,26 @@ fn collect_substitutions(
         }
     }
     Ok(())
+}
+
+/// Check whether a shell word contains a `$x` or `${x}` parameter expansion.
+///
+/// - Checks top-level pieces and pieces inside `"…"`
+/// - Ignores `'…'` and command substitutions, whose inner commands are checked separately
+fn contains_variable(word: &str) -> Result<bool, Report<ParseError>> {
+    let pieces = word::parse(word, &ParserOptions::default()).change_context(ParseError::Word)?;
+    Ok(has_variable_piece(&pieces))
+}
+
+/// Recursively check parsed word pieces for a `$x` or `${x}` parameter expansion.
+fn has_variable_piece(pieces: &[WordPieceWithSource]) -> bool {
+    pieces.iter().any(|piece| match &piece.piece {
+        WordPiece::ParameterExpansion(
+            word::ParameterExpr::Parameter { .. } | word::ParameterExpr::ParameterLength { .. },
+        ) => true,
+        WordPiece::DoubleQuotedSequence(inner) => has_variable_piece(inner),
+        _ => false,
+    })
 }
 
 /// Errors returned by [`BashParser`].
@@ -731,6 +755,37 @@ mod tests {
     }
 
     #[test]
+    fn variable_single_quoted() {
+        let context = parse_expect_context("echo '$x'");
+        assert_eq!(has_variable_flags(&context), vec![false]);
+    }
+
+    #[test]
+    fn variable_double_quoted() {
+        let context = parse_expect_context(r#"echo "$x""#);
+        assert_eq!(has_variable_flags(&context), vec![true]);
+    }
+
+    #[test]
+    fn variable_in_option_value() {
+        let context = parse_expect_context("cargo build --target-dir=$x");
+        assert_eq!(has_variable_flags(&context), vec![true]);
+    }
+
+    /// Only the inner command owns a variable inside a command substitution.
+    #[test]
+    fn variable_inside_command_substitution() {
+        let context = parse_expect_context(r#"echo "$(basename $f)""#);
+        assert_eq!(has_variable_flags(&context), vec![false, true]);
+    }
+
+    #[test]
+    fn variable_command_name() {
+        let context = parse_expect_context("$cmd arg");
+        assert_eq!(has_variable_flags(&context), vec![true]);
+    }
+
+    #[test]
     fn complex_multi_statement_with_substitutions_and_redirects() {
         let cmd = r#"cargo doc --document-private-items -p globset 2>&1 | tail -5; grep -r "impl.*Debug" $(find target/doc -name "struct.GlobMatcher.html" 2>/dev/null) 2>/dev/null || echo "checking source instead"; grep "derive" $(find . -path "*/globset/src/*.rs" -not -path "./target/*" 2>/dev/null) 2>/dev/null || echo "not in local source""#;
         let context = parse_expect_context(cmd);
@@ -885,5 +940,10 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// Collect `has_variable` for each command in [`CompleteContext::all_commands`] order.
+    fn has_variable_flags(context: &CompleteContext) -> Vec<bool> {
+        context.all_commands().map(|c| c.has_variable).collect()
     }
 }
