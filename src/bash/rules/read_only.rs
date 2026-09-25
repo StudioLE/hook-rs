@@ -16,9 +16,30 @@ pub fn read_only_rules() -> Vec<BashRule> {
         .map(|cmd| BashRule::new(*cmd, *cmd, Outcome::allow(format!("Read-only `{cmd}`"))))
         .collect();
     rules.push(bat());
+    rules.extend(brew());
     rules.push(sort__cmd());
     rules.push(yq());
     rules
+}
+
+/// Allow `brew list`, `brew ls`, and `brew cat`.
+///
+/// - `brew cat` prints any existing file passed as a path, e.g. `brew cat ./.env`, same as `cat`
+///   (<https://github.com/StudioLE/hook-rs/issues/16>)
+/// - Env var prefixes are not checked (<https://github.com/StudioLE/hook-rs/issues/24>):
+///   - `HOMEBREW_DEVELOPER` lets `brew list --full-name` load and run formula code from paths or URLs
+///   - `HOMEBREW_BAT` makes `brew cat` install `bat` if missing
+fn brew() -> Vec<BashRule> {
+    ["list", "ls", "cat"]
+        .iter()
+        .map(|sub| {
+            BashRule::new(
+                format!("brew_{sub}"),
+                format!("brew {sub}"),
+                Outcome::allow(format!("Read-only `brew {sub}`")),
+            )
+        })
+        .collect()
 }
 
 /// Allow `bat` without pager, preprocessor, cache, or config-writing options.
@@ -135,6 +156,27 @@ mod tests {
             read_only_rules(),
             "BAT_PAGER='sh -c id' bat --paging=never src/main.rs",
         );
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn brew_list_versions() {
+        let result = eval_rules(read_only_rules(), "brew list --versions");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn brew_cat_formula() {
+        let result = eval_rules(read_only_rules(), "brew cat jq");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn brew_install() {
+        let result = eval_rules(read_only_rules(), "brew install jq");
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
