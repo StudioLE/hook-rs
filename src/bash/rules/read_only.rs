@@ -5,7 +5,7 @@ use crate::prelude::*;
 const READ_ONLY_COMMANDS: &[&str] = &[
     "base64", "basename", "cat", "column", "command", "cut", "diff", "dirname", "echo", "eza",
     "file", "fmt", "grep", "head", "jq", "less", "ls", "pwd", "readlink", "realpath", "stat",
-    "tail", "tr", "tree", "type", "uniq", "wc", "which", "xxd",
+    "tail", "tiktoken", "tr", "tree", "type", "uniq", "wc", "which", "xxd",
 ];
 
 /// Rules for read-only commands.
@@ -163,6 +163,13 @@ mod tests {
     #[test]
     fn pwd_chained() {
         let result = eval_rules(read_only_rules(), "pwd && ls -la");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn tiktoken_files() {
+        let result = eval_rules(read_only_rules(), "tiktoken README.md docs/*.md");
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }

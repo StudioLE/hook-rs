@@ -353,6 +353,14 @@ mod tests {
     }
 
     #[test]
+    fn c_path_git_show_piped_tiktoken() {
+        let result = BashEvaluator::mock()
+            .evaluate_str("git -C /home/user/repos/my-project show HEAD:README.md | tiktoken");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
     fn git_diff_and_status() {
         let result = BashEvaluator::mock().evaluate_str("git diff && git status");
         let outcome = expect_outcome(result);
