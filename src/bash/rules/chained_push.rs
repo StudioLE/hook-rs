@@ -10,17 +10,13 @@ pub fn chained_push_rules() -> Vec<BashRule> {
 /// Deny `git push` chained with other commands.
 fn git_push__chained() -> BashRule {
     BashRule {
-        condition: Some(is_chained),
+        condition: Some(|ctx| ctx.complete.is_chained()),
         ..BashRule::new(
             "git_push__chained",
             "git push",
             Outcome::deny("Chained `git push` is blocked. Run `git push` as a standalone command"),
         )
     }
-}
-
-fn is_chained(ctx: &BashRuleContext) -> bool {
-    ctx.complete.children.len() > 1
 }
 
 #[cfg(test)]

@@ -18,4 +18,9 @@ impl CompleteContext {
     pub fn all_commands(&self) -> impl Iterator<Item = &SimpleContext> {
         self.children.iter().flat_map(|pi| &pi.children)
     }
+
+    /// Is there more than one pipeline joined by `&&`, `||`, or `;`?
+    pub fn is_chained(&self) -> bool {
+        self.children.len() > 1
+    }
 }
