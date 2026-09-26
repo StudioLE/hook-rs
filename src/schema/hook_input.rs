@@ -8,6 +8,14 @@ use std::io::Read;
 /// Top-level JSON wrapper from Claude Code, generic over the tool input type.
 #[derive(Debug, Deserialize)]
 pub struct HookInput<T> {
+    /// Working directory of the Claude Code session.
+    ///
+    /// - Follows `cd` and worktree changes
+    pub cwd: Option<String>,
+    /// Claude Code permission mode, such as `default` or `plan`.
+    ///
+    /// - Absent for some hook events
+    pub permission_mode: Option<String>,
     /// Tool-specific input fields.
     pub tool_input: T,
 }
@@ -74,6 +82,18 @@ impl<T: DeserializeOwned> HookInput<T> {
     }
 }
 
+impl<T> HookInput<T> {
+    /// Create a new [`HookInput`] wrapping `tool_input` for testing.
+    #[cfg(test)]
+    pub fn new(tool_input: T) -> Self {
+        Self {
+            cwd: None,
+            permission_mode: None,
+            tool_input,
+        }
+    }
+}
+
 impl ReadInput {
     /// Create a new [`ReadInput`] for testing.
     #[cfg(test)]
@@ -126,6 +146,22 @@ mod tests {
         let json = r#"{"tool_name":"Bash","tool_input":{"command":"git status"}}"#;
         let input = HookInput::<BashInput>::from_json(json).expect("should deserialize");
         assert_eq!(input.tool_input.command, "git status");
+    }
+
+    #[test]
+    fn deserialize_common_fields() {
+        let json = r#"{"cwd":"/tmp/project","permission_mode":"plan","tool_name":"Bash","tool_input":{"command":"git status"}}"#;
+        let input = HookInput::<BashInput>::from_json(json).expect("should deserialize");
+        assert_eq!(input.cwd.as_deref(), Some("/tmp/project"));
+        assert_eq!(input.permission_mode.as_deref(), Some("plan"));
+    }
+
+    #[test]
+    fn deserialize_without_common_fields() {
+        let json = r#"{"tool_name":"Bash","tool_input":{"command":"git status"}}"#;
+        let input = HookInput::<BashInput>::from_json(json).expect("should deserialize");
+        assert!(input.cwd.is_none());
+        assert!(input.permission_mode.is_none());
     }
 
     #[test]

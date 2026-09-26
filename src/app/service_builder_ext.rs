@@ -59,9 +59,9 @@ mod tests {
         // Arrange
         let services = ServiceBuilder::mock().build().expect_init();
         let handler = services.expect::<BashHandler>();
-        let input = BashInput {
+        let input = HookInput::new(BashInput {
             command: "git status".to_owned(),
-        };
+        });
 
         // Act
         let outcome = handler.run(input);

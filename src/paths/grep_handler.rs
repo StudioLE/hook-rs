@@ -14,8 +14,8 @@ pub struct GrepHandler {
 impl Handler for GrepHandler {
     type Input = GrepInput;
 
-    fn run(&self, input: Self::Input) -> Option<Outcome> {
-        let path = input.path.unwrap_or_cwd();
+    fn run(&self, input: HookInput<Self::Input>) -> Option<Outcome> {
+        let path = input.tool_input.path.unwrap_or_cwd();
         trace!(path, "Handling grep");
         self.path_rule_factory
             .is_match_outcome(&path, &self.settings.read.paths)
@@ -29,7 +29,7 @@ mod tests {
     #[test]
     fn directory_via_prefix() {
         // Arrange
-        let input = GrepInput::new("needle", "/opt/readonly");
+        let input = HookInput::new(GrepInput::new("needle", "/opt/readonly"));
         let settings = Settings::with_read(&["/opt/readonly/**"]);
         let handler = ServiceBuilder::mock()
             .with_instance(settings)
@@ -46,7 +46,7 @@ mod tests {
     #[test]
     fn file_path_directly() {
         // Arrange
-        let input = GrepInput::new("needle", "/opt/readonly/src/lib.rs");
+        let input = HookInput::new(GrepInput::new("needle", "/opt/readonly/src/lib.rs"));
         let settings = Settings::with_read(&["/opt/readonly/**"]);
         let handler = ServiceBuilder::mock()
             .with_instance(settings)
@@ -63,7 +63,7 @@ mod tests {
     #[test]
     fn unrelated_directory() {
         // Arrange
-        let input = GrepInput::new("needle", "/etc");
+        let input = HookInput::new(GrepInput::new("needle", "/etc"));
         let settings = Settings::with_read(&["/opt/readonly/**"]);
         let handler = ServiceBuilder::mock()
             .with_instance(settings)
@@ -80,7 +80,7 @@ mod tests {
     #[test]
     fn empty_settings() {
         // Arrange
-        let input = GrepInput::new("needle", "/opt/readonly");
+        let input = HookInput::new(GrepInput::new("needle", "/opt/readonly"));
         let settings = Settings::default();
         let handler = ServiceBuilder::mock()
             .with_instance(settings)
@@ -97,10 +97,10 @@ mod tests {
     #[test]
     fn missing_path_falls_back_to_cwd() {
         // Arrange
-        let input = GrepInput {
+        let input = HookInput::new(GrepInput {
             pattern: "needle".to_owned(),
             path: None,
-        };
+        });
         let cwd = cwd();
         let settings = Settings::with_read(&[&format!("{cwd}/**")]);
         let handler = ServiceBuilder::mock()
@@ -118,7 +118,7 @@ mod tests {
     #[test]
     fn negation_excludes_path() {
         // Arrange
-        let input = GrepInput::new("needle", "/opt/readonly/secret");
+        let input = HookInput::new(GrepInput::new("needle", "/opt/readonly/secret"));
         let settings = Settings::with_read(&["/opt/readonly/**", "!/opt/readonly/secret/**"]);
         let handler = ServiceBuilder::mock()
             .with_instance(settings)

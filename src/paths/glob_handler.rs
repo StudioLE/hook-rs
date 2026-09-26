@@ -14,8 +14,8 @@ pub struct GlobHandler {
 impl Handler for GlobHandler {
     type Input = GlobInput;
 
-    fn run(&self, input: Self::Input) -> Option<Outcome> {
-        let path = input.path.unwrap_or_cwd();
+    fn run(&self, input: HookInput<Self::Input>) -> Option<Outcome> {
+        let path = input.tool_input.path.unwrap_or_cwd();
         trace!(path, "Handling glob");
         self.path_rule_factory
             .is_match_outcome(&path, &self.settings.read.paths)
@@ -29,7 +29,7 @@ mod tests {
     #[test]
     fn directory_via_prefix() {
         // Arrange
-        let input = GlobInput::new("**/*.rs", Some("/opt/readonly".to_owned()));
+        let input = HookInput::new(GlobInput::new("**/*.rs", Some("/opt/readonly".to_owned())));
         let settings = Settings::with_read(&["/opt/readonly/**"]);
         let handler = ServiceBuilder::mock()
             .with_instance(settings)
@@ -46,7 +46,10 @@ mod tests {
     #[test]
     fn file_path_directly() {
         // Arrange
-        let input = GlobInput::new("**/*.rs", Some("/opt/readonly/src/lib.rs".to_owned()));
+        let input = HookInput::new(GlobInput::new(
+            "**/*.rs",
+            Some("/opt/readonly/src/lib.rs".to_owned()),
+        ));
         let settings = Settings::with_read(&["/opt/readonly/**"]);
         let handler = ServiceBuilder::mock()
             .with_instance(settings)
@@ -63,7 +66,7 @@ mod tests {
     #[test]
     fn unrelated_directory() {
         // Arrange
-        let input = GlobInput::new("**/*.rs", Some("/etc".to_owned()));
+        let input = HookInput::new(GlobInput::new("**/*.rs", Some("/etc".to_owned())));
         let settings = Settings::with_read(&["/opt/readonly/**"]);
         let handler = ServiceBuilder::mock()
             .with_instance(settings)
@@ -80,7 +83,7 @@ mod tests {
     #[test]
     fn empty_settings() {
         // Arrange
-        let input = GlobInput::new("**/*.rs", Some("/opt/readonly".to_owned()));
+        let input = HookInput::new(GlobInput::new("**/*.rs", Some("/opt/readonly".to_owned())));
         let settings = Settings::default();
         let handler = ServiceBuilder::mock()
             .with_instance(settings)
@@ -97,7 +100,7 @@ mod tests {
     #[test]
     fn missing_path_falls_back_to_cwd() {
         // Arrange
-        let input = GlobInput::new("**/*.rs", None);
+        let input = HookInput::new(GlobInput::new("**/*.rs", None));
         let cwd = cwd();
         let settings = Settings::with_read(&[&format!("{cwd}/**")]);
         let handler = ServiceBuilder::mock()
@@ -115,7 +118,10 @@ mod tests {
     #[test]
     fn negation_excludes_path() {
         // Arrange
-        let input = GlobInput::new("**/*.rs", Some("/opt/readonly/secret".to_owned()));
+        let input = HookInput::new(GlobInput::new(
+            "**/*.rs",
+            Some("/opt/readonly/secret".to_owned()),
+        ));
         let settings = Settings::with_read(&["/opt/readonly/**", "!/opt/readonly/secret/**"]);
         let handler = ServiceBuilder::mock()
             .with_instance(settings)

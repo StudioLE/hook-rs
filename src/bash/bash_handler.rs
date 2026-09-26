@@ -12,9 +12,10 @@ pub struct BashHandler {
 impl Handler for BashHandler {
     type Input = BashInput;
 
-    fn run(&self, input: Self::Input) -> Option<Outcome> {
-        trace!(command = %input.command, "Handling bash command");
-        match self.evaluator.evaluate_str(&input.command) {
+    fn run(&self, input: HookInput<Self::Input>) -> Option<Outcome> {
+        let command = input.tool_input.command;
+        trace!(command, "Handling bash command");
+        match self.evaluator.evaluate_str(&command, input.cwd) {
             Ok(outcome) => Some(outcome),
             Err(report) => match report.current_context() {
                 ParseError::Skip(reason) => {
@@ -94,8 +95,8 @@ mod tests {
             .build()
             .expect_init()
             .expect::<BashHandler>();
-        handler.run(BashInput {
+        handler.run(HookInput::new(BashInput {
             command: command.to_owned(),
-        })
+        }))
     }
 }

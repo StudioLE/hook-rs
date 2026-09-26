@@ -70,6 +70,7 @@ fn deny_git_c(ctx: &BashRuleContext) -> bool {
     }
     let new_simple = get_context_without_c(ctx.simple);
     let inner = BashRuleContext {
+        cwd: ctx.cwd.clone(),
         simple: &new_simple,
         complete: ctx.complete,
         settings: ctx.settings,
@@ -84,6 +85,7 @@ fn allow_git_c(ctx: &BashRuleContext) -> bool {
     }
     let new_simple = get_context_without_c(ctx.simple);
     let inner = BashRuleContext {
+        cwd: ctx.cwd.clone(),
         simple: &new_simple,
         complete: ctx.complete,
         settings: ctx.settings,

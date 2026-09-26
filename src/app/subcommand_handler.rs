@@ -27,11 +27,15 @@ impl SubcommandHandler {
 /// Run the handler.
 ///
 /// - Deserialize stdin as [`HookInput`]
+/// - Logs the session working directory and permission mode
 /// - Returns the handler's outcome on success
 /// - Logs and converts deserialization failures to an error [`Outcome`]
 fn run_handler<H: Handler>(handler: &H) -> Option<Outcome> {
     match HookInput::<H::Input>::from_stdin() {
-        Ok(input) => handler.run(input.tool_input),
+        Ok(input) => {
+            debug!(cwd = ?input.cwd, permission_mode = ?input.permission_mode, "Received hook input");
+            handler.run(input)
+        }
         Err(report) => {
             error!("{}", report.render());
             Some(Outcome::error(report))
