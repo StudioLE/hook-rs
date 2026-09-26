@@ -77,7 +77,7 @@ mod tests {
     /// Trailing `$` before a closing single quote is a regex anchor.
     #[test]
     fn bash_handler_run_single_quoted_trailing_dollar() {
-        let outcome = run("rg '^fn main$' src");
+        let outcome = run("rg --no-ignore '^fn main$' src");
         assert_eq!(outcome.expect("should match").decision, Decision::Allow);
     }
 

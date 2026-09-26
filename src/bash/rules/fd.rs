@@ -1,10 +1,30 @@
-//! Rules for `fd` operations: allow read-only, deny destructive.
+//! Rules for `fd` operations: allow read-only, deny destructive and ignored files.
 
 use crate::prelude::*;
 
-/// Deny destructive `fd`, allow read-only `fd`.
+/// Deny destructive `fd` and `fd` without `--no-ignore`, allow read-only `fd`.
 pub fn fd_rules() -> Vec<BashRule> {
-    vec![fd_exec_rm(), fd__read_only()]
+    vec![fd_exec_rm(), fd__ignored(), fd__read_only()]
+}
+
+/// Deny `fd` without `--no-ignore`.
+///
+/// By default `fd` skips gitignored files so missing results don't prove absence.
+fn fd__ignored() -> BashRule {
+    BashRule {
+        id: "fd__ignored".to_owned(),
+        command: "fd".to_owned(),
+        without_any: Some(vec![
+            ArgMatcher::new("-I"),
+            ArgMatcher::new("--no-ignore"),
+            ArgMatcher::new("-u"),
+            ArgMatcher::new("--unrestricted"),
+        ]),
+        outcome: Outcome::deny(
+            "`fd` skips gitignored and hidden files by default, so missing results don't prove a file is absent. Add `--no-ignore --hidden`",
+        ),
+        ..Default::default()
+    }
 }
 
 /// Allow `fd` without exec flags.
@@ -83,35 +103,78 @@ mod tests {
 
     #[test]
     fn fd_read_only() {
-        let result = eval_rules(fd_rules(), "fd -e rs");
+        let result = eval_rules(fd_rules(), "fd --no-ignore -e rs");
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn fd_read_only_pattern() {
-        let result = eval_rules(fd_rules(), "fd 'test.*' src/");
+        let result = eval_rules(fd_rules(), "fd --no-ignore 'test.*' src/");
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn fd_read_only_piped() {
-        let result = eval_rules(fd_rules(), "fd -e rs | head -20");
+        let result = eval_rules(fd_rules(), "fd --no-ignore -e rs | head -20");
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::OnlyAllowAll);
     }
 
     #[test]
+    fn fd_read_only_bundled() {
+        let result = eval_rules(fd_rules(), "fd -HI -e rs");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn fd_read_only_unrestricted() {
+        let result = eval_rules(fd_rules(), "fd -u -e rs");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn fd_ignored() {
+        let result = eval_rules(fd_rules(), "fd -e rs");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Deny);
+    }
+
+    #[test]
+    fn fd_ignored_hidden_only() {
+        let result = eval_rules(fd_rules(), "fd -H -e rs");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Deny);
+    }
+
+    /// `--no-ignore-vcs` still respects `.ignore` and `.fdignore`.
+    #[test]
+    fn fd_ignored_partial() {
+        let result = eval_rules(fd_rules(), "fd --no-ignore-vcs -e rs");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Deny);
+    }
+
+    #[test]
+    fn fd_ignored_piped() {
+        let result = eval_rules(fd_rules(), "echo x | fd -e rs");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Deny);
+    }
+
+    #[test]
     fn fd_exec_ls() {
-        let result = eval_rules(fd_rules(), "fd -e rs -x ls");
+        let result = eval_rules(fd_rules(), "fd --no-ignore -e rs -x ls");
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn fd_exec_cat() {
-        let result = eval_rules(fd_rules(), "fd -e txt --exec cat");
+        let result = eval_rules(fd_rules(), "fd --no-ignore -e txt --exec cat");
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
