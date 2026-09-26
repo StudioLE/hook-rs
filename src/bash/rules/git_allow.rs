@@ -39,6 +39,7 @@ pub(crate) const SAFE_WRITE_SUBCOMMANDS: &[&str] = &["fetch", "mv", "rm"];
 pub fn git_allow_rules() -> Vec<BashRule> {
     let mut rules = git_read_only_subcommands();
     rules.extend(git_safe_write_subcommands());
+    rules.push(git_add__nothing_staged());
     rules.push(git_branch__bare());
     rules.extend(git_branch__read_only());
     rules.push(git_tag__bare());
@@ -348,6 +349,7 @@ mod tests {
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
+    /// `-A` is rejected by `git_add__nothing_staged` even when nothing is staged.
     #[test]
     fn git_add() {
         let result = eval_rules(git_allow_rules(), "git add -A");

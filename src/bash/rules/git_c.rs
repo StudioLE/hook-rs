@@ -85,13 +85,21 @@ fn allow_git_c(ctx: &BashRuleContext) -> bool {
     }
     let new_simple = get_context_without_c(ctx.simple);
     let inner = BashRuleContext {
-        cwd: ctx.cwd.clone(),
+        cwd: get_c_path(ctx),
         simple: &new_simple,
         complete: ctx.complete,
         settings: ctx.settings,
         paths: ctx.paths,
     };
     git_allow_rules().iter().any(|r| r.matches(&inner))
+}
+
+/// Get the `-C` path as the working directory for inner rules.
+///
+/// - `None` for relative paths, since the base directory is ambiguous
+fn get_c_path(ctx: &BashRuleContext) -> Option<String> {
+    let path = unquote_str(ctx.simple.args.get(1)?);
+    Path::new(&path).is_absolute().then_some(path)
 }
 
 #[cfg(test)]

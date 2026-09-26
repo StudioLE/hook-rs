@@ -528,6 +528,7 @@ dependencies = [
  "studiole-di",
  "studiole-logging",
  "studiole-report",
+ "tempfile",
  "thiserror",
  "tracing",
 ]
