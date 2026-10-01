@@ -325,6 +325,26 @@ mod tests {
     }
 
     #[test]
+    fn trusted_path_count_objects() {
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/my-project count-objects -vH",
+        );
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn trusted_path_log_output() {
+        let result = eval_rules(
+            git_c_rules(),
+            "git -C /home/user/repos/my-project log --output=/tmp/out.txt",
+        );
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
     fn trusted_subdir_diff() {
         let result = eval_rules(git_c_rules(), "git -C /home/user/repos/foo/bar diff");
         let outcome = expect_outcome(result);

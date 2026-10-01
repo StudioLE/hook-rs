@@ -4,7 +4,11 @@ use crate::prelude::*;
 
 /// Git subcommands that only read (no filesystem or `.git/` writes).
 ///
+/// - `--output=<file>` is excluded since `diff`, `log`, `rev-list`, `shortlog`, and `show` write to it
+///
 /// Known gaps, accepted as unlikely agent behavior:
+/// - `cat-file --textconv` / `--filters` run textconv and filter drivers from git config
+///   - `diff`, `log`, and `show` already run textconv drivers by default
 /// - `grep -O<pager>` / `--open-files-in-pager=<pager>` runs an arbitrary program
 ///   - Git accepts unique long-option prefixes, so `--op=<pager>` also works
 /// - `grep --no-index`, `--untracked --no-exclude-standard`, and `-f <file>` read
@@ -13,19 +17,29 @@ use crate::prelude::*;
 /// - `ls-remote <url>` contacts the network, so data encoded in the URL can leak
 pub(crate) const READ_ONLY_SUBCOMMANDS: &[&str] = &[
     "blame",
+    "cat-file",
     "check-ignore",
+    "cherry",
+    "count-objects",
     "describe",
     "diff",
+    "for-each-ref",
     "grep",
     "log",
     "ls-files",
     "ls-remote",
     "ls-tree",
     "merge-base",
+    "name-rev",
     "patch-id",
+    "rev-list",
     "rev-parse",
+    "shortlog",
     "show",
+    "show-branch",
+    "show-ref",
     "status",
+    "verify-pack",
 ];
 
 /// Git subcommands that write but are considered safe.
@@ -47,6 +61,9 @@ pub fn git_allow_rules() -> Vec<BashRule> {
     rules.extend(git_remote__read_only());
     rules.push(git_remote__bare());
     rules.extend(git_worktree__read_only());
+    rules.push(git_reflog__bare());
+    rules.extend(git_reflog__read_only());
+    rules.extend(git_stash__read_only());
     rules.push(git_config_list());
     rules.push(git_config_get());
     rules.push(git_config__read_only_flags());
@@ -57,12 +74,12 @@ pub fn git_allow_rules() -> Vec<BashRule> {
 fn git_read_only_subcommands() -> Vec<BashRule> {
     READ_ONLY_SUBCOMMANDS
         .iter()
-        .map(|sub| {
-            BashRule::new(
-                format!("git_{sub}").replace('-', "_"),
-                format!("git {sub}"),
-                Outcome::allow(format!("Read-only `git {sub}`")),
-            )
+        .map(|sub| BashRule {
+            id: format!("git_{sub}").replace('-', "_"),
+            command: format!("git {sub}"),
+            without_any: Some(output_flag()),
+            outcome: Outcome::allow(format!("Read-only `git {sub}`")),
+            ..Default::default()
         })
         .collect()
 }
@@ -184,6 +201,52 @@ fn git_worktree__read_only() -> Vec<BashRule> {
         .collect()
 }
 
+/// Allow bare `git reflog` (no arguments).
+fn git_reflog__bare() -> BashRule {
+    BashRule {
+        id: "git_reflog__bare".to_owned(),
+        command: "git reflog".to_owned(),
+        condition: Some(|ctx| ctx.simple.args.len() == 1),
+        outcome: Outcome::allow("Read-only `git reflog`"),
+        ..Default::default()
+    }
+}
+
+/// Allow read-only `git reflog` subcommands.
+fn git_reflog__read_only() -> Vec<BashRule> {
+    ["show", "list", "exists"]
+        .into_iter()
+        .map(|sub| BashRule {
+            id: format!("git_reflog_{sub}"),
+            command: format!("git reflog {sub}"),
+            without_any: Some(output_flag()),
+            outcome: Outcome::allow("Read-only `git reflog`"),
+            ..Default::default()
+        })
+        .collect()
+}
+
+/// Allow read-only `git stash` subcommands.
+fn git_stash__read_only() -> Vec<BashRule> {
+    ["list", "show"]
+        .into_iter()
+        .map(|sub| BashRule {
+            id: format!("git_stash_{sub}"),
+            command: format!("git stash {sub}"),
+            without_any: Some(output_flag()),
+            outcome: Outcome::allow("Read-only `git stash`"),
+            ..Default::default()
+        })
+        .collect()
+}
+
+/// Match `--output`, which writes to a file.
+///
+/// - Git rejects abbreviations like `--out`, so only `--output` and `--output=<file>` need matching
+fn output_flag() -> Vec<ArgMatcher> {
+    vec![ArgMatcher::new("--output")]
+}
+
 /// Allow `git config list`.
 fn git_config_list() -> BashRule {
     BashRule::new(
@@ -241,10 +304,14 @@ mod tests {
     fn git_safe_subcommands() {
         for sub in [
             "blame",
+            "cat-file",
             "check-ignore",
+            "cherry",
+            "count-objects",
             "describe",
             "diff",
             "fetch",
+            "for-each-ref",
             "grep",
             "log",
             "ls-files",
@@ -252,10 +319,16 @@ mod tests {
             "ls-tree",
             "merge-base",
             "mv",
+            "name-rev",
+            "rev-list",
             "rev-parse",
             "rm",
+            "shortlog",
             "show",
+            "show-branch",
+            "show-ref",
             "status",
+            "verify-pack",
         ] {
             let result = eval_rules(git_allow_rules(), &format!("git {sub}"));
             let outcome = expect_outcome(result);
@@ -288,6 +361,115 @@ mod tests {
         );
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn git_count_objects() {
+        let result = eval_rules(git_allow_rules(), "git count-objects -vH");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn git_rev_list_count() {
+        let result = eval_rules(git_allow_rules(), "git rev-list --count HEAD");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn git_shortlog_summary() {
+        let result = eval_rules(git_allow_rules(), "git shortlog -sn HEAD");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    /// `--output=<file>` writes the diff to a file.
+    #[test]
+    fn git_diff_output_equals() {
+        let result = eval_rules(git_allow_rules(), "git diff --output=out.txt");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    /// `--output <file>` writes the log to a file.
+    #[test]
+    fn git_log_output_separate() {
+        let result = eval_rules(git_allow_rules(), "git log --output out.txt");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn git_rev_list_output() {
+        let result = eval_rules(git_allow_rules(), "git rev-list HEAD --output=out.txt");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    /// `--output-indicator-new` only changes the diff prefix character.
+    #[test]
+    fn git_diff_output_indicator() {
+        let result = eval_rules(git_allow_rules(), "git diff --output-indicator-new=+");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn git_reflog_bare() {
+        let result = eval_rules(git_allow_rules(), "git reflog");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn git_reflog_read_only() {
+        for command in [
+            "git reflog show",
+            "git reflog show -n 5 main",
+            "git reflog list",
+            "git reflog exists main",
+        ] {
+            let result = eval_rules(git_allow_rules(), command);
+            let outcome = expect_outcome(result);
+            assert_eq!(outcome.decision, Decision::Allow, "{command}");
+        }
+    }
+
+    #[test]
+    fn git_reflog_write() {
+        for command in [
+            "git reflog expire --all",
+            "git reflog delete HEAD@{1}",
+            "git reflog drop --all",
+            "git reflog write main abc def msg",
+            "git reflog show --output=out.txt",
+        ] {
+            let result = eval_rules(git_allow_rules(), command);
+            let reason = expect_skip(result);
+            assert_eq!(reason, SkipReason::NoMatches, "{command}");
+        }
+    }
+
+    #[test]
+    fn git_stash_list() {
+        let result = eval_rules(git_allow_rules(), "git stash list");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn git_stash_show() {
+        let result = eval_rules(git_allow_rules(), "git stash show -p stash@{0}");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn git_stash_show_output() {
+        let result = eval_rules(git_allow_rules(), "git stash show -p --output=out.txt");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
