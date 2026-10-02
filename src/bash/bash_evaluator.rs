@@ -392,8 +392,8 @@ mod tests {
     }
 
     #[test]
-    fn git_diff_and_status() {
-        let result = BashEvaluator::mock().evaluate_str("git diff && git status", None);
+    fn git_log_and_status() {
+        let result = BashEvaluator::mock().evaluate_str("git log && git status", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }

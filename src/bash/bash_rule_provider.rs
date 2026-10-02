@@ -32,6 +32,7 @@ impl BashRuleProvider {
         rules.extend(git_deny_rules());
         rules.extend(git_allow_rules());
         rules.extend(git_c_rules());
+        rules.extend(git_diff_rules());
         rules.extend(git_worktree_rules());
         rules.extend(journalctl_rules());
         rules.extend(mkdir_rules());
