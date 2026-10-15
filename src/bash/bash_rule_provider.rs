@@ -34,6 +34,7 @@ impl BashRuleProvider {
         rules.extend(git_c_rules());
         rules.extend(git_diff_rules());
         rules.extend(git_worktree_rules());
+        rules.extend(help_rules());
         rules.extend(journalctl_rules());
         rules.extend(mkdir_rules());
         rules.extend(cd_git_rules());
@@ -44,6 +45,7 @@ impl BashRuleProvider {
         rules.extend(sed_rules());
         rules.extend(sops_rules());
         rules.extend(read_only_rules());
+        rules.extend(version_rules());
         rules
     }
 }

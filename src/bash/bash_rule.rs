@@ -2,6 +2,9 @@
 
 use crate::prelude::*;
 
+/// [`BashRule::command`] value that matches any command name.
+pub const ANY_COMMAND: &str = "*";
+
 /// Rule that matches a [`SimpleContext`] by command name, arguments, and conditions.
 #[derive(Default)]
 pub struct BashRule {
@@ -93,10 +96,19 @@ impl BashRule {
         true
     }
 
-    /// Count of leading args matching [`BashRule::command`].
+    /// Count the args after the command name that [`BashRule::command`] matched.
     ///
-    /// - `None` if the command name or leading args don't match
+    /// - `None` if the name or those args don't match
+    ///
+    /// When the command is `brew list --versions`:
+    /// - Rule `command` of `"brew list"` returns `Some(1)`
+    /// - Rule `command` of [`ANY_COMMAND`] returns `Some(0)`
+    /// - Rule `command` of `"brew cat"` returns `None`
+    /// - Rule `command` of `"sort"` returns `None`
     fn get_leading_count(&self, ctx: &BashRuleContext) -> Option<usize> {
+        if self.command == ANY_COMMAND {
+            return Some(0);
+        }
         let mut words = self.command.split_whitespace();
         if words.next()? != ctx.simple.name {
             return None;
@@ -135,5 +147,22 @@ impl BashRule {
     /// Does the command satisfy `condition`?
     fn matches_condition(&self, ctx: &BashRuleContext) -> bool {
         self.condition.is_none_or(|condition| condition(ctx))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::prelude::*;
+
+    /// An [`ANY_COMMAND`] rule matches commands with no rule of their own.
+    #[test]
+    fn bash_rule_get_outcome_any_command() {
+        // Arrange
+        let rule = BashRule::new("any", ANY_COMMAND, Outcome::allow("Any command"));
+        // Act
+        let result = eval_rules(vec![rule], "aws s3 ls && kubectl get pods");
+        // Assert
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 }
