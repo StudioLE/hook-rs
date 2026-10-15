@@ -340,7 +340,7 @@ mod tests {
         // Assert
         assert_eq!(output.len(), 2);
         assert_eq!(output[0].name, "git");
-        assert!(output[0].options.is_empty());
+        assert_eq!(output[0].options, Vec::<ParsedOption>::new());
         assert_eq!(output[1].name, "log");
         assert_eq!(output[1].options.len(), 2);
         assert_eq!(output[1].options[0].name, "--oneline");

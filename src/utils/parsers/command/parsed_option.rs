@@ -1,5 +1,7 @@
 //! Parsed option from [`CommandParser`].
 
+use crate::prelude::*;
+
 /// Parsed option with its optional value.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ParsedOption {

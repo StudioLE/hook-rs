@@ -1,5 +1,7 @@
 //! Classified command-line argument from [`ArgParser`].
 
+use crate::prelude::*;
+
 /// Classified command-line argument.
 ///
 /// Each variant represents one element of a parsed argument list,

@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-/// Multiple [`SimpleCommand`] in a `|` pipeline.
+/// Multiple [`SimpleContext`] in a `|` pipeline.
 ///
 /// Example: `git diff --stat HEAD~3 | head -5`
 ///

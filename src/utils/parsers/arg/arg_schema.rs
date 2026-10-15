@@ -1,5 +1,7 @@
 //! Flag definitions for [`ArgParser`].
 
+use crate::prelude::*;
+
 /// Flag definitions that describe a command's argument structure.
 ///
 /// The schema is position-agnostic: it does not encode where flags
