@@ -23,7 +23,7 @@ fn rg__ignored() -> BashRule {
         ]),
         condition: Some(|ctx| !is_piped_into(ctx)),
         outcome: Outcome::deny(
-            "`rg` skips gitignored and hidden files by default, so missing results don't prove a file is absent. Add `--no-ignore --hidden`",
+            "`rg` skips gitignored files by default, so missing results don't prove a file is absent. Add `--no-ignore`",
         ),
         ..Default::default()
     }

@@ -21,7 +21,7 @@ fn fd__ignored() -> BashRule {
             ArgMatcher::new("--unrestricted"),
         ]),
         outcome: Outcome::deny(
-            "`fd` skips gitignored and hidden files by default, so missing results don't prove a file is absent. Add `--no-ignore --hidden`",
+            "`fd` skips gitignored files by default, so missing results don't prove a file is absent. Add `--no-ignore`",
         ),
         ..Default::default()
     }
