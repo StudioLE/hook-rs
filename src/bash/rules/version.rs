@@ -7,7 +7,7 @@ pub fn version_rules() -> Vec<BashRule> {
     vec![any__version()]
 }
 
-/// Allow `<cmd> --version` with no subcommand or other flags.
+/// Allow `<cmd> [sub…] --version` with `--version` last and no other flags.
 fn any__version() -> BashRule {
     BashRule {
         condition: Some(is_bare_version),
@@ -20,7 +20,10 @@ fn any__version() -> BashRule {
 }
 
 fn is_bare_version(ctx: &BashRuleContext) -> bool {
-    ctx.simple.args == ["--version"] && is_plain_invocation(ctx, &[])
+    let Some((last, components)) = ctx.simple.args.split_last() else {
+        return false;
+    };
+    last == "--version" && is_plain_invocation(ctx, components)
 }
 
 #[cfg(test)]
@@ -37,6 +40,42 @@ mod tests {
     #[test]
     fn any__version_subcommand() {
         let result = eval_rules(version_rules(), "aws s3 --version");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    /// Checking an external git subcommand is installed with all real rules.
+    #[test]
+    fn any__version_git_extension() {
+        let result = BashEvaluator::mock().evaluate_str("git filter-repo --version", None);
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn any__version_without_version() {
+        let result = eval_rules(version_rules(), "aws s3 ls");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn any__version_not_last() {
+        let result = eval_rules(version_rules(), "aws --version s3");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn any__version_with_flag() {
+        let result = eval_rules(version_rules(), "aws -x --version");
+        let reason = expect_skip(result);
+        assert_eq!(reason, SkipReason::NoMatches);
+    }
+
+    #[test]
+    fn any__version_quoted_subcommand() {
+        let result = eval_rules(version_rules(), "aws 'foo' --version");
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
