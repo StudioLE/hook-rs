@@ -14,6 +14,7 @@ pub fn gh_rules() -> Vec<BashRule> {
         gh_api_graphql__mutation(),
         gh_api_graphql__query(),
         gh_api__data_flags(),
+        gh_api__raw_field(),
         gh_api__write_method(),
         gh_api__read_only(),
     ]
@@ -97,7 +98,8 @@ fn gh_api_graphql__query() -> BashRule {
 
 /// Ask for API with data flags.
 ///
-/// Excludes `gh api graphql` which is handled by dedicated graphql rules.
+/// - Asks even with GET: `-F key=@path` reads a local file and `--input` sends a body
+/// - Excludes `gh api graphql` which is handled by dedicated graphql rules
 fn gh_api__data_flags() -> BashRule {
     BashRule {
         id: "gh_api__data_flags".to_owned(),
@@ -105,14 +107,31 @@ fn gh_api__data_flags() -> BashRule {
         with_any: Some(vec![
             ArgMatcher::new("-d"),
             ArgMatcher::new("--data"),
-            ArgMatcher::new("-f"),
             ArgMatcher::new("--field"),
             ArgMatcher::new("-F"),
-            ArgMatcher::new("--raw-field"),
             ArgMatcher::new("--input"),
         ]),
         without_any: Some(vec![ArgMatcher::new("graphql")]),
         outcome: Outcome::ask("`gh api` with data flags requires approval"),
+        ..Default::default()
+    }
+}
+
+/// Ask for API with raw fields unless the method is GET.
+///
+/// - GET sends raw fields as a query string, not a body
+/// - Excludes `gh api graphql` which is handled by dedicated graphql rules
+fn gh_api__raw_field() -> BashRule {
+    BashRule {
+        id: "gh_api__raw_field".to_owned(),
+        command: "gh api".to_owned(),
+        with_any: Some(vec![ArgMatcher::new("-f"), ArgMatcher::new("--raw-field")]),
+        without_any: Some(vec![
+            ArgMatcher::new("graphql"),
+            ArgMatcher::new("-X").ivalue("GET"),
+            ArgMatcher::new("--method").ivalue("GET"),
+        ]),
+        outcome: Outcome::ask("`gh api` with raw fields requires approval unless `--method GET`"),
         ..Default::default()
     }
 }
@@ -136,7 +155,8 @@ fn gh_api__write_method() -> BashRule {
 
 /// Allow read-only `gh api` (no data flags or write methods).
 ///
-/// Excludes `gh api graphql` which is handled by dedicated graphql rules.
+/// - Raw fields are left to [`gh_api__raw_field`], which asks unless the method is GET
+/// - Excludes `gh api graphql` which is handled by dedicated graphql rules
 fn gh_api__read_only() -> BashRule {
     BashRule {
         id: "gh_api__read_only".to_owned(),
@@ -144,10 +164,8 @@ fn gh_api__read_only() -> BashRule {
         without_any: Some(vec![
             ArgMatcher::new("-d"),
             ArgMatcher::new("--data"),
-            ArgMatcher::new("-f"),
             ArgMatcher::new("--field"),
             ArgMatcher::new("-F"),
-            ArgMatcher::new("--raw-field"),
             ArgMatcher::new("--input"),
             ArgMatcher::new("-X").ivalue("{POST,PUT,PATCH,DELETE}"),
             ArgMatcher::new("--method").ivalue("{POST,PUT,PATCH,DELETE}"),
@@ -363,6 +381,45 @@ mod tests {
     #[test]
     fn gh_api_data_flags_f() {
         let result = eval_rules(gh_rules(), "gh api /repos/owner/repo/issues -f title=test");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Ask);
+    }
+
+    #[test]
+    fn gh_api_raw_field_get() {
+        let result = eval_rules(
+            gh_rules(),
+            "gh api -X GET search/code -f q='filename:.env.example' --jq .total_count",
+        );
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    #[test]
+    fn gh_api_raw_field_method_get() {
+        let result = eval_rules(
+            gh_rules(),
+            "gh api repos/owner/repo/contents/README.md -H 'Accept: application/vnd.github.raw' --method GET -f ref=main",
+        );
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
+    }
+
+    /// `-F key=@path` reads a local file into the query string.
+    #[test]
+    fn gh_api_raw_field_get_cap_f() {
+        let result = eval_rules(gh_rules(), "gh api -X GET search/code -F q=@notes.txt");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Ask);
+    }
+
+    /// `--input` sends a request body even with GET.
+    #[test]
+    fn gh_api_raw_field_get_input() {
+        let result = eval_rules(
+            gh_rules(),
+            "gh api --method GET repos/owner/repo --input body.json",
+        );
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Ask);
     }
