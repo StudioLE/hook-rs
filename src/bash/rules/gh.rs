@@ -12,6 +12,7 @@ pub fn gh_rules() -> Vec<BashRule> {
         gh_search_code(),
         gh_pr_comment(),
         gh_api_graphql__mutation(),
+        gh_api_graphql__query_file(),
         gh_api_graphql__query(),
         gh_api__data_flags(),
         gh_api__raw_field(),
@@ -81,6 +82,23 @@ fn gh_api_graphql__mutation() -> BashRule {
         command: "gh api graphql".to_owned(),
         with_any: Some(vec![ArgMatcher::new("*mutation*")]),
         outcome: Outcome::ask("`gh api graphql` with mutation requires approval"),
+        ..Default::default()
+    }
+}
+
+/// Ask for GraphQL query read from a file or stdin.
+///
+/// - The query text is hidden from [`gh_api_graphql__mutation`], so a mutation would pass as a query
+fn gh_api_graphql__query_file() -> BashRule {
+    BashRule {
+        id: "gh_api_graphql__query_file".to_owned(),
+        command: "gh api graphql".to_owned(),
+        with_any: Some(vec![
+            ArgMatcher::new("-F").value("query=@*"),
+            ArgMatcher::new("--field").value("query=@*"),
+            ArgMatcher::new("--input"),
+        ]),
+        outcome: Outcome::ask("`gh api graphql` with query from file or stdin requires approval"),
         ..Default::default()
     }
 }
@@ -376,6 +394,38 @@ mod tests {
         );
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Ask);
+    }
+
+    #[test]
+    fn gh_api_graphql_query_file() {
+        let result = eval_rules(gh_rules(), "gh api graphql -F query=@q.graphql");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Ask);
+    }
+
+    #[test]
+    fn gh_api_graphql_query_file_stdin() {
+        let result = eval_rules(gh_rules(), "gh api graphql --field=query=@-");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Ask);
+    }
+
+    #[test]
+    fn gh_api_graphql_query_file_input() {
+        let result = eval_rules(gh_rules(), "gh api graphql --input body.json");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Ask);
+    }
+
+    /// Only the `query` field decides read vs write, so variables from files are fine.
+    #[test]
+    fn gh_api_graphql_query_file_variable() {
+        let result = eval_rules(
+            gh_rules(),
+            "gh api graphql -F owner=@owner.txt -f query='{ viewer { login } }'",
+        );
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
