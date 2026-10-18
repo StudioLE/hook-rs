@@ -126,6 +126,7 @@ fn gh_api__write_method() -> BashRule {
         command: "gh api".to_owned(),
         with_any: Some(vec![
             ArgMatcher::new("-X").ivalue("{POST,PUT,PATCH,DELETE}"),
+            ArgMatcher::new("--method").ivalue("{POST,PUT,PATCH,DELETE}"),
         ]),
         without_any: Some(vec![ArgMatcher::new("graphql")]),
         outcome: Outcome::ask("`gh api` with write method requires approval"),
@@ -149,6 +150,7 @@ fn gh_api__read_only() -> BashRule {
             ArgMatcher::new("--raw-field"),
             ArgMatcher::new("--input"),
             ArgMatcher::new("-X").ivalue("{POST,PUT,PATCH,DELETE}"),
+            ArgMatcher::new("--method").ivalue("{POST,PUT,PATCH,DELETE}"),
             ArgMatcher::new("graphql"),
         ]),
         outcome: Outcome::allow("Read-only `gh api`"),
@@ -260,6 +262,20 @@ mod tests {
     #[test]
     fn gh_api_write_method_delete() {
         let result = eval_rules(gh_rules(), "gh api -X DELETE /repos/owner/repo/issues/1");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Ask);
+    }
+
+    #[test]
+    fn gh_api_write_method_long() {
+        let result = eval_rules(gh_rules(), "gh api --method POST /repos/owner/repo/issues");
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Ask);
+    }
+
+    #[test]
+    fn gh_api_write_method_long_equals() {
+        let result = eval_rules(gh_rules(), "gh api --method=post /repos/owner/repo/issues");
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Ask);
     }
