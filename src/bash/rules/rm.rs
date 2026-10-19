@@ -123,7 +123,7 @@ fn is_literal_path_char(c: char) -> bool {
 #[cfg(test)]
 mod tests {
     use crate::prelude::*;
-    use std::fs::{create_dir, create_dir_all, write};
+    use std::fs::{self, create_dir, create_dir_all};
     use std::os::unix::fs::symlink;
     use tempfile::{Builder, TempDir};
 
@@ -710,7 +710,7 @@ mod tests {
     /// Create a file at `name` inside `dir` and return its path.
     fn make_file(dir: &TempDir, name: &str) -> String {
         let path = dir.path().join(name);
-        write(&path, "content").expect("should write file");
+        fs::write(&path, "content").expect("should write file");
         path.display().to_string()
     }
 

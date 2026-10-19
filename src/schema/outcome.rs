@@ -75,7 +75,7 @@ impl Outcome {
 }
 
 impl Display for Outcome {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}: {}", self.decision, self.reason)
     }
 }

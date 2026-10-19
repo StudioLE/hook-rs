@@ -122,8 +122,8 @@ impl ParserState {
         self.validate_level()?;
         self.output.push(ParsedSubcommand {
             name: self.current_schema.name.clone(),
-            options: take(&mut self.current_options),
-            operands: take(&mut self.current_operands),
+            options: mem::take(&mut self.current_options),
+            operands: mem::take(&mut self.current_operands),
             has_separator: self.after_separator,
         });
         self.after_separator = false;
