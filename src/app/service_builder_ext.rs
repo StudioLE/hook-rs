@@ -18,7 +18,7 @@ impl ServiceBuilderExt for ServiceBuilder {
             .with_type::<BashEvaluator>()
             .with_type::<BashHandler>()
             .with_type::<BashRuleProvider>()
-            .with_type::<CliOptions>()
+            .with_type::<CliArgs>()
             .with_type::<GlobHandler>()
             .with_type::<GrepHandler>()
             .with_type::<HostContext>()
@@ -32,15 +32,15 @@ impl ServiceBuilderExt for ServiceBuilder {
     fn mock() -> ServiceBuilder {
         ServiceBuilder::new()
             .with_app_services()
-            .with_instance(CliOptions::mock())
+            .with_instance(CliArgs::mock())
             .with_instance(HostContext::mock())
             .with_instance(Settings::mock())
     }
 }
 
-/// Create a [`Logger`] by resolving [`CliOptions`] from the service container.
+/// Create a [`Logger`] by resolving [`CliArgs`] from the service container.
 fn create_logger(services: &ServiceProvider) -> Result<Logger, Report<ResolveError>> {
-    let cli = services.get::<CliOptions>()?;
+    let cli = services.get::<CliArgs>()?;
     let logger = LoggerBuilder::new()
         .with_level(cli.log_level.unwrap_or_default())
         .with_target("expansion", LogLevel::Info)

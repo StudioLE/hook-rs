@@ -5,7 +5,7 @@ use crate::prelude::*;
 /// Dispatch the selected subcommand to its handler.
 #[derive(FromServices)]
 pub struct SubcommandHandler {
-    cli_options: Arc<CliOptions>,
+    cli_args: Arc<CliArgs>,
     bash: Arc<BashHandler>,
     glob: Arc<GlobHandler>,
     grep: Arc<GrepHandler>,
@@ -15,11 +15,11 @@ pub struct SubcommandHandler {
 impl SubcommandHandler {
     /// Dispatch to the handler matching the selected subcommand.
     pub fn run(&self) -> Option<Outcome> {
-        match &self.cli_options.subcommand {
-            Subcommand::Bash(_) => run_handler(self.bash.as_ref()),
-            Subcommand::Glob(_) => run_handler(self.glob.as_ref()),
-            Subcommand::Grep(_) => run_handler(self.grep.as_ref()),
-            Subcommand::Read(_) => run_handler(self.read.as_ref()),
+        match &self.cli_args.subcommand {
+            Subcommand::Bash => run_handler(self.bash.as_ref()),
+            Subcommand::Glob => run_handler(self.glob.as_ref()),
+            Subcommand::Grep => run_handler(self.grep.as_ref()),
+            Subcommand::Read => run_handler(self.read.as_ref()),
         }
     }
 }
