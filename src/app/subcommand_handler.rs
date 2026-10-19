@@ -14,31 +14,32 @@ pub struct SubcommandHandler {
 
 impl SubcommandHandler {
     /// Dispatch to the handler matching the selected subcommand.
+    ///
+    /// - Logs and converts deserialization failures to an error [`Outcome`]
     pub fn run(&self) -> Option<Outcome> {
-        match &self.cli_args.subcommand {
-            Subcommand::Bash => run_handler(self.bash.as_ref()),
-            Subcommand::Glob => run_handler(self.glob.as_ref()),
-            Subcommand::Grep => run_handler(self.grep.as_ref()),
-            Subcommand::Read => run_handler(self.read.as_ref()),
-        }
+        self.try_run().unwrap_or_else(|report| {
+            error!("{}", report.render());
+            Some(Outcome::error(report))
+        })
+    }
+
+    /// Run the handler matching the selected subcommand with the hook input.
+    fn try_run(&self) -> Result<Option<Outcome>, Report<HookError>> {
+        let outcome = match self.cli_args.subcommand {
+            Subcommand::Bash => self.bash.run(read_input()?),
+            Subcommand::Glob => self.glob.run(read_input()?),
+            Subcommand::Grep => self.grep.run(read_input()?),
+            Subcommand::Read => self.read.run(read_input()?),
+        };
+        Ok(outcome)
     }
 }
 
-/// Run the handler.
+/// Read and deserialize the hook input from stdin.
 ///
-/// - Deserialize stdin as [`HookInput`]
 /// - Logs the session working directory and permission mode
-/// - Returns the handler's outcome on success
-/// - Logs and converts deserialization failures to an error [`Outcome`]
-fn run_handler<H: Handler>(handler: &H) -> Option<Outcome> {
-    match HookInput::<H::Input>::from_stdin() {
-        Ok(input) => {
-            debug!(cwd = ?input.cwd, permission_mode = ?input.permission_mode, "Received hook input");
-            handler.run(input)
-        }
-        Err(report) => {
-            error!("{}", report.render());
-            Some(Outcome::error(report))
-        }
-    }
+fn read_input<T: DeserializeOwned>() -> Result<HookInput<T>, Report<HookError>> {
+    let input = HookInput::from_stdin()?;
+    debug!(cwd = ?input.cwd, permission_mode = ?input.permission_mode, "Received hook input");
+    Ok(input)
 }
