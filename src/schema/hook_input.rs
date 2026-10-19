@@ -2,8 +2,6 @@
 
 use crate::prelude::*;
 use serde::de::DeserializeOwned;
-use std::io;
-use std::io::Read;
 
 /// Top-level JSON wrapper from Claude Code, generic over the tool input type.
 #[derive(Debug, Deserialize)]
@@ -67,15 +65,6 @@ pub struct GrepInput {
 }
 
 impl<T: DeserializeOwned> HookInput<T> {
-    /// Read and deserialize hook input JSON from stdin.
-    pub fn from_stdin() -> Result<Self, Report<HookError>> {
-        let mut input = String::new();
-        io::stdin()
-            .read_to_string(&mut input)
-            .change_context(HookError::ReadStdin)?;
-        Self::from_json(&input)
-    }
-
     /// Deserialize hook input from a JSON string.
     pub(crate) fn from_json(json: &str) -> Result<Self, Report<HookError>> {
         json_from_str(json).change_context(HookError::DeserializeInput)

@@ -25,6 +25,7 @@ impl ServiceBuilderExt for ServiceBuilder {
             .with_type::<PathRuleFactory>()
             .with_type::<ReadHandler>()
             .with_type::<Settings>()
+            .with_type::<StdinReader>()
             .with_type::<SubcommandHandler>()
     }
 

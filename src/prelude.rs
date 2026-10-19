@@ -5,6 +5,7 @@ pub(crate) use crate::app::*;
 pub(crate) use crate::bash::*;
 pub(crate) use crate::paths::*;
 pub(crate) use crate::schema::*;
+pub(crate) use crate::services::*;
 pub(crate) use crate::settings::*;
 pub(crate) use crate::utils::*;
 
