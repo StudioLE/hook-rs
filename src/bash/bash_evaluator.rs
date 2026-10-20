@@ -264,8 +264,17 @@ mod tests {
     #[test]
     fn standalone_push() {
         let result = BashEvaluator::mock().evaluate_str("git push", None);
-        let reason = expect_skip(result);
-        assert_eq!(reason, SkipReason::NoMatches);
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Ask);
+    }
+
+    /// A trusted `git -C` path does not allow a push.
+    #[test]
+    fn trusted_path_push() {
+        let result =
+            BashEvaluator::mock().evaluate_str("git -C /home/user/repos/my-project push", None);
+        let outcome = expect_outcome(result);
+        assert_eq!(outcome.decision, Decision::Ask);
     }
 
     #[test]

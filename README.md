@@ -136,9 +136,10 @@ Handle `git -C <path>` by combining path trust classification with subcommand an
 </details>
 
 <details>
-<summary>Chained push</summary>
+<summary>Push</summary>
 
-Deny `git push` when part of a compound command. Requires it to be run standalone.
+- Deny `git push` when part of a compound command. Requires it to be run standalone.
+- Ask for every other `git push`, including after git global options like `-C <path>` or `--no-pager`.
 
 [source: `git_push.rs`](src/bash/rules/git_push.rs)
 
