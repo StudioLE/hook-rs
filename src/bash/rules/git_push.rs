@@ -3,7 +3,7 @@
 use crate::prelude::*;
 
 /// Deny `git push` when part of a compound command.
-pub fn chained_push_rules() -> Vec<BashRule> {
+pub fn git_push_rules() -> Vec<BashRule> {
     vec![git_push__chained()]
 }
 
@@ -26,7 +26,7 @@ mod tests {
     #[test]
     fn add_commit_push() {
         let result = eval_rules(
-            chained_push_rules(),
+            git_push_rules(),
             "git add file.txt && git commit -m 'msg' && git push",
         );
         let outcome = expect_outcome(result);
@@ -35,7 +35,7 @@ mod tests {
 
     #[test]
     fn commit_push_no_space() {
-        let result = eval_rules(chained_push_rules(), "git commit -m 'msg'&& git push");
+        let result = eval_rules(git_push_rules(), "git commit -m 'msg'&& git push");
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
@@ -43,7 +43,7 @@ mod tests {
     #[test]
     fn commit_push_with_remote() {
         let result = eval_rules(
-            chained_push_rules(),
+            git_push_rules(),
             "git commit -m 'msg' && git push origin main",
         );
         let outcome = expect_outcome(result);
@@ -52,80 +52,77 @@ mod tests {
 
     #[test]
     fn pull_push() {
-        let result = eval_rules(chained_push_rules(), "git pull && git push");
+        let result = eval_rules(git_push_rules(), "git pull && git push");
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn commit_or_push() {
-        let result = eval_rules(chained_push_rules(), "git commit -m 'msg' || git push");
+        let result = eval_rules(git_push_rules(), "git commit -m 'msg' || git push");
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn commit_semicolon_push() {
-        let result = eval_rules(chained_push_rules(), "git commit -m 'msg' ; git push");
+        let result = eval_rules(git_push_rules(), "git commit -m 'msg' ; git push");
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn standalone_push() {
-        let result = eval_rules(chained_push_rules(), "git push");
+        let result = eval_rules(git_push_rules(), "git push");
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn push_origin_main() {
-        let result = eval_rules(chained_push_rules(), "git push origin main");
+        let result = eval_rules(git_push_rules(), "git push origin main");
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn push_u() {
-        let result = eval_rules(chained_push_rules(), "git push -u origin feature-branch");
+        let result = eval_rules(git_push_rules(), "git push -u origin feature-branch");
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn push_set_upstream() {
-        let result = eval_rules(
-            chained_push_rules(),
-            "git push --set-upstream origin branch",
-        );
+        let result = eval_rules(git_push_rules(), "git push --set-upstream origin branch");
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn push_force_with_lease() {
-        let result = eval_rules(chained_push_rules(), "git push --force-with-lease");
+        let result = eval_rules(git_push_rules(), "git push --force-with-lease");
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_status() {
-        let result = eval_rules(chained_push_rules(), "git status");
+        let result = eval_rules(git_push_rules(), "git status");
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn commit_with_push_in_message() {
-        let result = eval_rules(chained_push_rules(), "git commit -m 'push changes'");
+        let result = eval_rules(git_push_rules(), "git commit -m 'push changes'");
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn echo_git_push() {
-        let result = eval_rules(chained_push_rules(), "echo git push");
+        let result = eval_rules(git_push_rules(), "echo git push");
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
@@ -133,7 +130,7 @@ mod tests {
     #[test]
     fn push_with_substitution() {
         let result = eval_rules(
-            chained_push_rules(),
+            git_push_rules(),
             "git push origin \"$(git branch --show-current)\"",
         );
         let reason = expect_skip(result);

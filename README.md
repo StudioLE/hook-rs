@@ -140,7 +140,7 @@ Handle `git -C <path>` by combining path trust classification with subcommand an
 
 Deny `git push` when part of a compound command. Requires it to be run standalone.
 
-[source: `chained_push.rs`](src/bash/rules/chained_push.rs)
+[source: `git_push.rs`](src/bash/rules/git_push.rs)
 
 </details>
 
