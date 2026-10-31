@@ -17,7 +17,7 @@ regex = { version = "1.13.1" }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = { version = "1.0.154" }
 serde_yaml = { version = "0.9.34" }
-studiole-di = { version = "0.6.0" }
+studiole-di = { version = "0.6.0", features = ["traits"] }
 studiole-logging = { version = "0.5.0", features = ["usage"] }
 studiole-report = { version = "0.4.1", features = ["render"] }
 thiserror = { version = "2.0.21" }

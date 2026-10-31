@@ -1,43 +1,21 @@
-//! Hook input source registered in the service container.
+//! Reader for the hook input on stdin.
 
 use crate::prelude::*;
 use std::io;
 use std::io::Read;
 
-/// Source of the raw hook input JSON.
+/// [`ReadStdin`] from the process stdin.
 ///
-/// - Reads stdin on demand so a read failure becomes an error [`Outcome`] rather than a resolve panic
-pub struct StdinReader {
-    /// Fixed input returned in place of stdin.
-    input: Option<String>,
-}
+/// - Reads on demand so a read failure becomes an error [`Outcome`] rather than a resolve panic
+#[derive(Default, FromServices)]
+pub struct StdinReader;
 
-impl StdinReader {
-    /// Read the raw hook input.
-    pub fn read(&self) -> Result<String, Report<HookError>> {
-        if let Some(input) = &self.input {
-            return Ok(input.clone());
-        }
+impl ReadStdin for StdinReader {
+    fn read_stdin(&self) -> Result<String, Report<ReadStdinError>> {
         let mut input = String::new();
         io::stdin()
             .read_to_string(&mut input)
-            .change_context(HookError::ReadStdin)?;
+            .change_context(ReadStdinError::Read)?;
         Ok(input)
-    }
-
-    /// Create a new [`StdinReader`] returning `input` for testing.
-    #[cfg(test)]
-    pub fn new(input: impl Into<String>) -> Self {
-        Self {
-            input: Some(input.into()),
-        }
-    }
-}
-
-impl FromServices for StdinReader {
-    type Error = Infallible;
-
-    fn from_services(_: &ServiceProvider) -> Result<Self, Report<Self::Error>> {
-        Ok(Self { input: None })
     }
 }

@@ -6,7 +6,7 @@ use crate::prelude::*;
 #[derive(FromServices)]
 pub struct SubcommandHandler {
     cli_args: Arc<CliArgs>,
-    stdin: Arc<StdinReader>,
+    stdin: Arc<dyn ReadStdin>,
     bash: Arc<BashHandler>,
     glob: Arc<GlobHandler>,
     grep: Arc<GrepHandler>,
@@ -39,7 +39,10 @@ impl SubcommandHandler {
     ///
     /// - Logs the session working directory and permission mode
     fn read_input<T: DeserializeOwned>(&self) -> Result<HookInput<T>, Report<HookError>> {
-        let json = self.stdin.read()?;
+        let json = self
+            .stdin
+            .read_stdin()
+            .change_context(HookError::ReadStdin)?;
         let input = HookInput::from_json(&json)?;
         debug!(cwd = ?input.cwd, permission_mode = ?input.permission_mode, "Received hook input");
         Ok(input)
@@ -53,7 +56,7 @@ mod tests {
     /// A matching rule returns its decision.
     #[test]
     fn subcommand_handler_run() {
-        let handler = create_handler(r#"{"tool_input":{"command":"rm -rf /"}}"#);
+        let handler = create_handler(Ok(String::from(r#"{"tool_input":{"command":"rm -rf /"}}"#)));
         let outcome = handler.run();
         assert_eq!(outcome.expect("should match").decision, Decision::Deny);
     }
@@ -61,16 +64,24 @@ mod tests {
     /// Hook input that is not valid JSON falls back to asking the user.
     #[test]
     fn subcommand_handler_run_invalid_input() {
-        let handler = create_handler("not json");
+        let handler = create_handler(Ok(String::from("not json")));
+        let outcome = handler.run();
+        assert_eq!(outcome.expect("should match").decision, Decision::Ask);
+    }
+
+    /// A stdin read failure falls back to asking the user.
+    #[test]
+    fn subcommand_handler_run_read_error() {
+        let handler = create_handler(Err(ReadStdinError::Read));
         let outcome = handler.run();
         assert_eq!(outcome.expect("should match").decision, Decision::Ask);
     }
 
     /// Resolve a [`SubcommandHandler`] reading `input` as stdin.
-    fn create_handler(input: &str) -> Arc<SubcommandHandler> {
+    fn create_handler(input: Result<String, ReadStdinError>) -> Arc<SubcommandHandler> {
         ServiceBuilder::new()
             .with_test_services()
-            .with_instance(StdinReader::new(input))
+            .with_instance(ReadStdinStub { input })
             .build()
             .expect_init()
             .expect::<SubcommandHandler>()

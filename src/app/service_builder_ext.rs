@@ -15,6 +15,7 @@ pub(crate) trait ServiceBuilderExt {
 impl ServiceBuilderExt for ServiceBuilder {
     fn with_app_services(self) -> Self {
         self.with_logging(create_logger)
+            .with_trait::<dyn ReadStdin, StdinReader>()
             .with_type::<BashEvaluator>()
             .with_type::<BashHandler>()
             .with_type::<BashRuleProvider>()
@@ -25,13 +26,13 @@ impl ServiceBuilderExt for ServiceBuilder {
             .with_type::<PathRuleFactory>()
             .with_type::<ReadHandler>()
             .with_type::<Settings>()
-            .with_type::<StdinReader>()
             .with_type::<SubcommandHandler>()
     }
 
     #[cfg(test)]
     fn with_test_services(self) -> Self {
         self.with_app_services()
+            .with_trait::<dyn ReadStdin, ReadStdinStub>()
             .with_instance(CliArgs::fixture())
             .with_instance(HostContext::fixture())
             .with_instance(Settings::fixture())
