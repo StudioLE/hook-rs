@@ -57,7 +57,7 @@ Allow without in-place flags (`-i`, `--in-place`):
 - `sort` (without `-o`, `--output`)
 - `yq`
 
-[source: `allow_safe.rs`](crates/hook-rs/src/bash/rules/allow_safe.rs)
+[source: `read_only.rs`](crates/hook-rs/src/bash/rules/read_only.rs)
 
 Allow `fd` without exec flags (`-x`, `--exec`, `-X`, `--exec-batch`).
 
@@ -169,7 +169,7 @@ Ask for approval on write operations:
 
 Deny inline Python (`-c` or heredoc) exceeding 1000 characters or 20 lines.
 
-[source: `long_python.rs`](crates/hook-rs/src/bash/rules/long_python.rs)
+[source: `python.rs`](crates/hook-rs/src/bash/rules/python.rs)
 
 </details>
 
@@ -178,7 +178,7 @@ Deny inline Python (`-c` or heredoc) exceeding 1000 characters or 20 lines.
 
 Deny `cargo insta review` with heredoc input to prevent faking interactive input.
 
-[source: `insta.rs`](crates/hook-rs/src/bash/rules/insta.rs)
+[source: `cargo.rs`](crates/hook-rs/src/bash/rules/cargo.rs)
 
 </details>
 
