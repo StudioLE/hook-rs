@@ -1,18 +1,21 @@
-[package]
-name = "hook-rs"
+[workspace]
+resolver = "3"
+members = [
+  "crates/hook-rs",
+]
+
+[workspace.package]
 version = "0.0.0"
+authors = ["Laurence Elsdon <le@studiole.uk>"]
 edition = "2024"
-description = "Permission hooks for Claude Code with bash-aware command analysis"
 license = "AGPL-3.0-only"
 repository = "https://github.com/StudioLE/hook-rs"
 
-[profile.release]
-strip = true
-
-[dependencies]
+[workspace.dependencies]
 brush-parser = { version = "0.4.0" }
 dirs = { version = "6.0.0" }
 globset = { version = "0.4.21" }
+insta = { version = "1.49.0", features = ["yaml"] }
 regex = { version = "1.13.1" }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = { version = "1.0.154" }
@@ -20,16 +23,16 @@ serde_yaml = { version = "0.9.34" }
 studiole-di = { version = "0.6.0", features = ["traits"] }
 studiole-logging = { version = "0.5.0", features = ["usage"] }
 studiole-report = { version = "0.4.1", features = ["render"] }
+tempfile = { version = "3.27.0" }
 thiserror = { version = "2.0.21" }
 tracing = { version = "0.1.44" }
 usage-rs = { version = "7.1.4" }
 
-[dev-dependencies]
-insta = { version = "1.49.0", features = ["yaml"] }
-studiole-logging = { version = "0.5.0", features = ["testing"] }
-tempfile = { version = "3.27.0" }
+[workspace.lints.rust]
+missing_docs = "warn"
+non_snake_case = "allow"
 
-[lints.clippy]
+[workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
 absolute_paths = "warn"
 arithmetic_side_effects = "allow"
@@ -87,11 +90,10 @@ wildcard_enum_match_arm = "allow"
 wildcard_imports = "allow"
 wrong_self_convention = "allow"
 
-[lints.rust]
-missing_docs = "warn"
-non_snake_case = "allow"
-
-[lints.rustdoc]
+[workspace.lints.rustdoc]
 bare_urls = "warn"
 broken_intra_doc_links = "warn"
 invalid_html_tags = "warn"
+
+[profile.release]
+strip = true

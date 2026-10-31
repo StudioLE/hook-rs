@@ -57,11 +57,11 @@ Allow without in-place flags (`-i`, `--in-place`):
 - `sort` (without `-o`, `--output`)
 - `yq`
 
-[source: `allow_safe.rs`](src/bash/rules/allow_safe.rs)
+[source: `allow_safe.rs`](crates/hook-rs/src/bash/rules/allow_safe.rs)
 
 Allow `fd` without exec flags (`-x`, `--exec`, `-X`, `--exec-batch`).
 
-[source: `fd.rs`](src/bash/rules/fd.rs)
+[source: `fd.rs`](crates/hook-rs/src/bash/rules/fd.rs)
 
 Allow read-only git subcommands:
 - `git check-ignore`
@@ -82,7 +82,7 @@ Allow bare or with read-only flags only (e.g. `-a`, `--list`, `-v`, `--contains`
 - `git tag`
 - `git remote`
 
-[source: `git_allow.rs`](src/bash/rules/git_allow.rs)
+[source: `git_allow.rs`](crates/hook-rs/src/bash/rules/git_allow.rs)
 
 </details>
 
@@ -91,15 +91,15 @@ Allow bare or with read-only flags only (e.g. `-a`, `--list`, `-v`, `--contains`
 
 Deny all forms of `rm`. Suggests `git rm -f` or `git clean -f <file>` instead.
 
-[source: `rm.rs`](src/bash/rules/rm.rs)
+[source: `rm.rs`](crates/hook-rs/src/bash/rules/rm.rs)
 
 Deny `find -delete` and `find -exec rm` / `find -execdir rm`.
 
-[source: `find.rs`](src/bash/rules/find.rs)
+[source: `find.rs`](crates/hook-rs/src/bash/rules/find.rs)
 
 Deny `fd -x rm` / `fd --exec rm` / `fd -X rm` / `fd --exec-batch rm`.
 
-[source: `fd.rs`](src/bash/rules/fd.rs)
+[source: `fd.rs`](crates/hook-rs/src/bash/rules/fd.rs)
 
 </details>
 
@@ -114,7 +114,7 @@ Deny destructive git operations:
 - `git clean -d` (any flag combo containing `-d`)
 - `git checkout --` (discarding changes)
 
-[source: `git_deny.rs`](src/bash/rules/git_deny.rs)
+[source: `git_deny.rs`](crates/hook-rs/src/bash/rules/git_deny.rs)
 
 </details>
 
@@ -126,12 +126,12 @@ Handle `git -C <path>` by combining path trust classification with subcommand an
 - Destructive subcommands are denied regardless of path trust.
 - Safe subcommands are allowed only in trusted paths.
 
-[source: `git_c.rs`](src/bash/rules/git_c.rs)
+[source: `git_c.rs`](crates/hook-rs/src/bash/rules/git_c.rs)
 
 - Deny `cd <path>` chained with `git` via any operator (`&&`, `||`, `;`).
 - Suggests using `git -C <path>` instead.
 
-[source: `cd_git.rs`](src/bash/rules/cd_git.rs)
+[source: `cd_git.rs`](crates/hook-rs/src/bash/rules/cd_git.rs)
 
 </details>
 
@@ -141,7 +141,7 @@ Handle `git -C <path>` by combining path trust classification with subcommand an
 - Deny `git push` when part of a compound command. Requires it to be run standalone.
 - Ask for every other `git push`, including after git global options like `-C <path>` or `--no-pager`.
 
-[source: `git_push.rs`](src/bash/rules/git_push.rs)
+[source: `git_push.rs`](crates/hook-rs/src/bash/rules/git_push.rs)
 
 </details>
 
@@ -160,7 +160,7 @@ Ask for approval on write operations:
 - `gh api` with write methods (`-X POST/PUT/PATCH/DELETE`)
 - `gh api graphql` with mutations
 
-[source: `gh.rs`](src/bash/rules/gh.rs)
+[source: `gh.rs`](crates/hook-rs/src/bash/rules/gh.rs)
 
 </details>
 
@@ -169,7 +169,7 @@ Ask for approval on write operations:
 
 Deny inline Python (`-c` or heredoc) exceeding 1000 characters or 20 lines.
 
-[source: `long_python.rs`](src/bash/rules/long_python.rs)
+[source: `long_python.rs`](crates/hook-rs/src/bash/rules/long_python.rs)
 
 </details>
 
@@ -178,7 +178,7 @@ Deny inline Python (`-c` or heredoc) exceeding 1000 characters or 20 lines.
 
 Deny `cargo insta review` with heredoc input to prevent faking interactive input.
 
-[source: `insta.rs`](src/bash/rules/insta.rs)
+[source: `insta.rs`](crates/hook-rs/src/bash/rules/insta.rs)
 
 </details>
 
@@ -205,7 +205,7 @@ BashRule {
 }
 ```
 
-[source: `arg_matcher.rs`](src/bash/arg_matcher.rs)
+[source: `arg_matcher.rs`](crates/hook-rs/src/bash/arg_matcher.rs)
 
 ### `ArgParser` - Flat schema-aware classification
 
@@ -224,7 +224,7 @@ let settings = ArgParserSettings {
 let parsed: Vec<Arg> = ArgParser::new(settings).parse(args)?;
 ```
 
-[source: `utils/parsers/arg/`](src/utils/parsers/arg/)
+[source: `utils/parsers/arg/`](crates/hook-rs/src/utils/parsers/arg/)
 
 ### `CommandParser` - Hierarchical command parsing
 
@@ -251,7 +251,7 @@ let schema = CommandSchemaBuilder::new("git")
 let parsed: Vec<ParsedCommand> = CommandParser::new(schema).parse(args)?;
 ```
 
-[source: `utils/parsers/command/`](src/utils/parsers/command/)
+[source: `utils/parsers/command/`](crates/hook-rs/src/utils/parsers/command/)
 
 ## Install
 
@@ -264,7 +264,7 @@ brew install StudioLE/tap/hook-rs
 ### From Source
 
 ```bash
-cargo install --path .
+cargo install --path crates/hook-rs
 ```
 
 ## Configuration
