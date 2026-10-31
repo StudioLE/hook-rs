@@ -12,20 +12,20 @@ strip = true
 [dependencies]
 brush-parser = { version = "0.4.0" }
 dirs = { version = "6.0.0" }
-globset = { version = "0.4.18" }
-regex = { version = "1.12.3" }
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = { version = "1.0.149" }
+globset = { version = "0.4.21" }
+regex = { version = "1.13.1" }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = { version = "1.0.154" }
 serde_yaml = { version = "0.9.34" }
 studiole-di = { version = "0.6.0" }
 studiole-logging = { version = "0.5.0", features = ["usage"] }
-studiole-report = { version = "0.4.0", features = ["render"] }
-thiserror = { version = "2.0.18" }
+studiole-report = { version = "0.4.1", features = ["render"] }
+thiserror = { version = "2.0.21" }
 tracing = { version = "0.1.44" }
-usage-rs = { version = "7.0.2" }
+usage-rs = { version = "7.1.4" }
 
 [dev-dependencies]
-insta = { version = "1.47.2", features = ["yaml"] }
+insta = { version = "1.49.0", features = ["yaml"] }
 studiole-logging = { version = "0.5.0", features = ["testing"] }
 tempfile = { version = "3.27.0" }
 
@@ -88,6 +88,7 @@ wildcard_imports = "allow"
 wrong_self_convention = "allow"
 
 [lints.rust]
+missing_docs = "warn"
 non_snake_case = "allow"
 
 [lints.rustdoc]
