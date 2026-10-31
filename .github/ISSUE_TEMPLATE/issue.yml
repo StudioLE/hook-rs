@@ -1,0 +1,31 @@
+name: Issue (Form)
+description: 'Request a feature or report a bug. Titles should be prefixed with `feat:` or `fix:`'
+labels:
+- 03-could
+body:
+- type: textarea
+  id: problem
+  attributes:
+    label: Problem
+    description: Current state and why it falls short. No solution.
+    value: '- '
+  validations:
+    required: true
+- type: textarea
+  id: goals
+  attributes:
+    label: Goals
+    description: 'Verifiable outcomes, NOT implementation. `- [ ]` items start with MUST, SHOULD or MAY. Exclusions as `-` items start with MUST NOT or SHOULD NOT.'
+    value: '- [ ] MUST '
+  validations:
+    required: true
+- type: textarea
+  id: hints
+  attributes:
+    label: Hints
+    description: Optional. Non-binding approach or rabbit holes to avoid. No code or step-by-step plans.
+- type: textarea
+  id: references
+  attributes:
+    label: References
+    description: 'Optional. `- #N <reason>` or `- [<title>](<url>) <reason>`'
