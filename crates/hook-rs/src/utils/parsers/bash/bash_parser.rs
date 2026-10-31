@@ -20,15 +20,15 @@ impl BashParser {
 
     /// Parse a shell command string into a [`CompleteContext`].
     ///
-    /// - Returns `Err(ParseError::Skip)` for unsupported constructs so the
+    /// - Returns `Err(BashParserError::Skip)` for unsupported constructs so the
     ///   caller can fall through to the default approval flow
-    /// - Returns `Err(ParseError::Deny)` for constructs that must be denied
+    /// - Returns `Err(BashParserError::Deny)` for constructs that must be denied
     /// - Returns `Err` for genuine parse failures (malformed syntax)
-    pub fn parse(&mut self, command: &str) -> Result<CompleteContext, Report<ParseError>> {
+    pub fn parse(&mut self, command: &str) -> Result<CompleteContext, Report<BashParserError>> {
         trace!(command, "Parsing");
-        let tokens = tokenize_str(command).change_context(ParseError::Tokenize)?;
-        let program =
-            parse_tokens(&tokens, &ParserOptions::default()).change_context(ParseError::Tokens)?;
+        let tokens = tokenize_str(command).change_context(BashParserError::Tokenize)?;
+        let program = parse_tokens(&tokens, &ParserOptions::default())
+            .change_context(BashParserError::Tokens)?;
         let context = CompleteContext {
             raw: command.to_owned(),
             children: self.pipelines_from_program(&program)?,
@@ -48,15 +48,15 @@ impl BashParser {
     fn pipelines_from_program(
         &mut self,
         program: &Program,
-    ) -> Result<Vec<PipelineContext>, Report<ParseError>> {
+    ) -> Result<Vec<PipelineContext>, Report<BashParserError>> {
         if program.complete_commands.is_empty() {
-            return Err(ParseError::skip(SkipReason::ZeroCommands));
+            return Err(BashParserError::skip(SkipReason::ZeroCommands));
         } else if program.complete_commands.len() > 1 {
-            return Err(ParseError::skip(SkipReason::MultipleCommands));
+            return Err(BashParserError::skip(SkipReason::MultipleCommands));
         }
         let statements = &program.complete_commands[0].0;
         if statements.is_empty() {
-            return Err(ParseError::skip(SkipReason::ZeroStatements));
+            return Err(BashParserError::skip(SkipReason::ZeroStatements));
         }
         let mut children = Vec::new();
         for aol in statements.iter().map(|s| &s.0) {
@@ -74,7 +74,7 @@ impl BashParser {
         &mut self,
         aol: &AndOrList,
         first_connector: Option<Connector>,
-    ) -> Result<Vec<PipelineContext>, Report<ParseError>> {
+    ) -> Result<Vec<PipelineContext>, Report<BashParserError>> {
         let mut pipelines = Vec::new();
         pipelines.push(PipelineContext {
             children: self.pipeline_to_commands(&aol.first)?,
@@ -100,7 +100,7 @@ impl BashParser {
     fn pipeline_to_commands(
         &mut self,
         pipeline: &Pipeline,
-    ) -> Result<Vec<SimpleContext>, Report<ParseError>> {
+    ) -> Result<Vec<SimpleContext>, Report<BashParserError>> {
         let mut commands = Vec::new();
         for command in &pipeline.seq {
             match command {
@@ -110,7 +110,7 @@ impl BashParser {
                 Command::Compound(CompoundCommand::ForClause(f), redirects) => {
                     commands.extend(self.contexts_from_for(f, redirects.as_ref())?);
                 }
-                _ => return Err(ParseError::skip(SkipReason::UnsupportedCompound)),
+                _ => return Err(BashParserError::skip(SkipReason::UnsupportedCompound)),
             }
         }
         Ok(commands)
@@ -124,18 +124,18 @@ impl BashParser {
         &mut self,
         for_clause: &ForClauseCommand,
         redirects: Option<&RedirectList>,
-    ) -> Result<Vec<SimpleContext>, Report<ParseError>> {
+    ) -> Result<Vec<SimpleContext>, Report<BashParserError>> {
         if redirects.is_some() {
-            return Err(ParseError::skip(SkipReason::ForLoopRedirect));
+            return Err(BashParserError::skip(SkipReason::ForLoopRedirect));
         }
         if self.nesting.contains(&Nesting::For) {
-            return Err(ParseError::skip(SkipReason::NestedForLoop));
+            return Err(BashParserError::skip(SkipReason::NestedForLoop));
         }
         if let Some(values) = &for_clause.values {
             for word in values {
                 let subs = extract_substitutions(&word.value)?;
                 if !subs.is_empty() {
-                    return Err(ParseError::skip(SkipReason::ForLoopSubstitution));
+                    return Err(BashParserError::skip(SkipReason::ForLoopSubstitution));
                 }
             }
         }
@@ -161,14 +161,14 @@ impl BashParser {
     fn contexts_from_simple_command(
         &mut self,
         simple: &SimpleCommand,
-    ) -> Result<Vec<SimpleContext>, Report<ParseError>> {
+    ) -> Result<Vec<SimpleContext>, Report<BashParserError>> {
         let word = simple
             .word_or_name
             .as_ref()
-            .ok_or_else(|| ParseError::skip(SkipReason::BareAssignment))?;
+            .ok_or_else(|| BashParserError::skip(SkipReason::BareAssignment))?;
         let name_subs = extract_substitutions(&word.value)?;
         if !name_subs.is_empty() {
-            return Err(ParseError::skip(SkipReason::CommandNameSubstitution));
+            return Err(BashParserError::skip(SkipReason::CommandNameSubstitution));
         }
         let name = unquote_str(&word.value);
         let suffix_items = simple.suffix.iter().flat_map(|suffix| &suffix.0);
@@ -204,17 +204,17 @@ impl BashParser {
                 }
                 CommandPrefixOrSuffixItem::IoRedirect(r) if is_safe_redirect(r) => {}
                 CommandPrefixOrSuffixItem::IoRedirect(_) => {
-                    return Err(ParseError::skip(SkipReason::UnsafeRedirect));
+                    return Err(BashParserError::skip(SkipReason::UnsafeRedirect));
                 }
                 CommandPrefixOrSuffixItem::ProcessSubstitution(..) => {
-                    return Err(ParseError::skip(SkipReason::ProcessSubstitution));
+                    return Err(BashParserError::skip(SkipReason::ProcessSubstitution));
                 }
             }
         }
         for item in prefix_items {
             match item {
                 CommandPrefixOrSuffixItem::Word(w) => {
-                    return Err(Report::new(ParseError::UnexpectedPrefixWord)
+                    return Err(Report::new(BashParserError::UnexpectedPrefixWord)
                         .attach("word", w.value.clone()));
                 }
                 CommandPrefixOrSuffixItem::IoRedirect(IoRedirect::HereDocument(..)) => {
@@ -222,15 +222,15 @@ impl BashParser {
                 }
                 CommandPrefixOrSuffixItem::IoRedirect(r) if is_safe_redirect(r) => {}
                 CommandPrefixOrSuffixItem::IoRedirect(_) => {
-                    return Err(ParseError::skip(SkipReason::UnsafeRedirect));
+                    return Err(BashParserError::skip(SkipReason::UnsafeRedirect));
                 }
                 CommandPrefixOrSuffixItem::ProcessSubstitution(..) => {
-                    return Err(ParseError::skip(SkipReason::ProcessSubstitution));
+                    return Err(BashParserError::skip(SkipReason::ProcessSubstitution));
                 }
                 CommandPrefixOrSuffixItem::AssignmentWord(assignment, word) => {
                     let subs = extract_substitutions(&word.value)?;
                     if !subs.is_empty() {
-                        return Err(ParseError::skip(SkipReason::PrefixEnvSubstitution));
+                        return Err(BashParserError::skip(SkipReason::PrefixEnvSubstitution));
                     }
                     context
                         .env_vars
@@ -250,10 +250,13 @@ impl BashParser {
     /// - Returns `Err(NestedSubstitution)` if already inside a substitution
     /// - Bubbles up any inner failure since unparseable substitutions cannot
     ///   be reasoned about
-    fn parse_substitution(&self, command: &str) -> Result<Vec<SimpleContext>, Report<ParseError>> {
+    fn parse_substitution(
+        &self,
+        command: &str,
+    ) -> Result<Vec<SimpleContext>, Report<BashParserError>> {
         trace!(command, "Parsing substitution");
         if self.nesting.contains(&Nesting::Substitution) {
-            return Err(ParseError::skip(SkipReason::NestedSubstitution));
+            return Err(BashParserError::skip(SkipReason::NestedSubstitution));
         }
         let mut inner = self.clone();
         inner.nesting.push(Nesting::Substitution);
@@ -263,8 +266,9 @@ impl BashParser {
 }
 
 /// Extract command substitution strings from a shell word.
-fn extract_substitutions(word: &str) -> Result<Vec<String>, Report<ParseError>> {
-    let pieces = word::parse(word, &ParserOptions::default()).change_context(ParseError::Word)?;
+fn extract_substitutions(word: &str) -> Result<Vec<String>, Report<BashParserError>> {
+    let pieces =
+        word::parse(word, &ParserOptions::default()).change_context(BashParserError::Word)?;
     let mut subs = Vec::new();
     collect_substitutions(&pieces, &mut subs)?;
     Ok(subs)
@@ -279,7 +283,7 @@ fn extract_substitutions(word: &str) -> Result<Vec<String>, Report<ParseError>> 
 fn collect_substitutions(
     pieces: &[WordPieceWithSource],
     out: &mut Vec<String>,
-) -> Result<(), Report<ParseError>> {
+) -> Result<(), Report<BashParserError>> {
     for piece in pieces {
         match &piece.piece {
             WordPiece::CommandSubstitution(s) | WordPiece::BackquotedCommandSubstitution(s) => {
@@ -291,10 +295,10 @@ fn collect_substitutions(
             // `AnsiCQuotedText` is `$'…'`, which decodes escapes like `\x2d` to `-`
             // `GettextDoubleQuotedSequence` is `$"…"`, which translates via locale
             WordPiece::AnsiCQuotedText(_) | WordPiece::GettextDoubleQuotedSequence(_) => {
-                return Err(ParseError::deny(DenyReason::DollarQuote));
+                return Err(BashParserError::deny(DenyReason::DollarQuote));
             }
             WordPiece::ArithmeticExpression(_) => {
-                return Err(ParseError::skip(SkipReason::ArithmeticSubstitution));
+                return Err(BashParserError::skip(SkipReason::ArithmeticSubstitution));
             }
             WordPiece::ParameterExpansion(
                 word::ParameterExpr::Parameter { .. } | word::ParameterExpr::ParameterLength { .. },
@@ -304,7 +308,7 @@ fn collect_substitutions(
             | WordPiece::TildeExpansion(_)
             | WordPiece::EscapeSequence(_) => {}
             WordPiece::ParameterExpansion(_) => {
-                return Err(ParseError::skip(SkipReason::ParameterSubstitution));
+                return Err(BashParserError::skip(SkipReason::ParameterSubstitution));
             }
         }
     }
@@ -315,8 +319,9 @@ fn collect_substitutions(
 ///
 /// - Checks top-level pieces and pieces inside `"…"`
 /// - Ignores `'…'` and command substitutions, whose inner commands are checked separately
-fn contains_variable(word: &str) -> Result<bool, Report<ParseError>> {
-    let pieces = word::parse(word, &ParserOptions::default()).change_context(ParseError::Word)?;
+fn contains_variable(word: &str) -> Result<bool, Report<BashParserError>> {
+    let pieces =
+        word::parse(word, &ParserOptions::default()).change_context(BashParserError::Word)?;
     Ok(has_variable_piece(&pieces))
 }
 
@@ -333,7 +338,7 @@ fn has_variable_piece(pieces: &[WordPieceWithSource]) -> bool {
 
 /// Errors returned by [`BashParser`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
-pub enum ParseError {
+pub enum BashParserError {
     /// Shell tokenization failed, such as unmatched quotes.
     #[error("Failed to tokenize the command")]
     Tokenize,
@@ -354,7 +359,7 @@ pub enum ParseError {
     Deny(DenyReason),
 }
 
-impl ParseError {
+impl BashParserError {
     /// Wrap a [`SkipReason`] in a [`Report`] for early return.
     pub(crate) fn skip(reason: SkipReason) -> Report<Self> {
         Report::new(Self::Skip(reason))
@@ -396,21 +401,21 @@ pub(crate) fn parse_expect_skip(command: &str) -> SkipReason {
         .expect_err("command should not succeed")
         .current_context()
     {
-        ParseError::Skip(reason) => *reason,
+        BashParserError::Skip(reason) => *reason,
         other => panic!("expected Skip, got {other:?}"),
     }
 }
 
 #[cfg(test)]
-/// Parse `command`, expecting a [`ParseError`] that is not a skip.
-pub(crate) fn parse_expect_error(command: &str) -> ParseError {
+/// Parse `command`, expecting a [`BashParserError`] that is not a skip.
+pub(crate) fn parse_expect_error(command: &str) -> BashParserError {
     let report = BashParser::new()
         .parse(command)
         .expect_err("command should fail to parse");
     eprintln!("{report:?}");
     let error = *report.current_context();
     assert!(
-        !matches!(error, ParseError::Skip(_)),
+        !matches!(error, BashParserError::Skip(_)),
         "expected a real error, got {error:?}"
     );
     error
@@ -631,13 +636,13 @@ mod tests {
     #[test]
     fn substitution_inner_parse_error() {
         let error = parse_expect_error("echo $(;;)");
-        assert_eq!(error, ParseError::Tokens);
+        assert_eq!(error, BashParserError::Tokens);
     }
 
     #[test]
     fn substitution_inner_bare_semicolon() {
         let error = parse_expect_error("echo $(;)");
-        assert_eq!(error, ParseError::Tokens);
+        assert_eq!(error, BashParserError::Tokens);
     }
 
     #[test]
@@ -822,7 +827,7 @@ mod tests {
     #[test]
     fn command_sub_heredoc_unbalanced_double_quote() {
         let error = parse_expect_error("echo \"$(cat <<'EOF'\nit\"s\nEOF\n)\"");
-        assert_eq!(error, ParseError::Word);
+        assert_eq!(error, BashParserError::Word);
     }
 
     #[test]

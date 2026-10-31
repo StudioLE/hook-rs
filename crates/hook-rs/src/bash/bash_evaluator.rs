@@ -21,7 +21,7 @@ impl BashEvaluator {
         &self,
         command: &str,
         cwd: Option<String>,
-    ) -> Result<Outcome, Report<ParseError>> {
+    ) -> Result<Outcome, Report<BashParserError>> {
         let context = BashParser::new().parse(command)?;
         self.evaluate_all(&context, cwd.as_ref())
     }
@@ -30,7 +30,7 @@ impl BashEvaluator {
         &self,
         context: &CompleteContext,
         cwd: Option<&String>,
-    ) -> Result<Outcome, Report<ParseError>> {
+    ) -> Result<Outcome, Report<BashParserError>> {
         let outcomes = self.evaluate_rules(context, cwd)?;
         apply_precedence(outcomes)
     }
@@ -39,7 +39,7 @@ impl BashEvaluator {
         &self,
         complete_context: &CompleteContext,
         cwd: Option<&String>,
-    ) -> Result<Vec<Outcome>, Report<ParseError>> {
+    ) -> Result<Vec<Outcome>, Report<BashParserError>> {
         if let Some(outcome) = semicolon_rule(complete_context) {
             return Ok(vec![outcome]);
         }
@@ -68,16 +68,16 @@ impl BashEvaluator {
             && !all_outcomes.is_empty()
             && all_outcomes.iter().all(|o| o.decision == Decision::Allow)
         {
-            return Err(ParseError::skip(SkipReason::OnlyAllowAll));
+            return Err(BashParserError::skip(SkipReason::OnlyAllowAll));
         }
         Ok(all_outcomes)
     }
 }
 
 /// Merge an outcome into the accumulated result using Deny > Ask > Allow precedence.
-fn apply_precedence(mut outcomes: Vec<Outcome>) -> Result<Outcome, Report<ParseError>> {
+fn apply_precedence(mut outcomes: Vec<Outcome>) -> Result<Outcome, Report<BashParserError>> {
     if outcomes.is_empty() {
-        return Err(ParseError::skip(SkipReason::NoMatches));
+        return Err(BashParserError::skip(SkipReason::NoMatches));
     }
     if outcomes.len() == 1 {
         return Ok(outcomes.pop().expect("should be 1 outcome"));
@@ -127,7 +127,7 @@ impl BashEvaluator {
 pub(crate) fn eval_rules(
     rules: Vec<BashRule>,
     command: &str,
-) -> Result<Outcome, Report<ParseError>> {
+) -> Result<Outcome, Report<BashParserError>> {
     ServiceBuilder::new()
         .with_test_services()
         .with_instance(BashRuleProvider::new(rules))
@@ -142,7 +142,7 @@ pub(crate) fn eval_rules_with_settings(
     rules: Vec<BashRule>,
     command: &str,
     settings: Settings,
-) -> Result<Outcome, Report<ParseError>> {
+) -> Result<Outcome, Report<BashParserError>> {
     ServiceBuilder::new()
         .with_test_services()
         .with_instance(settings)
@@ -158,7 +158,7 @@ pub(crate) fn eval_rules_with_cwd(
     rules: Vec<BashRule>,
     command: &str,
     cwd: Option<String>,
-) -> Result<Outcome, Report<ParseError>> {
+) -> Result<Outcome, Report<BashParserError>> {
     ServiceBuilder::new()
         .with_test_services()
         .with_instance(BashRuleProvider::new(rules))
@@ -167,22 +167,22 @@ pub(crate) fn eval_rules_with_cwd(
         .evaluate_str(command, cwd)
 }
 
-/// Extract a [`SkipReason`] from [`ParseError::Skip`] or panic.
+/// Extract a [`SkipReason`] from [`BashParserError::Skip`] or panic.
 #[cfg(test)]
 #[expect(clippy::panic, reason = "test helper")]
-pub(crate) fn expect_skip(result: Result<Outcome, Report<ParseError>>) -> SkipReason {
+pub(crate) fn expect_skip(result: Result<Outcome, Report<BashParserError>>) -> SkipReason {
     match result
         .expect_err("command should not succeed")
         .current_context()
     {
-        ParseError::Skip(reason) => *reason,
+        BashParserError::Skip(reason) => *reason,
         other => panic!("expected Skip, got {other:?}"),
     }
 }
 
 /// Expect an [`Outcome`] or panic.
 #[cfg(test)]
-pub(crate) fn expect_outcome(result: Result<Outcome, Report<ParseError>>) -> Outcome {
+pub(crate) fn expect_outcome(result: Result<Outcome, Report<BashParserError>>) -> Outcome {
     result.expect("command should succeed")
 }
 

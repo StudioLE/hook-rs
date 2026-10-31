@@ -18,11 +18,11 @@ impl Handler for BashHandler {
         match self.evaluator.evaluate_str(&command, input.cwd) {
             Ok(outcome) => Some(outcome),
             Err(report) => match report.current_context() {
-                ParseError::Skip(reason) => {
+                BashParserError::Skip(reason) => {
                     debug!(%reason, "Skipped");
                     None
                 }
-                ParseError::Deny(reason) => {
+                BashParserError::Deny(reason) => {
                     debug!(%reason, "Denied");
                     Some(Outcome::deny(reason.to_string()))
                 }

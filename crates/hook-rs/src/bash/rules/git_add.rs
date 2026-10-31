@@ -430,7 +430,7 @@ mod tests {
             assert!(status.success(), "git {args:?}");
         }
 
-        fn eval(&self, command: &str) -> Result<Outcome, Report<ParseError>> {
+        fn eval(&self, command: &str) -> Result<Outcome, Report<BashParserError>> {
             eval_rules_with_cwd(vec![git_add__nothing_staged()], command, Some(self.cwd()))
         }
     }

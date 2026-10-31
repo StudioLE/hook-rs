@@ -29,7 +29,7 @@ impl ArgParser {
     pub fn parse(
         mut self,
         values: impl IntoIterator<Item = String>,
-    ) -> Result<Vec<Arg>, Report<ArgParseError>> {
+    ) -> Result<Vec<Arg>, Report<ArgParserError>> {
         self.init(values);
         while let Some(raw) = self.next() {
             if self.after_separator {
@@ -77,19 +77,19 @@ impl ArgParser {
     /// - Falls back to consuming the next argument for value flags
     /// - Accepts bare flag for boolean flags
     /// - Rejects anything not in the schema
-    fn parse_long_flag(&mut self, raw: String) -> Result<(), Report<ArgParseError>> {
+    fn parse_long_flag(&mut self, raw: String) -> Result<(), Report<ArgParserError>> {
         debug_assert!(raw.starts_with("--"));
         if let Some((flag, value)) = raw.split_once('=') {
             if self.settings.schema.is_value_flag(flag) {
                 self.push_pair(flag, value);
                 return Ok(());
             }
-            return Err(flag_error(ArgParseError::UnknownFlag, raw));
+            return Err(flag_error(ArgParserError::UnknownFlag, raw));
         }
         if self.settings.schema.is_value_flag(&raw) {
             let value = self
                 .next()
-                .ok_or_else(|| flag_error(ArgParseError::MissingValue, &raw))?;
+                .ok_or_else(|| flag_error(ArgParserError::MissingValue, &raw))?;
             self.push_pair(raw, value);
             return Ok(());
         }
@@ -97,7 +97,7 @@ impl ArgParser {
             self.push_flag(raw);
             return Ok(());
         }
-        Err(flag_error(ArgParseError::UnknownFlag, raw))
+        Err(flag_error(ArgParserError::UnknownFlag, raw))
     }
 
     /// Parse short flags, expanding bundled forms like `-abc` or `-an5`.
@@ -106,7 +106,7 @@ impl ArgParser {
     /// - Value flags consume the remaining characters as an inline value,
     ///   or the next argument if at the end of the bundle
     /// - Bool flags are emitted individually and iteration continues
-    fn parse_short_flags(&mut self, raw: String) -> Result<(), Report<ArgParseError>> {
+    fn parse_short_flags(&mut self, raw: String) -> Result<(), Report<ArgParserError>> {
         debug_assert!(raw.starts_with('-'));
         let chars: Vec<char> = raw.chars().skip(1).collect();
         for (i, &c) in chars.iter().enumerate() {
@@ -119,7 +119,7 @@ impl ArgParser {
                     .collect();
                 let value = if remainder.is_empty() {
                     self.next()
-                        .ok_or_else(|| flag_error(ArgParseError::MissingValue, &flag))?
+                        .ok_or_else(|| flag_error(ArgParserError::MissingValue, &flag))?
                 } else {
                     remainder
                 };
@@ -130,7 +130,7 @@ impl ArgParser {
                 self.push_flag(flag);
                 continue;
             }
-            return Err(flag_error(ArgParseError::UnknownFlag, &flag));
+            return Err(flag_error(ArgParserError::UnknownFlag, &flag));
         }
         Ok(())
     }
@@ -178,13 +178,13 @@ impl ArgParser {
     }
 }
 
-fn flag_error(error: ArgParseError, flag: impl Into<String> + Display) -> Report<ArgParseError> {
+fn flag_error(error: ArgParserError, flag: impl Into<String> + Display) -> Report<ArgParserError> {
     Report::new(error).attach("flag", flag)
 }
 
 /// Errors returned by [`ArgParser::parse`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
-pub enum ArgParseError {
+pub enum ArgParserError {
     /// Flag not present in the schema.
     #[error("Unknown flag")]
     UnknownFlag,
@@ -407,7 +407,7 @@ mod tests {
         let error = ArgParser::fixture()
             .parse(args(&["-z"]))
             .expect_err("should fail");
-        assert_eq!(*error.current_context(), ArgParseError::UnknownFlag);
+        assert_eq!(*error.current_context(), ArgParserError::UnknownFlag);
     }
 
     #[test]
@@ -415,7 +415,7 @@ mod tests {
         let error = ArgParser::fixture()
             .parse(args(&["--unknown"]))
             .expect_err("should fail");
-        assert_eq!(*error.current_context(), ArgParseError::UnknownFlag);
+        assert_eq!(*error.current_context(), ArgParserError::UnknownFlag);
     }
 
     #[test]
@@ -423,7 +423,7 @@ mod tests {
         let error = ArgParser::fixture()
             .parse(args(&["-n"]))
             .expect_err("should fail");
-        assert_eq!(*error.current_context(), ArgParseError::MissingValue);
+        assert_eq!(*error.current_context(), ArgParserError::MissingValue);
     }
 
     #[test]
@@ -431,7 +431,7 @@ mod tests {
         let error = ArgParser::fixture()
             .parse(args(&["--format"]))
             .expect_err("should fail");
-        assert_eq!(*error.current_context(), ArgParseError::MissingValue);
+        assert_eq!(*error.current_context(), ArgParserError::MissingValue);
     }
 
     #[test]
@@ -477,7 +477,7 @@ mod tests {
         let error = ArgParser::new(settings)
             .parse(args(&["-az"]))
             .expect_err("should fail");
-        assert_eq!(*error.current_context(), ArgParseError::UnknownFlag);
+        assert_eq!(*error.current_context(), ArgParserError::UnknownFlag);
     }
 
     #[test]
@@ -492,7 +492,7 @@ mod tests {
         let error = ArgParser::new(settings)
             .parse(args(&["-an"]))
             .expect_err("should fail");
-        assert_eq!(*error.current_context(), ArgParseError::MissingValue);
+        assert_eq!(*error.current_context(), ArgParserError::MissingValue);
     }
 
     #[test]
@@ -500,7 +500,7 @@ mod tests {
         let error = ArgParser::fixture()
             .parse(args(&["--verbose=true"]))
             .expect_err("should fail");
-        assert_eq!(*error.current_context(), ArgParseError::UnknownFlag);
+        assert_eq!(*error.current_context(), ArgParserError::UnknownFlag);
     }
 
     fn args(input: &[&str]) -> Vec<String> {

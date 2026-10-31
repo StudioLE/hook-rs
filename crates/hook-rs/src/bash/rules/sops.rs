@@ -139,7 +139,7 @@ fn arg_reads_secrets(arg: &str) -> bool {
             .any(|c| READ_TOOLS.contains(&c.name.as_str()) || c.contains_substitution),
         Err(report) => matches!(
             report.current_context(),
-            ParseError::Skip(
+            BashParserError::Skip(
                 SkipReason::UnsafeRedirect
                     | SkipReason::ProcessSubstitution
                     | SkipReason::CommandNameSubstitution
