@@ -66,8 +66,8 @@ pub struct GrepInput {
 
 impl<T: DeserializeOwned> HookInput<T> {
     /// Deserialize hook input from a JSON string.
-    pub(crate) fn from_json(json: &str) -> Result<Self, Report<HookError>> {
-        serde_json::from_str(json).change_context(HookError::DeserializeInput)
+    pub(crate) fn from_json(json: &str) -> Result<Self, Report<HookInputError>> {
+        serde_json::from_str(json).change_context(HookInputError::Deserialize)
     }
 }
 
@@ -115,15 +115,12 @@ impl GrepInput {
     }
 }
 
-/// Errors returned by [`HookInput`] deserialization.
+/// Errors returned by [`HookInput::from_json`].
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
-pub enum HookError {
-    /// Failed to read from stdin.
-    #[error("read stdin")]
-    ReadStdin,
+pub enum HookInputError {
     /// JSON payload could not be deserialized.
-    #[error("deserialize hook input")]
-    DeserializeInput,
+    #[error("Unable to deserialize hook input")]
+    Deserialize,
 }
 
 #[cfg(test)]

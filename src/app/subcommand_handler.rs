@@ -25,7 +25,7 @@ impl SubcommandHandler {
     }
 
     /// Run the handler matching the selected subcommand with the hook input.
-    fn try_run(&self) -> Result<Option<Outcome>, Report<HookError>> {
+    fn try_run(&self) -> Result<Option<Outcome>, Report<SubcommandHandlerError>> {
         let outcome = match self.cli_args.subcommand {
             Subcommand::Bash => self.bash.run(self.read_input()?),
             Subcommand::Glob => self.glob.run(self.read_input()?),
@@ -38,15 +38,29 @@ impl SubcommandHandler {
     /// Read and deserialize the hook input.
     ///
     /// - Logs the session working directory and permission mode
-    fn read_input<T: DeserializeOwned>(&self) -> Result<HookInput<T>, Report<HookError>> {
+    fn read_input<T: DeserializeOwned>(
+        &self,
+    ) -> Result<HookInput<T>, Report<SubcommandHandlerError>> {
         let json = self
             .stdin
             .read_stdin()
-            .change_context(HookError::ReadStdin)?;
-        let input = HookInput::from_json(&json)?;
+            .change_context(SubcommandHandlerError::ReadStdin)?;
+        let input =
+            HookInput::from_json(&json).change_context(SubcommandHandlerError::Deserialize)?;
         debug!(cwd = ?input.cwd, permission_mode = ?input.permission_mode, "Received hook input");
         Ok(input)
     }
+}
+
+/// Errors returned by [`SubcommandHandler`].
+#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
+pub enum SubcommandHandlerError {
+    /// Unable to read the hook input from stdin.
+    #[error("Unable to read hook input")]
+    ReadStdin,
+    /// Unable to deserialize the hook input.
+    #[error("Unable to deserialize hook input")]
+    Deserialize,
 }
 
 #[cfg(test)]
