@@ -332,7 +332,7 @@ fn has_variable_piece(pieces: &[WordPieceWithSource]) -> bool {
 }
 
 /// Errors returned by [`BashParser`].
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Error)]
+#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum ParseError {
     /// Shell tokenization failed, such as unmatched quotes.
     #[error("Failed to tokenize the command")]

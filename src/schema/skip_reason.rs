@@ -3,7 +3,7 @@
 use crate::prelude::*;
 
 /// Reason a command was not parsed into a [`CompleteContext`].
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Error)]
+#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum SkipReason {
     /// Input contained no complete commands.
     #[error("Input contained no complete commands")]

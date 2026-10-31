@@ -182,7 +182,7 @@ fn flag_error(error: ArgParseError, flag: impl Into<String> + Display) -> Report
 }
 
 /// Errors returned by [`ArgParser::parse`].
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Error)]
+#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum ArgParseError {
     /// Flag not present in the schema.
     #[error("Unknown flag")]

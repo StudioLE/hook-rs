@@ -101,7 +101,7 @@ impl FromServices for Settings {
 }
 
 /// Errors returned by [`Settings`] construction.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Error)]
+#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum SettingsError {
     /// Failed to resolve host context.
     #[error("Failed to resolve host context")]

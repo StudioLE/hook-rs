@@ -3,7 +3,7 @@
 use crate::prelude::*;
 
 /// Reason a command was denied before rule evaluation.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Error)]
+#[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 pub enum DenyReason {
     /// Command uses `$'…'` or `$"…"` quoting, which rules cannot see through.
     #[error("`$'…'` and `$\"…\"` quoting is blocked. Use plain single or double quotes")]
