@@ -24,7 +24,7 @@ mod tests {
     /// Two commands separated by `;`
     #[test]
     fn semicolon_two_commands() {
-        let result = BashEvaluator::mock().evaluate_str("git status ; echo hi", None);
+        let result = BashEvaluator::fixture().evaluate_str("git status ; echo hi", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
@@ -32,7 +32,7 @@ mod tests {
     /// Three commands separated by `;`
     #[test]
     fn semicolon_three_commands() {
-        let result = BashEvaluator::mock().evaluate_str("git status ; echo hi ; ls", None);
+        let result = BashEvaluator::fixture().evaluate_str("git status ; echo hi ; ls", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
@@ -40,7 +40,8 @@ mod tests {
     /// For loop semicolons are syntactic, not separators
     #[test]
     fn semicolon_for_loop() {
-        let result = BashEvaluator::mock().evaluate_str("for f in *.txt; do echo $f; done", None);
+        let result =
+            BashEvaluator::fixture().evaluate_str("for f in *.txt; do echo $f; done", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
@@ -48,7 +49,7 @@ mod tests {
     /// `&&` followed by a for loop has no `Connector::Semi`
     #[test]
     fn semicolon_and_then_for_loop() {
-        let result = BashEvaluator::mock()
+        let result = BashEvaluator::fixture()
             .evaluate_str("git status && for f in *.txt; do echo $f; done", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
@@ -57,7 +58,7 @@ mod tests {
     /// `&&` is not `;`
     #[test]
     fn semicolon_and_connector() {
-        let result = BashEvaluator::mock().evaluate_str("git status && echo hi", None);
+        let result = BashEvaluator::fixture().evaluate_str("git status && echo hi", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }

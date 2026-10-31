@@ -266,7 +266,7 @@ mod tests {
     }
 
     #[test]
-    fn trusted_path_mock_settings() {
+    fn trusted_path_fixture_settings() {
         let result = eval_rules(
             git_worktree_rules(),
             "git worktree add /home/user/worktrees/my-project -b feat",

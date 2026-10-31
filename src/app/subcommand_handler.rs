@@ -68,7 +68,8 @@ mod tests {
 
     /// Resolve a [`SubcommandHandler`] reading `input` as stdin.
     fn create_handler(input: &str) -> Arc<SubcommandHandler> {
-        ServiceBuilder::mock()
+        ServiceBuilder::new()
+            .with_test_services()
             .with_instance(StdinReader::new(input))
             .build()
             .expect_init()

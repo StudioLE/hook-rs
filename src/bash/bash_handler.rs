@@ -89,9 +89,10 @@ mod tests {
         assert_eq!(outcome.expect("should match").decision, Decision::Allow);
     }
 
-    /// Run `command` through a mock [`BashHandler`].
+    /// Run `command` through a [`BashHandler`] resolved from the test services.
     fn run(command: &str) -> Option<Outcome> {
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .build()
             .expect_init()
             .expect::<BashHandler>();

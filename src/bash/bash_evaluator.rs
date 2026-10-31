@@ -113,9 +113,12 @@ fn sort_outcomes(outcomes: Vec<Outcome>) -> HashMap<Decision, Vec<String>> {
 
 #[cfg(test)]
 impl BashEvaluator {
-    /// Create an evaluator with the given settings for testing.
-    pub(crate) fn mock() -> Arc<Self> {
-        ServiceBuilder::mock().build().expect::<BashEvaluator>()
+    /// Create a [`BashEvaluator`] fixture resolved from the test services.
+    pub(crate) fn fixture() -> Arc<Self> {
+        ServiceBuilder::new()
+            .with_test_services()
+            .build()
+            .expect::<BashEvaluator>()
     }
 }
 
@@ -125,7 +128,8 @@ pub(crate) fn eval_rules(
     rules: Vec<BashRule>,
     command: &str,
 ) -> Result<Outcome, Report<ParseError>> {
-    ServiceBuilder::mock()
+    ServiceBuilder::new()
+        .with_test_services()
         .with_instance(BashRuleProvider::new(rules))
         .build()
         .expect::<BashEvaluator>()
@@ -139,7 +143,8 @@ pub(crate) fn eval_rules_with_settings(
     command: &str,
     settings: Settings,
 ) -> Result<Outcome, Report<ParseError>> {
-    ServiceBuilder::mock()
+    ServiceBuilder::new()
+        .with_test_services()
         .with_instance(settings)
         .with_instance(BashRuleProvider::new(rules))
         .build()
@@ -154,7 +159,8 @@ pub(crate) fn eval_rules_with_cwd(
     command: &str,
     cwd: Option<String>,
 ) -> Result<Outcome, Report<ParseError>> {
-    ServiceBuilder::mock()
+    ServiceBuilder::new()
+        .with_test_services()
         .with_instance(BashRuleProvider::new(rules))
         .build()
         .expect::<BashEvaluator>()
@@ -186,84 +192,85 @@ mod tests {
 
     #[test]
     fn safe_git() {
-        let result = BashEvaluator::mock().evaluate_str("git status", None);
+        let result = BashEvaluator::fixture().evaluate_str("git status", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn rm_rf_tmp() {
-        let result = BashEvaluator::mock().evaluate_str("rm -rf /tmp/nothing", None);
+        let result = BashEvaluator::fixture().evaluate_str("rm -rf /tmp/nothing", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn stash_pop() {
-        let result = BashEvaluator::mock().evaluate_str("git stash pop", None);
+        let result = BashEvaluator::fixture().evaluate_str("git stash pop", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn reset_hard() {
-        let result = BashEvaluator::mock().evaluate_str("git reset --hard", None);
+        let result = BashEvaluator::fixture().evaluate_str("git reset --hard", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn checkout_discard() {
-        let result = BashEvaluator::mock().evaluate_str("git checkout -- file.txt", None);
+        let result = BashEvaluator::fixture().evaluate_str("git checkout -- file.txt", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn commit_and_push() {
-        let result = BashEvaluator::mock().evaluate_str("git commit -m 'msg' && git push", None);
+        let result = BashEvaluator::fixture().evaluate_str("git commit -m 'msg' && git push", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn echo_separator() {
-        let result = BashEvaluator::mock().evaluate_str("cmd && echo \"---\"", None);
+        let result = BashEvaluator::fixture().evaluate_str("cmd && echo \"---\"", None);
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::OnlyAllowAll);
     }
 
     #[test]
     fn find_delete() {
-        let result = BashEvaluator::mock().evaluate_str("find . -name '*.tmp' -delete", None);
+        let result = BashEvaluator::fixture().evaluate_str("find . -name '*.tmp' -delete", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn insta_heredoc() {
-        let result = BashEvaluator::mock().evaluate_str("cargo insta review <<EOF\na\nEOF", None);
+        let result =
+            BashEvaluator::fixture().evaluate_str("cargo insta review <<EOF\na\nEOF", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn cd_and_git() {
-        let result = BashEvaluator::mock().evaluate_str("cd /path && git status", None);
+        let result = BashEvaluator::fixture().evaluate_str("cd /path && git status", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn plain_ls() {
-        let result = BashEvaluator::mock().evaluate_str("ls -la", None);
+        let result = BashEvaluator::fixture().evaluate_str("ls -la", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn standalone_push() {
-        let result = BashEvaluator::mock().evaluate_str("git push", None);
+        let result = BashEvaluator::fixture().evaluate_str("git push", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Ask);
     }
@@ -272,42 +279,42 @@ mod tests {
     #[test]
     fn trusted_path_push() {
         let result =
-            BashEvaluator::mock().evaluate_str("git -C /home/user/repos/my-project push", None);
+            BashEvaluator::fixture().evaluate_str("git -C /home/user/repos/my-project push", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Ask);
     }
 
     #[test]
     fn git_branch_read() {
-        let result = BashEvaluator::mock().evaluate_str("git branch -a", None);
+        let result = BashEvaluator::fixture().evaluate_str("git branch -a", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_branch_write() {
-        let result = BashEvaluator::mock().evaluate_str("git branch -d old", None);
+        let result = BashEvaluator::fixture().evaluate_str("git branch -d old", None);
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_tag_read() {
-        let result = BashEvaluator::mock().evaluate_str("git tag -l", None);
+        let result = BashEvaluator::fixture().evaluate_str("git tag -l", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn git_tag_create() {
-        let result = BashEvaluator::mock().evaluate_str("git tag v1.0", None);
+        let result = BashEvaluator::fixture().evaluate_str("git tag v1.0", None);
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn git_remote_verbose() {
-        let result = BashEvaluator::mock().evaluate_str("git remote -v", None);
+        let result = BashEvaluator::fixture().evaluate_str("git remote -v", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
@@ -315,43 +322,43 @@ mod tests {
     #[test]
     fn git_remote_add() {
         let result =
-            BashEvaluator::mock().evaluate_str("git remote add upstream https://x.com", None);
+            BashEvaluator::fixture().evaluate_str("git remote add upstream https://x.com", None);
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn rm_tmp_file() {
-        let result = BashEvaluator::mock().evaluate_str("rm /tmp/file.txt", None);
+        let result = BashEvaluator::fixture().evaluate_str("rm /tmp/file.txt", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn git_clean_d() {
-        let result = BashEvaluator::mock().evaluate_str("git clean -fd", None);
+        let result = BashEvaluator::fixture().evaluate_str("git clean -fd", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn forked_path() {
-        let result =
-            BashEvaluator::mock().evaluate_str("git -C /home/user/repos/forked/repo status", None);
+        let result = BashEvaluator::fixture()
+            .evaluate_str("git -C /home/user/repos/forked/repo status", None);
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn unknown_path() {
-        let result = BashEvaluator::mock().evaluate_str("git -C /tmp/sketchy status", None);
+        let result = BashEvaluator::fixture().evaluate_str("git -C /tmp/sketchy status", None);
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
 
     #[test]
     fn c_path_stash_pop() {
-        let result = BashEvaluator::mock()
+        let result = BashEvaluator::fixture()
             .evaluate_str("git -C /home/user/repos/my-project stash pop", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
@@ -359,7 +366,7 @@ mod tests {
 
     #[test]
     fn c_path_reset_hard() {
-        let result = BashEvaluator::mock()
+        let result = BashEvaluator::fixture()
             .evaluate_str("git -C /home/user/repos/my-project reset --hard", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
@@ -367,7 +374,7 @@ mod tests {
 
     #[test]
     fn c_path_checkout_discard() {
-        let result = BashEvaluator::mock().evaluate_str(
+        let result = BashEvaluator::fixture().evaluate_str(
             "git -C /home/user/repos/my-project checkout -- file.txt",
             None,
         );
@@ -377,7 +384,7 @@ mod tests {
 
     #[test]
     fn c_path_git_clean_d() {
-        let result = BashEvaluator::mock()
+        let result = BashEvaluator::fixture()
             .evaluate_str("git -C /home/user/repos/my-project clean -fd", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
@@ -385,14 +392,14 @@ mod tests {
 
     #[test]
     fn git_status_piped() {
-        let result = BashEvaluator::mock().evaluate_str("git status | head -5", None);
+        let result = BashEvaluator::fixture().evaluate_str("git status | head -5", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn c_path_git_show_piped_tiktoken() {
-        let result = BashEvaluator::mock().evaluate_str(
+        let result = BashEvaluator::fixture().evaluate_str(
             "git -C /home/user/repos/my-project show HEAD:README.md | tiktoken",
             None,
         );
@@ -402,49 +409,52 @@ mod tests {
 
     #[test]
     fn git_log_and_status() {
-        let result = BashEvaluator::mock().evaluate_str("git log && git status", None);
+        let result = BashEvaluator::fixture().evaluate_str("git log && git status", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn safe_and_unknown() {
-        let result = BashEvaluator::mock().evaluate_str("git status && cargo publish", None);
+        let result = BashEvaluator::fixture().evaluate_str("git status && cargo publish", None);
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::OnlyAllowAll);
     }
 
     #[test]
     fn semi_both_safe() {
-        let result = BashEvaluator::mock().evaluate_str("git status ; git diff", None);
+        let result = BashEvaluator::fixture().evaluate_str("git status ; git diff", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn semi_safe_and_unknown() {
-        let result = BashEvaluator::mock().evaluate_str("git status ; cargo publish", None);
+        let result = BashEvaluator::fixture().evaluate_str("git status ; cargo publish", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn semi_safe_and_rm() {
-        let result = BashEvaluator::mock().evaluate_str("git status ; rm -rf /tmp/nothing", None);
+        let result =
+            BashEvaluator::fixture().evaluate_str("git status ; rm -rf /tmp/nothing", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn semi_mixed_with_and() {
-        let result = BashEvaluator::mock().evaluate_str("git status && git diff ; git log", None);
+        let result =
+            BashEvaluator::fixture().evaluate_str("git status && git diff ; git log", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn for_loop_echo() {
-        let result = BashEvaluator::mock().evaluate_str("for f in *.txt; do echo $f; done", None);
+        let result =
+            BashEvaluator::fixture().evaluate_str("for f in *.txt; do echo $f; done", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
@@ -452,21 +462,21 @@ mod tests {
     #[test]
     fn for_loop_safe_git() {
         let result =
-            BashEvaluator::mock().evaluate_str("for f in *.txt; do git status; done", None);
+            BashEvaluator::fixture().evaluate_str("for f in *.txt; do git status; done", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
 
     #[test]
     fn for_loop_rm() {
-        let result = BashEvaluator::mock().evaluate_str("for f in *.tmp; do rm $f; done", None);
+        let result = BashEvaluator::fixture().evaluate_str("for f in *.tmp; do rm $f; done", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
 
     #[test]
     fn for_loop_safe_and_unknown() {
-        let result = BashEvaluator::mock()
+        let result = BashEvaluator::fixture()
             .evaluate_str("for f in *.txt; do git status && cargo publish; done", None);
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::OnlyAllowAll);
@@ -475,7 +485,7 @@ mod tests {
     #[test]
     fn for_loop_unknown() {
         let result =
-            BashEvaluator::mock().evaluate_str("for f in *.txt; do cargo publish; done", None);
+            BashEvaluator::fixture().evaluate_str("for f in *.txt; do cargo publish; done", None);
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
@@ -507,7 +517,7 @@ mod tests {
     /// A variable in a command that matches no rule falls through to the default prompt.
     #[test]
     fn variable_cargo_subcommand() {
-        let result = BashEvaluator::mock().evaluate_str("cargo $sub", None);
+        let result = BashEvaluator::fixture().evaluate_str("cargo $sub", None);
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
@@ -546,7 +556,7 @@ mod tests {
     }
 
     fn evaluate_variable(command: &str) -> Outcome {
-        expect_outcome(BashEvaluator::mock().evaluate_str(command, None))
+        expect_outcome(BashEvaluator::fixture().evaluate_str(command, None))
     }
 
     fn assert_variable_deny(outcome: &Outcome) {

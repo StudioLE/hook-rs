@@ -29,10 +29,10 @@ impl HostContext {
         }
     }
 
-    /// Deterministic paths for testing.
+    /// Create a [`HostContext`] fixture with paths under `/home/user`.
     #[cfg(test)]
     #[must_use]
-    pub fn mock() -> Self {
+    pub fn fixture() -> Self {
         Self {
             home_dir: PathBuf::from("/home/user"),
             config_file: PathBuf::from("/home/user/.config")

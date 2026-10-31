@@ -124,9 +124,9 @@ mod tests {
         assert_eq!(reason, SkipReason::OnlyAllowAll);
     }
 
-    /// Mock settings should allow `cd` to paths covered by read globs.
+    /// [`Settings::fixture`] should allow `cd` to paths covered by read globs.
     #[test]
-    fn mock_settings() {
+    fn fixture_settings() {
         let result = eval_rules(cd_rules(), "cd /path/to/repos/project");
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);

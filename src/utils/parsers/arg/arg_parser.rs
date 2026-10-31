@@ -171,9 +171,10 @@ impl ArgParser {
         }
     }
 
+    /// Create an [`ArgParser`] fixture using [`ArgParserSettings::fixture`].
     #[cfg(test)]
-    pub fn mock() -> Self {
-        ArgParser::new(ArgParserSettings::mock())
+    pub fn fixture() -> Self {
+        ArgParser::new(ArgParserSettings::fixture())
     }
 }
 
@@ -199,7 +200,7 @@ mod tests {
     #[test]
     fn arg_parser_parse_positional_only() {
         let input = args(&["log", "main"]);
-        let args = ArgParser::mock().parse(input).expect("should parse");
+        let args = ArgParser::fixture().parse(input).expect("should parse");
         assert_eq!(
             args,
             vec![
@@ -211,13 +212,13 @@ mod tests {
 
     #[test]
     fn arg_parser_parse_empty() {
-        let output = ArgParser::mock().parse(args(&[])).expect("should parse");
+        let output = ArgParser::fixture().parse(args(&[])).expect("should parse");
         assert_eq!(output, vec![]);
     }
 
     #[test]
     fn arg_parser_parse_bool_flag_short() {
-        let output = ArgParser::mock()
+        let output = ArgParser::fixture()
             .parse(args(&["-v", "log"]))
             .expect("should parse");
         assert_eq!(
@@ -228,7 +229,7 @@ mod tests {
 
     #[test]
     fn arg_parser_parse_bool_flag_long() {
-        let output = ArgParser::mock()
+        let output = ArgParser::fixture()
             .parse(args(&["--verbose", "log"]))
             .expect("should parse");
         assert_eq!(
@@ -242,7 +243,7 @@ mod tests {
 
     #[test]
     fn arg_parser_parse_value_flag_short() {
-        let output = ArgParser::mock()
+        let output = ArgParser::fixture()
             .parse(args(&["-n", "5", "log"]))
             .expect("should parse");
         assert_eq!(
@@ -256,7 +257,7 @@ mod tests {
 
     #[test]
     fn arg_parser_parse_value_flag_long_separate() {
-        let output = ArgParser::mock()
+        let output = ArgParser::fixture()
             .parse(args(&["--format", "%H", "log"]))
             .expect("should parse");
         assert_eq!(
@@ -270,7 +271,7 @@ mod tests {
 
     #[test]
     fn arg_parser_parse_value_flag_long_equals() {
-        let output = ArgParser::mock()
+        let output = ArgParser::fixture()
             .parse(args(&["--format=%H", "log"]))
             .expect("should parse");
         assert_eq!(
@@ -284,7 +285,7 @@ mod tests {
 
     #[test]
     fn arg_parser_parse_separator() {
-        let output = ArgParser::mock()
+        let output = ArgParser::fixture()
             .parse(args(&["--", "-v", "log"]))
             .expect("should parse");
         assert_eq!(
@@ -299,7 +300,7 @@ mod tests {
 
     #[test]
     fn arg_parser_parse_separator_after_flags() {
-        let output = ArgParser::mock()
+        let output = ArgParser::fixture()
             .parse(args(&["-v", "--", "--unknown"]))
             .expect("should parse");
         assert_eq!(
@@ -378,7 +379,7 @@ mod tests {
 
     #[test]
     fn arg_parser_parse_bundled_value_flag_after_bool_flag() {
-        let output = ArgParser::mock()
+        let output = ArgParser::fixture()
             .parse(args(&["-vXPOST"]))
             .expect("should parse");
         assert_eq!(
@@ -392,7 +393,7 @@ mod tests {
 
     #[test]
     fn arg_parser_parse_bundled_value_flag_consumes_remainder() {
-        let output = ArgParser::mock()
+        let output = ArgParser::fixture()
             .parse(args(&["-XPOSTv"]))
             .expect("should parse");
         assert_eq!(
@@ -403,7 +404,7 @@ mod tests {
 
     #[test]
     fn arg_parser_parse_unknown_flag_short() {
-        let error = ArgParser::mock()
+        let error = ArgParser::fixture()
             .parse(args(&["-z"]))
             .expect_err("should fail");
         assert_eq!(*error.current_context(), ArgParseError::UnknownFlag);
@@ -411,7 +412,7 @@ mod tests {
 
     #[test]
     fn arg_parser_parse_unknown_flag_long() {
-        let error = ArgParser::mock()
+        let error = ArgParser::fixture()
             .parse(args(&["--unknown"]))
             .expect_err("should fail");
         assert_eq!(*error.current_context(), ArgParseError::UnknownFlag);
@@ -419,7 +420,7 @@ mod tests {
 
     #[test]
     fn arg_parser_parse_missing_value_short() {
-        let error = ArgParser::mock()
+        let error = ArgParser::fixture()
             .parse(args(&["-n"]))
             .expect_err("should fail");
         assert_eq!(*error.current_context(), ArgParseError::MissingValue);
@@ -427,7 +428,7 @@ mod tests {
 
     #[test]
     fn arg_parser_parse_missing_value_long() {
-        let error = ArgParser::mock()
+        let error = ArgParser::fixture()
             .parse(args(&["--format"]))
             .expect_err("should fail");
         assert_eq!(*error.current_context(), ArgParseError::MissingValue);
@@ -435,7 +436,7 @@ mod tests {
 
     #[test]
     fn arg_parser_parse_unquote_positional() {
-        let output = ArgParser::mock()
+        let output = ArgParser::fixture()
             .parse(args(&["\"log\""]))
             .expect("should parse");
         assert_eq!(output, vec![Arg::Operand("log".to_owned())]);
@@ -443,7 +444,7 @@ mod tests {
 
     #[test]
     fn arg_parser_parse_unquote_flag_value() {
-        let output = ArgParser::mock()
+        let output = ArgParser::fixture()
             .parse(args(&["--format", "'%H'"]))
             .expect("should parse");
         assert_eq!(
@@ -455,7 +456,7 @@ mod tests {
     #[test]
     fn arg_parser_parse_no_unquote() {
         let settings = ArgParserSettings {
-            schema: ArgSchema::mock(),
+            schema: ArgSchema::fixture(),
             unquote: false,
         };
         let output = ArgParser::new(settings)
@@ -496,7 +497,7 @@ mod tests {
 
     #[test]
     fn arg_parser_parse_bool_flag_long_with_equals() {
-        let error = ArgParser::mock()
+        let error = ArgParser::fixture()
             .parse(args(&["--verbose=true"]))
             .expect_err("should fail");
         assert_eq!(*error.current_context(), ArgParseError::UnknownFlag);

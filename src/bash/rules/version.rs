@@ -47,7 +47,7 @@ mod tests {
     /// Checking an external git subcommand is installed with all real rules.
     #[test]
     fn any__version_git_extension() {
-        let result = BashEvaluator::mock().evaluate_str("git filter-repo --version", None);
+        let result = BashEvaluator::fixture().evaluate_str("git filter-repo --version", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }

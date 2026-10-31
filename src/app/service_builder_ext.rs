@@ -5,11 +5,11 @@ use crate::prelude::*;
 /// Extension trait for configuring a [`ServiceBuilder`] with application services.
 pub(crate) trait ServiceBuilderExt {
     /// Register all application types for dependency resolution.
-    fn with_app_services(self) -> ServiceBuilder;
+    fn with_app_services(self) -> Self;
 
-    /// Create a [`ServiceBuilder`] pre-loaded with mock instances and all types registered.
+    /// Register all application services with fixtures for host state.
     #[cfg(test)]
-    fn mock() -> ServiceBuilder;
+    fn with_test_services(self) -> Self;
 }
 
 impl ServiceBuilderExt for ServiceBuilder {
@@ -30,12 +30,11 @@ impl ServiceBuilderExt for ServiceBuilder {
     }
 
     #[cfg(test)]
-    fn mock() -> ServiceBuilder {
-        ServiceBuilder::new()
-            .with_app_services()
-            .with_instance(CliArgs::mock())
-            .with_instance(HostContext::mock())
-            .with_instance(Settings::mock())
+    fn with_test_services(self) -> Self {
+        self.with_app_services()
+            .with_instance(CliArgs::fixture())
+            .with_instance(HostContext::fixture())
+            .with_instance(Settings::fixture())
     }
 }
 
@@ -56,9 +55,12 @@ mod tests {
 
     /// End-to-end: container resolves handler and evaluates a command.
     #[test]
-    fn service_builder_mock_bash_evaluation() {
+    fn service_builder_with_test_services() {
         // Arrange
-        let services = ServiceBuilder::mock().build().expect_init();
+        let services = ServiceBuilder::new()
+            .with_test_services()
+            .build()
+            .expect_init();
         let handler = services.expect::<BashHandler>();
         let input = HookInput::new(BashInput {
             command: "git status".to_owned(),

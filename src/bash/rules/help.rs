@@ -177,8 +177,8 @@ mod tests {
     /// Checking a newly installed CLI with all real rules.
     #[test]
     fn any__help_chained_with_version() {
-        let result =
-            BashEvaluator::mock().evaluate_str("netlify --version && netlify login --help", None);
+        let result = BashEvaluator::fixture()
+            .evaluate_str("netlify --version && netlify login --help", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
@@ -186,7 +186,7 @@ mod tests {
     /// Existing deny rules still win over the bare `--help` allow.
     #[test]
     fn any__help_python_script() {
-        let result = BashEvaluator::mock().evaluate_str("python script --help", None);
+        let result = BashEvaluator::fixture().evaluate_str("python script --help", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
@@ -194,7 +194,7 @@ mod tests {
     /// `find` actions like `-exec` and `-delete` are flags, so they never reach the allow.
     #[test]
     fn any__help_find() {
-        let result = BashEvaluator::mock().evaluate_str("find --help", None);
+        let result = BashEvaluator::fixture().evaluate_str("find --help", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Allow);
     }
@@ -202,7 +202,7 @@ mod tests {
     /// `-exec` is a flag, so `find` would run `ls` but the allow never matches.
     #[test]
     fn any__help_find_exec() {
-        let result = BashEvaluator::mock().evaluate_str("find -exec ls --help", None);
+        let result = BashEvaluator::fixture().evaluate_str("find -exec ls --help", None);
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
@@ -210,7 +210,7 @@ mod tests {
     /// `fd__ignored` denies `fd` without `--no-ignore`, and deny wins over the allow.
     #[test]
     fn any__help_fd() {
-        let result = BashEvaluator::mock().evaluate_str("fd --help", None);
+        let result = BashEvaluator::fixture().evaluate_str("fd --help", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
@@ -218,7 +218,7 @@ mod tests {
     /// `rg__ignored` denies `rg` without `--no-ignore`, and deny wins over the allow.
     #[test]
     fn any__help_rg() {
-        let result = BashEvaluator::mock().evaluate_str("rg --help", None);
+        let result = BashEvaluator::fixture().evaluate_str("rg --help", None);
         let outcome = expect_outcome(result);
         assert_eq!(outcome.decision, Decision::Deny);
     }
@@ -226,7 +226,7 @@ mod tests {
     /// `xargs` is excluded even with no operand, so it falls through to the prompt.
     #[test]
     fn any__help_xargs() {
-        let result = BashEvaluator::mock().evaluate_str("xargs --help", None);
+        let result = BashEvaluator::fixture().evaluate_str("xargs --help", None);
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }
@@ -234,7 +234,7 @@ mod tests {
     /// `xargs` would pass `--help` to `rm`, which is why it is excluded.
     #[test]
     fn any__help_xargs_operand() {
-        let result = BashEvaluator::mock().evaluate_str("xargs rm --help", None);
+        let result = BashEvaluator::fixture().evaluate_str("xargs rm --help", None);
         let reason = expect_skip(result);
         assert_eq!(reason, SkipReason::NoMatches);
     }

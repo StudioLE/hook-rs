@@ -11,10 +11,11 @@ pub struct ArgParserSettings {
 }
 
 impl ArgParserSettings {
+    /// Create an [`ArgParserSettings`] fixture using [`ArgSchema::fixture`].
     #[cfg(test)]
-    pub fn mock() -> Self {
+    pub fn fixture() -> Self {
         Self {
-            schema: ArgSchema::mock(),
+            schema: ArgSchema::fixture(),
             unquote: true,
         }
     }

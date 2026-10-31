@@ -31,7 +31,8 @@ mod tests {
         // Arrange
         let input = HookInput::new(GrepInput::new("needle", "/opt/readonly"));
         let settings = Settings::with_read(&["/opt/readonly/**"]);
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .with_instance(settings)
             .build()
             .expect::<GrepHandler>();
@@ -48,7 +49,8 @@ mod tests {
         // Arrange
         let input = HookInput::new(GrepInput::new("needle", "/opt/readonly/src/lib.rs"));
         let settings = Settings::with_read(&["/opt/readonly/**"]);
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .with_instance(settings)
             .build()
             .expect::<GrepHandler>();
@@ -65,7 +67,8 @@ mod tests {
         // Arrange
         let input = HookInput::new(GrepInput::new("needle", "/etc"));
         let settings = Settings::with_read(&["/opt/readonly/**"]);
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .with_instance(settings)
             .build()
             .expect::<GrepHandler>();
@@ -82,7 +85,8 @@ mod tests {
         // Arrange
         let input = HookInput::new(GrepInput::new("needle", "/opt/readonly"));
         let settings = Settings::default();
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .with_instance(settings)
             .build()
             .expect::<GrepHandler>();
@@ -103,7 +107,8 @@ mod tests {
         });
         let cwd = cwd();
         let settings = Settings::with_read(&[&format!("{cwd}/**")]);
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .with_instance(settings)
             .build()
             .expect::<GrepHandler>();
@@ -120,7 +125,8 @@ mod tests {
         // Arrange
         let input = HookInput::new(GrepInput::new("needle", "/opt/readonly/secret"));
         let settings = Settings::with_read(&["/opt/readonly/**", "!/opt/readonly/secret/**"]);
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .with_instance(settings)
             .build()
             .expect::<GrepHandler>();

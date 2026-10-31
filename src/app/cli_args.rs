@@ -25,9 +25,9 @@ impl FromServices for CliArgs {
 
 #[cfg(test)]
 impl CliArgs {
-    /// Deterministic [`CliArgs`] for testing.
+    /// Create a [`CliArgs`] fixture for testing.
     #[must_use]
-    pub fn mock() -> Self {
+    pub fn fixture() -> Self {
         Self {
             log_level: Some(LogLevel::Trace),
             subcommand: Subcommand::Bash,

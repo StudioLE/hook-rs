@@ -31,7 +31,8 @@ mod tests {
         // Arrange
         let input = HookInput::new(ReadInput::new("/opt/readonly/data/file.txt"));
         let settings = Settings::with_read(&["/opt/readonly/**", "/usr/share/doc/**"]);
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .with_instance(settings)
             .build()
             .expect::<ReadHandler>();
@@ -48,7 +49,8 @@ mod tests {
         // Arrange
         let input = HookInput::new(ReadInput::new("/usr/share/doc/rust/html/index.html"));
         let settings = Settings::with_read(&["/opt/readonly/**", "/usr/share/doc/**"]);
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .with_instance(settings)
             .build()
             .expect::<ReadHandler>();
@@ -65,7 +67,8 @@ mod tests {
         // Arrange
         let input = HookInput::new(ReadInput::new("/etc/passwd"));
         let settings = Settings::with_read(&["/opt/readonly/**", "/usr/share/doc/**"]);
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .with_instance(settings)
             .build()
             .expect::<ReadHandler>();
@@ -82,7 +85,8 @@ mod tests {
         // Arrange
         let input = HookInput::new(ReadInput::new("/opt/readonly/file.txt"));
         let settings = Settings::default();
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .with_instance(settings)
             .build()
             .expect::<ReadHandler>();
@@ -95,13 +99,14 @@ mod tests {
     }
 
     #[test]
-    fn tilde_pattern_expands_to_mock_home() {
+    fn tilde_pattern_expands_to_fixture_home() {
         // Arrange
         let input = HookInput::new(ReadInput::new(
             "/home/user/.cargo/registry/src/index.crates.io-xxx/serde-1.0.0/src/lib.rs",
         ));
         let settings = Settings::with_read(&["~/.cargo/registry/src/**"]);
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .with_instance(settings)
             .build()
             .expect::<ReadHandler>();
@@ -118,7 +123,8 @@ mod tests {
         // Arrange
         let input = HookInput::new(ReadInput::new("/opt/readonly/secret/key.pem"));
         let settings = Settings::with_read(&["/opt/readonly/**", "!/opt/readonly/secret/**"]);
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .with_instance(settings)
             .build()
             .expect::<ReadHandler>();
@@ -139,7 +145,8 @@ mod tests {
             "!/opt/readonly/secret/**",
             "/opt/readonly/secret/public.txt",
         ]);
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .with_instance(settings)
             .build()
             .expect::<ReadHandler>();
@@ -159,7 +166,8 @@ mod tests {
             "~/.cargo/registry/src/index.crates.io-xxx/serde-1.0.0/src/lib.rs",
         ));
         let settings = Settings::with_read(&["~/.cargo/registry/src/**"]);
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .with_instance(settings)
             .build()
             .expect::<ReadHandler>();
@@ -179,7 +187,8 @@ mod tests {
             "~/.cargo/registry/src/index.crates.io-xxx/serde-1.0.0/src/lib.rs",
         ));
         let settings = Settings::with_read(&["/home/user/.cargo/registry/src/**"]);
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .with_instance(settings)
             .build()
             .expect::<ReadHandler>();
@@ -197,7 +206,8 @@ mod tests {
         // Arrange
         let input = HookInput::new(ReadInput::new("~/.config/tools/cache/v1/data/file.md"));
         let settings = Settings::with_read(&["~/.config/**"]);
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .with_instance(settings)
             .build()
             .expect::<ReadHandler>();

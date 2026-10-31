@@ -60,12 +60,12 @@ impl PathRuleFactory {
         None
     }
 
-    /// Deterministic factory for testing.
+    /// Create a [`PathRuleFactory`] fixture using [`HostContext::fixture`].
     #[cfg(test)]
     #[must_use]
-    pub fn mock() -> Self {
+    pub fn fixture() -> Self {
         Self {
-            host: Arc::new(HostContext::mock()),
+            host: Arc::new(HostContext::fixture()),
         }
     }
 }
@@ -99,7 +99,7 @@ mod tests {
 
     #[test]
     fn cargo_registry_source() {
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let rule = factory.create("~/.cargo/registry/src/**");
         assert!(
             rule.is_match(
@@ -110,7 +110,7 @@ mod tests {
 
     #[test]
     fn cargo_registry_nested() {
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let rule = factory.create("~/.cargo/registry/src/**");
         assert!(
             rule.is_match("/home/user/.cargo/registry/src/index.crates.io-xxx/deep/nested/file.rs")
@@ -119,7 +119,7 @@ mod tests {
 
     #[test]
     fn rustup_toolchain() {
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let rule = factory.create("~/.rustup/toolchains/**");
         assert!(rule.is_match(
             "/home/user/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/lib.rs"
@@ -128,7 +128,7 @@ mod tests {
 
     #[test]
     fn unrelated_path() {
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let cargo = factory.create("~/.cargo/registry/src/**");
         let rustup = factory.create("~/.rustup/toolchains/**");
         assert!(!cargo.is_match("/etc/passwd"));
@@ -137,7 +137,7 @@ mod tests {
 
     #[test]
     fn home_prefix_mismatch() {
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let rule = factory.create("~/.cargo/registry/src/**");
         assert!(!rule.is_match(
             "/home/other/.cargo/registry/src/index.crates.io-xxx/serde-1.0.0/src/lib.rs"
@@ -146,14 +146,14 @@ mod tests {
 
     #[test]
     fn cargo_registry_root_outside_pattern() {
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let rule = factory.create("~/.cargo/registry/src/**");
         assert!(!rule.is_match("/home/user/.cargo/registry/cache/something"));
     }
 
     #[test]
     fn absolute_path_without_tilde() {
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let rule = factory.create("/opt/readonly/**");
         assert!(rule.is_match("/opt/readonly/foo/bar.rs"));
         assert!(!rule.is_match("/opt/other/foo.rs"));
@@ -161,14 +161,14 @@ mod tests {
 
     #[test]
     fn tilde_in_middle_no_glob_match() {
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let rule = factory.create("/tmp/~backup/file");
         assert!(!rule.is_match("/tmp/something"));
     }
 
     #[test]
     fn bare_tilde_pattern() {
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let rule = factory.create("~");
         assert!(rule.is_match("/home/user"));
         assert!(!rule.is_match("/home/user/subdir"));
@@ -176,7 +176,7 @@ mod tests {
 
     #[test]
     fn tilde_other_user_no_glob_match() {
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let rule = factory.create("~other/file");
         assert!(!rule.is_match("/home/other/file"));
     }
@@ -184,7 +184,7 @@ mod tests {
     #[test]
     fn patterns_simple() {
         let patterns = vec!["/a/**".to_owned()];
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let option = factory.is_match("/a/file.txt", &patterns);
         assert_eq!(option, Some(true));
     }
@@ -192,7 +192,7 @@ mod tests {
     #[test]
     fn patterns_unrelated() {
         let patterns = vec!["/a/**".to_owned()];
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let option = factory.is_match("/b/file.txt", &patterns);
         assert_eq!(option, None);
     }
@@ -200,7 +200,7 @@ mod tests {
     #[test]
     fn patterns_negation_excludes() {
         let patterns = vec!["/a/**".to_owned(), "!/a/secret/**".to_owned()];
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let option = factory.is_match("/a/secret/key.pem", &patterns);
         assert_eq!(option, Some(false));
     }
@@ -212,7 +212,7 @@ mod tests {
             "!/a/secret/**".to_owned(),
             "/a/secret/public.txt".to_owned(),
         ];
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let option = factory.is_match("/a/secret/public.txt", &patterns);
         assert_eq!(option, Some(true));
     }
@@ -220,7 +220,7 @@ mod tests {
     #[test]
     fn patterns_last_match_wins() {
         let patterns = vec!["!/a/**".to_owned(), "/a/**".to_owned()];
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let option = factory.is_match("/a/file.txt", &patterns);
         assert_eq!(option, Some(true));
     }
@@ -228,7 +228,7 @@ mod tests {
     #[test]
     fn patterns_empty() {
         let patterns: Vec<String> = vec![];
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let option = factory.is_match("/a/file.txt", &patterns);
         assert_eq!(option, None);
     }
@@ -237,7 +237,7 @@ mod tests {
     #[test]
     fn is_match_tilde_input_tilde_pattern() {
         let patterns = vec!["~/.config/foo/**".to_owned()];
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let option = factory.is_match("~/.config/foo/bar", &patterns);
         assert_eq!(option, Some(true));
     }
@@ -246,7 +246,7 @@ mod tests {
     #[test]
     fn is_match_tilde_input_absolute_pattern() {
         let patterns = vec!["/home/user/.config/foo/**".to_owned()];
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let option = factory.is_match("~/.config/foo/bar", &patterns);
         assert_eq!(option, Some(true));
     }
@@ -255,7 +255,7 @@ mod tests {
     #[test]
     fn is_match_absolute_input_tilde_pattern() {
         let patterns = vec!["~/.config/foo/**".to_owned()];
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let option = factory.is_match("/home/user/.config/foo/bar", &patterns);
         assert_eq!(option, Some(true));
     }
@@ -264,7 +264,7 @@ mod tests {
     #[test]
     fn is_match_bare_tilde_input() {
         let patterns = vec!["~/**".to_owned()];
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let option = factory.is_match("~", &patterns);
         assert_eq!(option, Some(true));
     }
@@ -273,7 +273,7 @@ mod tests {
     #[test]
     fn is_match_tilde_slash_input() {
         let patterns = vec!["~/**".to_owned()];
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let option = factory.is_match("~/", &patterns);
         assert_eq!(option, Some(true));
     }
@@ -282,7 +282,7 @@ mod tests {
     #[test]
     fn is_match_tilde_input_negation() {
         let patterns = vec!["~/.config/**".to_owned(), "!~/.config/secret/**".to_owned()];
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let option = factory.is_match("~/.config/secret/key", &patterns);
         assert_eq!(option, Some(false));
     }
@@ -291,7 +291,7 @@ mod tests {
     #[test]
     fn is_match_no_double_expansion() {
         let patterns = vec!["/home/user/.config/**".to_owned()];
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let option = factory.is_match("/home/user/.config/foo", &patterns);
         assert_eq!(option, Some(true));
     }
@@ -299,7 +299,7 @@ mod tests {
     #[test]
     fn patterns_bare_filename() {
         let patterns = vec!["CLAUDE.md".to_owned()];
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let option = factory.is_match("/home/user/project/.claude/CLAUDE.md", &patterns);
         assert_eq!(option, Some(true));
     }
@@ -307,7 +307,7 @@ mod tests {
     #[test]
     fn patterns_bare_filename_negation() {
         let patterns = vec!["CLAUDE.md".to_owned(), "!.env".to_owned()];
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let option = factory.is_match("/home/user/project/.env", &patterns);
         assert_eq!(option, Some(false));
     }
@@ -315,7 +315,7 @@ mod tests {
     #[test]
     fn patterns_bare_glob() {
         let patterns = vec![".env.*".to_owned()];
-        let factory = PathRuleFactory::mock();
+        let factory = PathRuleFactory::fixture();
         let option = factory.is_match("/home/user/project/.env.local", &patterns);
         assert_eq!(option, Some(true));
     }

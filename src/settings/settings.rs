@@ -70,10 +70,10 @@ impl Settings {
         }
     }
 
-    /// Mock settings for use in tests.
+    /// Create a [`Settings`] fixture for testing.
     #[cfg(test)]
     #[must_use]
-    pub fn mock() -> Self {
+    pub fn fixture() -> Self {
         Self {
             git: GitSettings::new(&["/home/user/repos/**", "!/home/user/repos/forked/**"]),
             read: ReadSettings::new(&[

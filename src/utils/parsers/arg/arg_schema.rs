@@ -27,8 +27,9 @@ impl ArgSchema {
         self.value_flags.iter().any(|f| f == flag)
     }
 
+    /// Create an [`ArgSchema`] fixture with a few bool and value flags.
     #[cfg(test)]
-    pub fn mock() -> Self {
+    pub fn fixture() -> Self {
         Self {
             bool_flags: vec![String::from("-v"), String::from("--verbose")],
             value_flags: vec![

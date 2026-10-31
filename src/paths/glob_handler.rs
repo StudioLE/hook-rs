@@ -31,7 +31,8 @@ mod tests {
         // Arrange
         let input = HookInput::new(GlobInput::new("**/*.rs", Some("/opt/readonly".to_owned())));
         let settings = Settings::with_read(&["/opt/readonly/**"]);
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .with_instance(settings)
             .build()
             .expect::<GlobHandler>();
@@ -51,7 +52,8 @@ mod tests {
             Some("/opt/readonly/src/lib.rs".to_owned()),
         ));
         let settings = Settings::with_read(&["/opt/readonly/**"]);
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .with_instance(settings)
             .build()
             .expect::<GlobHandler>();
@@ -68,7 +70,8 @@ mod tests {
         // Arrange
         let input = HookInput::new(GlobInput::new("**/*.rs", Some("/etc".to_owned())));
         let settings = Settings::with_read(&["/opt/readonly/**"]);
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .with_instance(settings)
             .build()
             .expect::<GlobHandler>();
@@ -85,7 +88,8 @@ mod tests {
         // Arrange
         let input = HookInput::new(GlobInput::new("**/*.rs", Some("/opt/readonly".to_owned())));
         let settings = Settings::default();
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .with_instance(settings)
             .build()
             .expect::<GlobHandler>();
@@ -103,7 +107,8 @@ mod tests {
         let input = HookInput::new(GlobInput::new("**/*.rs", None));
         let cwd = cwd();
         let settings = Settings::with_read(&[&format!("{cwd}/**")]);
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .with_instance(settings)
             .build()
             .expect::<GlobHandler>();
@@ -123,7 +128,8 @@ mod tests {
             Some("/opt/readonly/secret".to_owned()),
         ));
         let settings = Settings::with_read(&["/opt/readonly/**", "!/opt/readonly/secret/**"]);
-        let handler = ServiceBuilder::mock()
+        let handler = ServiceBuilder::new()
+            .with_test_services()
             .with_instance(settings)
             .build()
             .expect::<GlobHandler>();
